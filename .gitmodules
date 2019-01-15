@@ -1,0 +1,30 @@
+[submodule "libbeam"]
+	path = libbeam
+	url = https://github.com/BEAMRobotics/libbeam.git
+[submodule "calibration/camera_lidar_calib"]
+	path = calibration/camera_lidar_calib
+	url = https://github.com/nickcharron/camera_lidar_calib.git
+[submodule "mapping/loam_velodyne"]
+	path = mapping/loam_velodyne
+	url = https://github.com/BEAMRobotics/loam_velodyne.git
+[submodule "calibration/kalibr_allan"]
+	path = calibration/kalibr_allan
+	url = https://github.com/nickcharron/kalibr_allan.git
+[submodule "mapping/ig_graph_slam"]
+	path = mapping/ig_graph_slam
+	url = https://github.com/nickcharron/ig_graph_slam.git
+[submodule "ros_drivers/ethz_piksi_ros"]
+	path = ros_drivers/ethz_piksi_ros
+	url = https://github.com/BEAMRobotics/ethz_piksi_ros.git
+[submodule "ros_drivers/flir_camera_driver"]
+	path = ros_drivers/flir_camera_driver
+	url = https://github.com/BEAMRobotics/flir_camera_driver.git
+[submodule "ros_drivers/velodyne"]
+	path = ros_drivers/velodyne
+	url = https://github.com/nickcharron/velodyne.git
+[submodule "ros_drivers/ximea_ros_cam"]
+	path = ros_drivers/ximea_ros_cam
+	url = https://github.com/BEAMRobotics/ximea_ros_cam.git
+[submodule "ros_drivers/um7_driver"]
+	path = ros_drivers/um7_driver
+	url = https://github.com/BEAMRobotics/um7_driver.git

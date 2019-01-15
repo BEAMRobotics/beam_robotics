@@ -1,0 +1,24 @@
+Bag: 2018-12-13-12-31-33-IMU_Intrinsics.mat
+Details: ~2.5 hour bag of IMU from piksi GPS.
+IMU was attached to the robot, with all other sensors running.
+
+Data Processed: 2018 12 22
+----------------------------------------
+SCRIPT_process_results Output:
+----------------------------------------
+accelerometer_noise_density = 2.65549935
+accelerometer_random_walk   = 0.01865180
+gyroscope_noise_density     = 1.11156208
+gyroscope_random_walk       = 0.00469916
+
+----------------------------------------
+SCRIPT_noise_conversion Output:
+----------------------------------------
+DIDN'T DO IT - Could not find specs online
+
+rostopic: /piksi/imu_converted
+update_rate:
+#Accelerometers
+accelerometer_noise_density:
+#Gyroscopes
+gyroscope_noise_density:

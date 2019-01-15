@@ -1,0 +1,28 @@
+--------------------------------------------------------------------------------
+                          CALIBRATION LOG
+--------------------------------------------------------------------------------
+Description: Use this doc to document all calibrations that are done on ig.
+Please input when they were done, the file name and how they were calculated
+(description). If you know what was changed since the previous calibration,
+please also add this.
+
+Date Completed:   File Name:                                Description:
+---------------   ----------                                ------------
+2018-03-19        2018_03_19_ximea_to_flir_calibration.txt  ximea to flir stereo calibration
+2018-03-19        2018_03_19_ximeaCalibration.txt           ximea intrinsic calibration
+
+2018-05-02        2018_04_05_ximea_calibration.txt	        ximea intrinsic calibration. The focal length was changed.
+						                                                Note the data was collected on 04-05 but processed on 05-02
+
+2018-05-31        2018_05_31.yaml                           Redid the calibration tree based on old faro scan with
+                                                            proper convention for imu and camera coordinates
+
+2018-08-14        2018_08_14.yaml                           Tweaked the calibration from 2018-05-14 using the new lidar
+                                                            to lidar calibration package. Did it quick, could be refined.
+                                                            Used bag file: ig_scan_2018-06-01-11-58-25.bag
+
+                                                            * All this below was done after the big sensor reconfig
+2018-12-19        X1.yaml                                   Intrinsics of ximea after lense was tuned - Kalibr
+                  F1.yaml                                   First intrinsics calibration of blackfly - Kalibr
+                  F2.yaml                                   First intrinsics calibration of blackfly - Kalibr
+                  

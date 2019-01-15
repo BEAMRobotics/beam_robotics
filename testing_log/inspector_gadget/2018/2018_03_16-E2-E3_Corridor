@@ -1,0 +1,28 @@
+Summary of data collection
+Start Time: 2:30pm
+End Time: 4:30pm
+
+Weather: Mostly sunny with some clouds, -4degC, no precipitation
+
+First Scan - 2018-03-16-15-30-04
+- Started at the location of the yellow steel connection structure
+- Drove up the pathway between E2 and E3 towards the loading dock area
+- Stopped approximately 15m from the loading dock
+- Drove back down the same pathway
+- Drove on the curb to excite more DOF
+- Turned left at the yellow connection structure to drive towards RCH
+- Drove underneath the bridge connection E2 to Physics
+- Stopped scan and carried husky back to base station
+- IMU DATA NOT LOGGED!!!!
+
+Second Scan - 2018-03-16-16-00-14
+- Started at the location of the yellow steel connection structure
+- Drove towards EIT building
+- Stopped at approximately 40m away from the yellow steel connection structure
+- IMU DATA WAS LOGGED
+- VERTICAL VELODYNE DATA NOT RECORDED!!!!
+
+Base Station Surveyed Location:
+ - Surveyed Lat:    43.4708905353
+ - Surveyed Long:   -80.5411206127
+ - Surveyed Alt:    302.988902389

@@ -1,0 +1,23 @@
+[22:16:06] Units: mm
+Measured Using CloudCompare (Using Scan Reg.)
+
+0.991964399815 -0.087712064385 -0.091176182032 -91.040794372559
+0.091359511018 -0.001929508988 0.995815932751 -7.715219497681
+-0.087520986795 -0.996144533157 0.006099476945 900.930725097656
+0.000000000000 0.000000000000 0.000000000000 1.000000000000
+
+***Note***
+
+This was done in Cloud compare where the axes were not the same as
+axes in our robot.
+
+Our Coord.	 CC Cord.
+----------       --------
+    x	    =      -z
+    y	    =      -x
+    z	    =       y
+
+Therefore I changed the translations accordingly, but not R.
+We may need to multiply by an R with yaw and pitch of +pi/2
+
+need to yaw -90 then pitch 180?

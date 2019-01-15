@@ -1,0 +1,9 @@
+cam0:
+  cam_overlaps: []
+  camera_model: pinhole
+  distortion_coeffs: [-0.2274654652942219, 0.17974500352564166, 0.0001909369766975665,
+    -0.001144568086724896]
+  distortion_model: radtan
+  intrinsics: [1512.2275646310243, 1507.752312549922, 641.8600848323616, 517.7949084156129]
+  resolution: [1280, 1024]
+  rostopic: /ximea_cam/image_raw

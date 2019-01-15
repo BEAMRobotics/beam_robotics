@@ -1,0 +1,11 @@
+publish_interval: 100
+settings:
+  /velodyne_calib_tf/pitch: {is_repeat: false, max: 0.1, min: -0.1}
+  /velodyne_calib_tf/roll: {is_repeat: false, max: 0.1, min: -0.1}
+  /velodyne_calib_tf/save_data: {is_repeat: false, max: 0, min: 0}
+  /velodyne_calib_tf/x: {is_repeat: false, max: 0.5, min: -0.5}
+  /velodyne_calib_tf/y: {is_repeat: false, max: 1.0, min: -1.0}
+  /velodyne_calib_tf/yaw: {is_repeat: false, max: 0.1, min: -0.1}
+  /velodyne_calib_tf/z: {is_repeat: false, max: 0.1, min: -0.1}
+texts: [/velodyne_calib_tf/x, /velodyne_calib_tf/y, /velodyne_calib_tf/z, /velodyne_calib_tf/roll,
+  /velodyne_calib_tf/pitch, /velodyne_calib_tf/yaw, /velodyne_calib_tf/save_data]

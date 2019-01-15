@@ -1,0 +1,42 @@
+Summary of data collection
+Start Time: 4:30pm
+End Time: 6:30pm
+
+Weather: Partly cloudy, 10degC, no precipitation
+
+First Scan - 2018-04-12-16—32-29
+- Loop underneath bridge
+- Stuck on log, poor wheel odom
+- clockwise direction 
+
+
+Second Scan - 2018-04-12-16-38-31
+- Similar loop underneath bridge
+- clockwise direction
+- Avoided log for better wheel odom
+
+
+Third Scan - 2018-04-12-16-44-20
+- straight line beside bridge (east side)
+- driven from south to north
+- driven on flat ground
+
+
+Fourth Scan - 2018-04-12-16-47-06
+- straight line under a bridge
+- driven under girder for potential to colourize point cloud
+- direction from north to south 
+
+
+Fifth Scan - 2018-04-12-16-52-11
+- Loop similar to scan 1 and 2
+- no ximea to test interference with GPS signal
+- clockwise direction
+
+Base Station Surveyed Location:
+ - Surveyed Lat:    43.4708941556
+ - Surveyed Long:   -80.5411328627
+ - Surveyed Alt:    300.225510524
+
+NOTE
+- Also took videos with Dylan on this date to document the work that is being done with the husky

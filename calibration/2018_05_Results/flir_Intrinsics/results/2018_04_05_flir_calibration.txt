@@ -1,0 +1,31 @@
+Ximea Calibration Results:
+--------------------------
+
+Image Capture Date: 2018_04_05
+Done by: Evan McLaughlin
+
+Intrinsic Matrix:
+  551.975884    0.000000    0.000000
+    0.000000  548.105311    0.000000
+  331.557497  276.366999    1.000000
+
+Radial Distortion
+  -0.1585462  -1.6098764   6.2022364
+
+Tangential Distortion
+  -0.0026708   0.0082694
+
+Mean Reprojection Error: 0.3670
+
+Images Used:
+image13.jpg
+image14.jpg
+image16.jpg
+image18.jpg
+image19.jpg
+image21.jpg
+image23.jpg
+image24.jpg
+image43.jpg
+image44.jpg
+image45.jpg

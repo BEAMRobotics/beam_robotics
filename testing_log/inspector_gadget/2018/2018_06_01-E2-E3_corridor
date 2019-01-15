@@ -1,0 +1,25 @@
+Summary of data collection
+Start Time: 1:00pm
+End Time: 2:30pm
+
+Weather: Light Overcast to start, sunny for last two scans, 26degC, no precipitation
+Base station was setup in the most open area (right in front of structures lab)
+
+*** Timing seems to be off. Velodyne messages seem to be 2s behind.
+
+First Scan - 2018-06-01-11-58-25
+- Started between E3 and EIT
+- Drove towards yellow steel structure then up the pathway between E2 and E3
+- Did a turn into the structures loading dock area. 
+- Got gps rtk fix around base station location
+
+Second Scan - 2018-06-01-12-08-04
+- Started at the location of the yellow steel connection structure
+- Drove towards EIT and then up towards the structures lab
+
+** We did more scans but some the imu didn't start and others the lidar ports weren't configured
+
+Base Station Surveyed Location: (Steve took screenshot)
+ - Surveyed Lat:    43.4712500239
+ - Surveyed Long:   -80.541389501
+ - Surveyed Alt:    299.580530231
