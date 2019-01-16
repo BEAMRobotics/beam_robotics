@@ -28,3 +28,6 @@
 [submodule "ros_drivers/um7_driver"]
 	path = ros_drivers/um7_driver
 	url = https://github.com/BEAMRobotics/um7_driver.git
+[submodule "inspection_tools/cnn_defect_segmentation"]
+	path = inspection_tools/cnn_defect_segmentation
+	url = https://github.com/BEAMRobotics/cnn_defect_segmentation.git
