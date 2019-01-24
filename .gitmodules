@@ -3,7 +3,7 @@
 	url = https://github.com/BEAMRobotics/libbeam.git
 [submodule "calibration/camera_lidar_calib"]
 	path = calibration/camera_lidar_calib
-	url = https://github.com/nickcharron/camera_lidar_calib.git
+	url = https://github.com/BEAMRobotics/camera_lidar_calib.git
 [submodule "mapping/loam_velodyne"]
 	path = mapping/loam_velodyne
 	url = https://github.com/BEAMRobotics/loam_velodyne.git
