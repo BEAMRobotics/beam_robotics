@@ -93,7 +93,8 @@ install_routine()
     install_ceres
     install_pcl
     install_geographiclib
-    #install_gtsam
+    install_gtsam
+    install_libwave
 
     compile
 
