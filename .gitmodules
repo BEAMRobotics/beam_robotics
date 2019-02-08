@@ -7,9 +7,6 @@
 [submodule "mapping/loam_velodyne"]
 	path = mapping/loam_velodyne
 	url = https://github.com/BEAMRobotics/loam_velodyne.git
-[submodule "calibration/kalibr_allan"]
-	path = calibration/kalibr_allan
-	url = https://github.com/nickcharron/kalibr_allan.git
 [submodule "mapping/ig_graph_slam"]
 	path = mapping/ig_graph_slam
 	url = https://github.com/nickcharron/ig_graph_slam.git
