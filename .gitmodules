@@ -31,3 +31,6 @@
 [submodule "inspection_tools/cnn_defect_segmentation"]
 	path = inspection_tools/cnn_defect_segmentation
 	url = https://github.com/BEAMRobotics/cnn_defect_segmentation.git
+[submodule "novatel_span_driver"]
+	path = novatel_span_driver
+	url = https://github.com/BEAMRobotics/novatel_span_driver.git
