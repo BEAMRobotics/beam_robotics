@@ -83,6 +83,8 @@ install_routine()
     link_routine
     bash $INSTALL_SCRIPTS/rosdeps_install.bash
     
+    env_setup
+
     # Import functions to install required dependencies
     source $INSTALL_SCRIPTS/beam_dependencies_install.bash
     
@@ -169,5 +171,15 @@ compile()
         fi
     fi
 }
+
+env_setup()
+{
+    # ROS environment setup
+    echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
+    source /opt/ros/kinetic/setup.bash
+    echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+    echo "ROS_PACKAGE_PATH=/home/$USER/catkin_ws/src:/opt/ros/kinetic/share:/$ROS_PACKAGE_PATH" >> ~/.bashrc
+}
+
 
 main

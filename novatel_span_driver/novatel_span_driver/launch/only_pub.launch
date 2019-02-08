@@ -1,0 +1,27 @@
+<launch>
+  <arg name="ip" default="192.168.100.160" />
+  <arg name="port" default="3001" />
+
+  <node name="publisher_node" pkg="novatel_span_driver" type="pub_only">
+    <param name="ip" value="$(arg ip)" />
+    <param name="port" value="$(arg port)" />
+
+    <!-- Whether or not the driver should publish a TF, and what frames it should
+         be between. This configuration publishes odom -> base_link. -->
+    <param name="publish_tf" value="true" />
+    <param name="odom_frame" value="gps_odom" />
+    <param name="base_frame" value="gps_link" />
+
+    <!-- IMU rate; controls scaling of the imu/data topic values. This is a
+         function of the underlying hardware IMU rate, which is 100Hz for IMU-CPT. -->
+    <param name="rate" value="125" />
+
+    <!-- Disable this if you don't want SPAN to use wheel encoder data. Remap the odom
+         topic if your encoders publish elsewhere. -->
+    <param name="enable_wheel_velocity" value="false" />
+
+    <!-- Disable this if you'd like the Odometry to be absolute within the UTM zone
+         rather than starting from an arbitrary zero origin. -->
+    <param name="zero_start" value="true" />
+  </node>
+</launch>
