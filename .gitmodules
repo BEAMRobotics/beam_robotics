@@ -18,7 +18,7 @@
 	url = https://github.com/BEAMRobotics/flir_camera_driver.git
 [submodule "ros_drivers/velodyne"]
 	path = ros_drivers/velodyne
-	url = https://github.com/nickcharron/velodyne.git
+	url = https://github.com/BEAMRobotics/velodyne.git
 [submodule "ros_drivers/ximea_ros_cam"]
 	path = ros_drivers/ximea_ros_cam
 	url = https://github.com/BEAMRobotics/ximea_ros_cam.git
