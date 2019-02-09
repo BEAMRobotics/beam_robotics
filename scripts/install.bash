@@ -98,6 +98,13 @@ install_routine()
     install_gtsam
     install_libwave
 
+    if [[ $1 = 'robot' ]]; then
+        echo 'Installing drivers for robot'
+        cd $( dirname "$REPO_DIR")
+        git clone https://github.com/BEAMRobotics/ros_drivers.git
+        bash $INSTALL_SCRIPTS/robot_hardware_install.bash 
+    fi
+
     compile
 
     echo "Beam robotics installation completed. Please open a new terminal to re-source environment variables."
