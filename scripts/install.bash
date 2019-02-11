@@ -101,7 +101,15 @@ install_routine()
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
         cd $( dirname "$REPO_DIR")
-        git clone https://github.com/BEAMRobotics/ros_drivers.git
+        if [ -d 'ros_drivers' ]; then
+            echo 'pulling most recent master'
+            cd ros_drivers
+            git pull origin master    
+            cd ..
+        else
+            echo "Cloning Beam install scripts"
+            git clone https://github.com/BEAMRobotics/ros_drivers.git
+        fi     
         bash $INSTALL_SCRIPTS/robot_hardware_install.bash 
     fi
     
