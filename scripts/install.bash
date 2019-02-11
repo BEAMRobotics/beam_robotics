@@ -7,7 +7,11 @@ set -e
 # -y = skips the prompt
 # -l = link only, creates all symlinks for the various parts of the project
 # -u = unlink only, removes all symlinks
-
+if [[ $1 = 'robot' ]]; then
+    echo 'wtf'
+else
+    echo 'okay'
+fi
 
 # Specify location of installation scripts
 INSTALL_SCRIPTS=$"$HOME/beam_install_scripts"
@@ -61,7 +65,7 @@ main()
         exit
     fi
 
-    install_routine
+    install_routine $1
 }
 
 install_routine()
@@ -104,7 +108,7 @@ install_routine()
         git clone https://github.com/BEAMRobotics/ros_drivers.git
         bash $INSTALL_SCRIPTS/robot_hardware_install.bash 
     fi
-
+    echo $1
     compile
 
     echo "Beam robotics installation completed. Please open a new terminal to re-source environment variables."
@@ -189,4 +193,4 @@ env_setup()
 }
 
 
-main
+main $1
