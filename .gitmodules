@@ -34,3 +34,6 @@
 [submodule "mapping/novatel_span_driver"]
 	path = mapping/novatel_span_driver
 	url = https://github.com/BEAMRobotics/novatel_span_driver.git
+[submodule "mapping/ig_online_mapping"]
+	path = mapping/ig_online_mapping
+	url = https://github.com/BEAMRobotics/ig_online_mapping.git
