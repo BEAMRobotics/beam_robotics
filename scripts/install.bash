@@ -10,20 +10,22 @@ set -e
 
 
 # Specify location of installation scripts
-INSTALL_SCRIPTS=$"$HOME/beam_install_scripts"
+INSTALL_SCRIPTS=$"$HOME/software/beam_install_scripts"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Ensure that Beam install scripts are installed
 if [ -d $INSTALL_SCRIPTS ]; then
     echo "Beam install scripts found"
 else
-    echo "Cloning Beam install scripts into home directory"
+    echo "Cloning Beam install scripts into:"
+    echo $INSTALL_SCRIPTS
+    echo "Make sure they are not install somewhere else."
+    if [ ! -d "$HOME/software" ]; then
+      mkdir -p "$HOME/software"
+    fi
     git clone https://github.com/BEAMRobotics/beam_install_scripts.git $INSTALL_SCRIPTS
     echo "Success"
 fi
-
-
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Set the repo directory as an environment variable
 export REPO_DIR=$(dirname "$SCRIPT_DIR")
@@ -70,7 +72,7 @@ install_routine()
     if [ -z "$ARG_NO_MENU" ] && [ -z "$CONTINUOUS_INTEGRATION" ]; then
         menu
     fi
-    
+
     cd "$SCRIPTS_DIR"
     unlink_routine
     catkin_clean
@@ -82,12 +84,12 @@ install_routine()
 
     link_routine
     bash $INSTALL_SCRIPTS/rosdeps_install.bash
-    
+
     env_setup
 
     # Import functions to install required dependencies
     source $INSTALL_SCRIPTS/beam_dependencies_install.bash
-    
+
 
     # Ensure wget is available
     sudo apt-get install -qq wget  > /dev/null
@@ -104,15 +106,15 @@ install_routine()
         if [ -d 'ros_drivers' ]; then
             echo 'pulling most recent master'
             cd ros_drivers
-            git pull origin master    
+            git pull origin master
             cd ..
         else
             echo "Cloning Beam install scripts"
             git clone https://github.com/BEAMRobotics/ros_drivers.git
-        fi     
-        bash $INSTALL_SCRIPTS/robot_hardware_install.bash 
+        fi
+        bash $INSTALL_SCRIPTS/robot_hardware_install.bash
     fi
-    
+
     compile
 
     echo "Beam robotics installation completed. Please open a new terminal to re-source environment variables."
