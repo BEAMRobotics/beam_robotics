@@ -37,3 +37,6 @@
 [submodule "mapping/ig_online_mapping"]
 	path = mapping/ig_online_mapping
 	url = https://github.com/BEAMRobotics/ig_online_mapping.git
+[submodule "mapping/ig_collect_scans"]
+	path = mapping/ig_collect_scans
+	url = https://github.com/BEAMRobotics/ig_collect_scans.git
