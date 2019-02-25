@@ -44,5 +44,5 @@ add_dependencies(velodyne_h_v_calib velodyne_h_v_calib_generate_messages_cpp)
 target_link_libraries(velodyne_h_v_calib ${catkin_LIBRARIES})
 
 add_executable(velodyne_h_v_calib_2 src/velodyne_h_v_calib_2.cpp)
-add_dependencies(velodyne_h_v_calib_2 velodyne_h_v_calib_2_generate_messages_cpp)
+add_dependencies(velodyne_h_v_calib_2 velodyne_h_v_calib_generate_messages_cpp)
 target_link_libraries(velodyne_h_v_calib_2 ${catkin_LIBRARIES})
