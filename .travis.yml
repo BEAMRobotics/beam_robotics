@@ -30,5 +30,4 @@ env:
 # Install barebones ROS setup.
 script:
   - cd $CI_SOURCE_PATH
-  - ls
   - bash ./scripts/install.bash
