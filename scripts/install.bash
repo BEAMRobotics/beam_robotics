@@ -23,7 +23,7 @@ else
     if [ ! -d "$HOME/software" ]; then
       mkdir -p "$HOME/software"
     fi
-    git clone https://github.com/BEAMRobotics/beam_install_scripts.git $INSTALL_SCRIPTS
+    git clone git@github.com:BEAMRobotics/beam_install_scripts.git $INSTALL_SCRIPTS
     echo "Success"
 fi
 
@@ -110,7 +110,7 @@ install_routine()
             cd ..
         else
             echo "Cloning Beam install scripts"
-            git clone https://github.com/BEAMRobotics/ros_drivers.git
+            git clone git@github.com:BEAMRobotics/ros_drivers.git
         fi
         bash $INSTALL_SCRIPTS/robot_hardware_install.bash
     fi
