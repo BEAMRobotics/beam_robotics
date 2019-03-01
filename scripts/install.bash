@@ -55,7 +55,6 @@ install_routine()
     # submodule_init
 
     bash $INSTALL_SCRIPTS/ros_install.bash
-    #bash $INSTALL_SCRIPTS/create_catkin_workspace.bash
     create_catkin_ws
 
     link_routine
