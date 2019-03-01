@@ -36,6 +36,9 @@ source $INSTALL_SCRIPTS/identify_environment.bash
 : ${SYMLINKS_REPO_DIR:=$REPO_DIR}
 
 
+# source link routines
+source $INSTALL_SCRIPTS/link_routines.bash
+
 read_args()
 {
     ARG_NO_MENU=
@@ -121,20 +124,6 @@ install_routine()
     if [ -z "$CONTINUOUS_INTEGRATION" ]; then
         notify-send "Beam Robotics installation completed"
     fi
-}
-
-link_routine()
-{
-    ln -sfn "$SYMLINKS_REPO_DIR" "$CATKIN_DIR/src"
-    echo "Symlink to $SYMLINKS_REPO_DIR created successfully"
-}
-
-unlink_routine()
-{
-    # Need to remove just the symlink for the linked repo
-    REPO_BASE_NAME=$(basename "$SYMLINKS_REPO_DIR")
-    rm -f "$CATKIN_DIR/src/$REPO_BASE_NAME"
-    echo "Symlink $CATKIN_DIR/src/$REPO_BASE_NAME removed successfully"
 }
 
 menu()
