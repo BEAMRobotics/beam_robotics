@@ -2,11 +2,7 @@
 set -e
 # This script installs and compiles the entire beam robotics software stack
 # Running this script with some parts already installed should be fine
-#
-# Arguments:
-# -y = skips the prompt
-# -l = link only, creates all symlinks for the various parts of the project
-# -u = unlink only, removes all symlinks
+
 
 
 # Specify location of installation scripts
@@ -36,36 +32,9 @@ source $INSTALL_SCRIPTS/identify_environment.bash
 : ${SYMLINKS_REPO_DIR:=$REPO_DIR}
 
 
-# source link routines
-source $INSTALL_SCRIPTS/link_routines.bash
-
-read_args()
-{
-    ARG_NO_MENU=
-    ARG_LINK=
-    ARG_UNLINK=
-    for arg in "$@"; do
-        case $arg in
-            -y)
-                ARG_NO_MENU="true";;
-            -l)
-                ARG_LINK="true";;
-            -u)
-                ARG_UNLINK="true";;
-        esac
-    done
-}
 
 main()
 {
-    if [ -n "$ARG_LINK" ]; then
-        link_routine
-        exit
-    elif [ -n "$ARG_UNLINK" ]; then
-        unlink_routine
-        exit
-    fi
-
     install_routine $1
 }
 
@@ -76,19 +45,21 @@ install_routine()
         menu
     fi
 
-    cd "$SCRIPTS_DIR"
+
+    # source catkin setup script
+    source $INSTALL_SCRIPTS/catkin_setup.bash
+
     unlink_routine
     catkin_clean
 
     # submodule_init
 
     bash $INSTALL_SCRIPTS/ros_install.bash
-    bash $INSTALL_SCRIPTS/create_catkin_workspace.bash
+    #bash $INSTALL_SCRIPTS/create_catkin_workspace.bash
+    create_catkin_ws
 
     link_routine
     bash $INSTALL_SCRIPTS/rosdeps_install.bash
-
-    env_setup
 
     # Import functions to install required dependencies
     source $INSTALL_SCRIPTS/beam_dependencies_install.bash
@@ -146,46 +117,10 @@ menu()
     done
 }
 
-catkin_clean()
-{
-    rm -rf "$CATKIN_DIR/devel"
-    rm -rf "$CATKIN_DIR/build"
-    rm -rf "$CATKIN_DIR/install"
-    rm -rf "$CATKIN_DIR/logs"
-    rm -f "$CATKIN_DIR/.catkin_workspace"
-    echo "Catkin workspace cleaned"
-}
 
 submodule_init()
 {
     git submodule -q update --init --recursive
 }
-
-compile()
-{
-    cd "$CATKIN_DIR"
-    source /opt/ros/$ROS_DISTRO/setup.bash
-    if [ -z "$CONTINUOUS_INTEGRATION" ]; then
-        catkin build
-    else
-        if [ -n "$CIRCLECI" ]; then
-            # Build libwave by itself first, since the job is so large
-            catkin build --no-status -j2 libwave
-            catkin build --no-status --mem-limit 6G
-        else
-            catkin build --no-status
-        fi
-    fi
-}
-
-env_setup()
-{
-    # ROS environment setup
-    echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
-    source /opt/ros/kinetic/setup.bash
-    echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
-    echo "ROS_PACKAGE_PATH=/home/$USER/catkin_ws/src:/opt/ros/kinetic/share:/$ROS_PACKAGE_PATH" >> ~/.bashrc
-}
-
 
 main $1
