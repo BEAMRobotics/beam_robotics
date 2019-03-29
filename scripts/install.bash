@@ -12,6 +12,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Ensure that Beam install scripts are installed
 if [ -d $INSTALL_SCRIPTS ]; then
     echo "Beam install scripts found"
+    cd $INSTALL_SCRIPTS
+    git pull origin master
 else
     echo "Cloning Beam install scripts into:"
     echo $INSTALL_SCRIPTS
@@ -72,6 +74,7 @@ install_routine()
     install_geographiclib
     install_gtsam
     install_libwave
+    install_gflags
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
