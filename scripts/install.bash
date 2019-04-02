@@ -72,6 +72,7 @@ install_routine()
     install_geographiclib
     install_gtsam
     install_libwave
+    install_gflags
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
