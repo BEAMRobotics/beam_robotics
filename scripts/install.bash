@@ -74,6 +74,7 @@ install_routine()
     install_gtsam
     install_libwave
     install_gflags
+    install_catch2
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
