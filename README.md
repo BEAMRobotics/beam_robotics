@@ -1,4 +1,6 @@
 # beam_robotics
+[![Build Status](https://travis-ci.com/BEAMRobotics/beam_robotics.svg?token=zshhVvp9R3DJ7YGGYs6z&branch=master)](https://travis-ci.com/BEAMRobotics/beam_robotics)
+
 Parent Directory for all code used with BEAM Robotics
 
 **Install Instructions:**
