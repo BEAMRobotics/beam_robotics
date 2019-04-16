@@ -67,11 +67,14 @@ install_routine()
     # Ensure wget is available
     sudo apt-get install -qq wget  > /dev/null
     # Install dependencies
+    install_eigen3
     install_ceres
     install_pcl
     install_geographiclib
     install_gtsam
     install_libwave
+    install_gflags
+    install_catch2
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
