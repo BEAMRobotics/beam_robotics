@@ -1,0 +1,18 @@
+# Core inspection library
+add_library(${PROJECT_NAME}
+  GenerateReport.cpp
+  ImageExtractor.cpp
+  ImageLabeler.cpp
+  LoadHandLabels.cpp
+  MapLabeler.cpp
+  QuantifyDefects.cpp
+  SaveImages.cpp
+)
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    ../../include
+)
+target_link_libraries(${PROJECT_NAME}
+  catkin::catkin
+  PCL::PCL
+)
