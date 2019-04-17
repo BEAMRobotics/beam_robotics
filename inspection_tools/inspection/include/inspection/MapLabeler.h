@@ -1,22 +1,19 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for labeling/coloring a SLAM map given beam image containers
-   */
-  class MapLabeler
-  {
-  public:
+/**
+ * @brief class for labeling/coloring a SLAM map given beam image containers
+ */
+class MapLabeler {
+public:
+  MapLabeler(const std::string config_file_location);
 
-    MapLabeler(const std::string config_file_location);
+  ~MapLabeler() = default;
 
-    ~MapLabeler() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

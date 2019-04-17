@@ -1,22 +1,19 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for saving images from ImageExtractor for hand labeling
-   */
-  class SaveImages
-  {
-  public:
+/**
+ * @brief class for saving images from ImageExtractor for hand labeling
+ */
+class SaveImages {
+public:
+  SaveImages(const std::string config_file_location);
 
-    SaveImages(const std::string config_file_location);
+  ~SaveImages() = default;
 
-    ~SaveImages() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

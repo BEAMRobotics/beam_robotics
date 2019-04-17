@@ -1,22 +1,19 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for generating an inspection report
-   */
-  class GenerateReport
-  {
-  public:
+/**
+ * @brief class for generating an inspection report
+ */
+class GenerateReport {
+public:
+  GenerateReport(const std::string config_file_location);
 
-    GenerateReport(const std::string config_file_location);
+  ~GenerateReport() = default;
 
-    ~GenerateReport() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

@@ -1,23 +1,20 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for quantifying defects from a labeled map, using libbeam
-   * beam_defects
-   */
-  class QuantifyDefects
-  {
-  public:
+/**
+ * @brief class for quantifying defects from a labeled map, using libbeam
+ * beam_defects
+ */
+class QuantifyDefects {
+public:
+  QuantifyDefects(const std::string config_file_location);
 
-    QuantifyDefects(const std::string config_file_location);
+  ~QuantifyDefects() = default;
 
-    ~QuantifyDefects() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

@@ -1,23 +1,20 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for loading hand labels images/masks into beam image
-   * containers
-   */
-  class LoadHandLabels
-  {
-  public:
+/**
+ * @brief class for loading hand labels images/masks into beam image
+ * containers
+ */
+class LoadHandLabels {
+public:
+  LoadHandLabels(const std::string config_file_location);
 
-    LoadHandLabels(const std::string config_file_location);
+  ~LoadHandLabels() = default;
 
-    ~LoadHandLabels() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

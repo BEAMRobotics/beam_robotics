@@ -1,22 +1,19 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for labeling images.
-   */
-  class ImageLabeler
-  {
-  public:
+/**
+ * @brief class for labeling images.
+ */
+class ImageLabeler {
+public:
+  ImageLabeler(const std::string config_file_location);
 
-    ImageLabeler(const std::string config_file_location);
+  ~ImageLabeler() = default;
 
-    ~ImageLabeler() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection

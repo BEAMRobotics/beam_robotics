@@ -1,22 +1,19 @@
 #pragma once
 
-#include<string>
+#include <string>
 
-namespace inspection
-{
+namespace inspection {
 
-  /**
-   * @brief class for extracting images from a ROS bag
-   */
-  class ImageExtractor
-  {
-  public:
+/**
+ * @brief class for extracting images from a ROS bag
+ */
+class ImageExtractor {
+public:
+  ImageExtractor(const std::string config_file_location);
 
-    ImageExtractor(const std::string config_file_location);
+  ~ImageExtractor() = default;
 
-    ~ImageExtractor() = default;
+private:
+};
 
-  private:
-  };
-
-} // end inspection namespace
+} // namespace inspection
