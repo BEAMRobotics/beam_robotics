@@ -75,6 +75,7 @@ install_routine()
     install_libwave
     install_gflags
     install_catch2
+    install_json
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
