@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 project(inspection)
 
-set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
