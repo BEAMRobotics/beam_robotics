@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(beam REQUIRED utils containers calibration)
+find_package(beam REQUIRED utils containers calibration defects)
 
 # Add the core inspection library
 add_subdirectory(src/lib)
@@ -46,4 +46,3 @@ target_link_libraries(${PROJECT_NAME}_manual_B
 	${PROJECT_NAME}
 	beam::utils
 )
-
