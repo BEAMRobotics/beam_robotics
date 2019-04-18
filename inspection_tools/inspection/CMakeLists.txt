@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(beam REQUIRED utils containers calibration)
+find_package(beam REQUIRED utils containers calibration defects)
 
 # Add the core inspection library
 add_subdirectory(src/lib)
@@ -47,3 +47,11 @@ target_link_libraries(${PROJECT_NAME}_manual_B
 	beam::utils
 )
 
+# Map Labeller
+add_executable(${PROJECT_NAME}_map_labeller
+	src/MapLabeller_main.cpp
+)
+target_link_libraries(${PROJECT_NAME}_map_labeller
+	${PROJECT_NAME}
+	${rosbag_LIBRARIES}
+)
