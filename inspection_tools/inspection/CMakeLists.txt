@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(rosbag REQUIRED)
+find_package(cv_bridge REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
