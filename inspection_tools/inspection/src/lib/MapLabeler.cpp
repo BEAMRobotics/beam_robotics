@@ -79,41 +79,41 @@ MapLabeler::MapLabeler(const std::string config_file_location)
             << std::endl;
 
   /**
-   * Load camera calibrations
-   */
-  /*  beam_calibration::Pinhole pinhole;
-    pinhole.LoadJSON(path_to_camera_calib_);
-    std::cout << pinhole << std::endl;*/
-
-  /**
    * Load Image Containers
    */
-  img_bridge_.LoadFromJSON(cameras_[0].img_paths[0]);
-  /*  img_bridge_.LoadFromJSON("/home/steve/2019_02_13_19_44_Structures_Lab/images/"
-                             "camera0/ImageBridge1/");*/
+  std::vector<int> indices = {0, 5, 10, 15, 20};
 
-  DefectCloud::Ptr colored_cloud =
-      ProjectImgToMap(img_bridge_, &cameras_[0].cam_intrinsics);
+  for (int i = 0; i < indices.size(); i++) {
+    std::cout << cameras_[0].img_paths[i] << std::endl;
+    img_bridge_.LoadFromJSON(cameras_[0].img_paths[i]);
+    /*  img_bridge_.LoadFromJSON("/home/steve/2019_02_13_19_44_Structures_Lab/images/"
+                               "camera0/ImageBridge1/");*/
 
-  /*
-   DefectCloud::Ptr cloud3 = boost::make_shared<DefectCloud>();
+    beam::HighResolutionTimer timer;
 
-   pcl_ros::transformPointCloud(*colored_cloud, *cloud3, tf_temp_);*/
+    DefectCloud::Ptr colored_cloud =
+        ProjectImgToMap(img_bridge_, &cameras_[0].cam_intrinsics);
+    std::cout << "Elapsed time: " << timer.elapsed() << std::endl;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb =
-      boost::make_shared<pcl::PointCloud<pcl::PointXYZRGB>>();
-  pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb =
+        boost::make_shared<pcl::PointCloud<pcl::PointXYZRGB>>();
+    pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
+    rgb_clouds.push_back(cloud_rgb);
+
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
+        cloud_rgb);
+
+    std::stringstream id;
+    id << "test_" << i;
+    viewer->addPointCloud<pcl::PointXYZRGB>(rgb_clouds[i], rgb, id.str());
+    viewer->setPointCloudRenderingProperties(
+        pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, id.str());
+  }
 
   viewer->setBackgroundColor(1, 1, 1);
-  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
-      cloud_rgb);
-  viewer->addPointCloud<pcl::PointXYZRGB>(cloud_rgb, rgb, "sample cloud");
-  viewer->setPointCloudRenderingProperties(
-      pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
+
   viewer->addCoordinateSystem(1.0);
   viewer->initCameraParameters();
-  viewer->addPointCloud<pcl::PointXYZRGB>(cloud_rgb, rgb, "sample cloud1");
-
   /*
     viewer->initCameraParameters ();
     int v1(0);
@@ -230,9 +230,9 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
     std::stringstream unique_id;
     unique_id << frame_id << "_" << time.sec;
 
-    std::cout << "Adding affine_tf : " << unique_id.str()
-              << " with transform: " << g_tf_stamped.transform.translation.x
-              << std::endl;
+    /*    std::cout << "Adding affine_tf : " << unique_id.str()
+                  << " with transform: " << g_tf_stamped.transform.translation.x
+                  << std::endl;*/
 
     viewer->addCoordinateSystem(0.5, affine_tf, unique_id.str());
   }
@@ -258,6 +258,7 @@ DefectCloud::Ptr
     beam::Vec3 point_coords{point.x, point.y, point.z};
     beam::Vec2 vec2 = cam_intrinsics->ProjectDistortedPoint(point_coords);
 
+    //    beam::Vec2 vec2{vec2_temp[1], vec2_temp[0]};
     if (vec2[0] < 0 || vec2[1] < 0) continue;
     if (vec2[0] < img_dims[0] && vec2[1] < img_dims[1]) {
       cv::Vec3b pixel_colour =

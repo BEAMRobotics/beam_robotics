@@ -13,6 +13,7 @@
 #include <beam_calibration/TfTree.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
+#include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
@@ -113,6 +114,7 @@ private:
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
   std::vector<DefectCloud::Ptr> defect_clouds_ = {};
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds = {};
   beam_containers::ImageBridge img_bridge_;
   tf2::BufferCore tf2_buffer_{ros::Duration(1000)};
 
