@@ -15,6 +15,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
 
 // beam includes
 #include <beam_utils/log.hpp>
@@ -46,6 +47,8 @@ public:
   cv::Mat GetImageFromBag(const beam::TimePoint &time_point,
                           rosbag::Bag &ros_bag, std::string &image_topic,
                           bool add_frame_id);
+
+  cv::Mat ROSDebayer(sensor_msgs::ImageConstPtr &image_raw);
 
   void OutputJSONList(const std::string &file_name,
                  const std::vector<std::string> &list);
