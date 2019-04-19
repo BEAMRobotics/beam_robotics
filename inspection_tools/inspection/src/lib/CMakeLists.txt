@@ -19,4 +19,5 @@ target_link_libraries(${PROJECT_NAME}
   beam::utils
   catkin::catkin
   PCL::PCL
+  ${pcl_ros_LIBRARIES}
 )

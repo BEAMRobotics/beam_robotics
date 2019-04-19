@@ -11,6 +11,9 @@
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
 #include <beam/calibration/TfTree.h>
+#include <beam/calibration/Intrinsics.h>
+#include <beam/calibration/Pinhole.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/make_shared.hpp>
@@ -21,9 +24,13 @@
 
 #include <rosbag/bag.h>
 
+#include <pcl_ros/transforms.h>
+#include <pcl_ros/impl/transforms.hpp>
+
+#include <pcl_conversions/pcl_conversions.h>
+
 namespace inspection {
 
-rosbag::Bag bag;
 
 using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -48,6 +55,7 @@ public:
   std::vector<std::pair<uint64_t, Eigen::Matrix4d>>
       ReadPoseFile(const std::string filename);
 
+  DefectCloud::Ptr TransformMapToImage(ros::Time tf_time);
 private:
 
   beam_calibration::TfTree tf_tree;
@@ -59,12 +67,13 @@ private:
   std::string map_file_name_ = {};
   std::string images_file_name_ = {};
   std::string extrinsics_file_name_ = {};
+  std::string path_to_camera_calib_ = {};
 
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
   beam_containers::ImageBridge img_bridge_;
-  tf2::BufferCore* tf2_buffer_;
+  tf2::BufferCore tf2_buffer_{ros::Duration(1000)};
 };
 
 

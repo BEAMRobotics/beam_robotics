@@ -4,7 +4,8 @@ namespace inspection {
 
 ros::Time TimePointToRosTime(const TimePoint& time_point) {
   ros::Time ros_time;
-  ros_time.fromNSec(time_point.time_since_epoch() / std::chrono::nanoseconds(1));
+  ros_time.fromNSec(time_point.time_since_epoch() /
+                    std::chrono::nanoseconds(1));
   return ros_time;
 }
 
@@ -17,6 +18,7 @@ MapLabeler::MapLabeler(const std::string config_file_location)
   map_file_name_ = json_config_["params"]["map_path"];
   poses_file_name_ = json_config_["params"]["poses_path"];
   extrinsics_file_name_ = json_config_["params"]["extrinsics"];
+  path_to_camera_calib_ = json_config_["params"]["camera_intrinsics"];
 
   // Load PointCloud Data
   if (pcl::io::loadPCDFile<BridgePoint>(map_file_name_, *defect_pointcloud_) ==
@@ -36,10 +38,6 @@ MapLabeler::MapLabeler(const std::string config_file_location)
   ros::Duration dur = end_time - start_time;
   std::cout << "Duration of poses is : " << dur << std::endl;
 
-  tf2_buffer_ = &(tf2::BufferCore(dur));
-
-//  std::cout << "tf2_buffer cache length = " << tf2_buffer_.getCacheLength() << std::endl;
-
   tf::Transform tf_transform;
   geometry_msgs::TransformStamped tf_msg;
   for (const auto& pose : final_poses_) {
@@ -48,20 +46,50 @@ MapLabeler::MapLabeler(const std::string config_file_location)
     tf_msg.header.frame_id = "map";
     tf_msg.child_frame_id = "base_link";
     tf2_buffer_.setTransform(tf_msg, "t");
-
-//    std::cout << tf_msg.header << std::endl;
   }
   //  std::cout << tf2_buffer_._allFramesAsDot() << std::endl;
-  //  std::cout << tf2_buffer_.lookupTransform("map", "base_link",
-  //  ros::Time(1550105239)) << std::endl; std::cout <<
-  //  tf2_buffer_.lookupTransform("map", "base_link", ros::Time(1550105239.5))
-  //  << std::endl; std::cout << tf2_buffer_.lookupTransform("map", "base_link",
-  //  ros::Time(1550105240)) << std::endl;
 
-  //  TimePoint img_time = img_bridge_.GetTimePoint();
+  beam_calibration::Intrinsics* it;
+  beam_calibration::Pinhole pinhole;
+  pinhole.LoadJSON(path_to_camera_calib_);
+  std::cout << pinhole << std::endl;
+
+  // For each image, get timestamp
+  // Get map->velodyne transform for image
+  // Get map->camera frame transform for image
+  // Transform point cloud from map frame into image frame
+  // Project each point into mask images
+  // Check point mask color
+  // Assign field on point cloud
+
+  cv::Mat bgr_img = img_bridge_.GetBGRImage();
+  cv::Mat bgr_mask = img_bridge_.GetBGRMask();
+  bool is_distorted = img_bridge_.GetBGRIsDistorted();
+  TimePoint img_time = img_bridge_.GetTimePoint();
+  ros::Time ros_img_time = TimePointToRosTime(img_time);
+
+  auto cloud = TransformMapToImage(ros_img_time);
+  for (const auto& point : *cloud) {
+    beam::Vec3 vec3{point.x, point.y, point.z};
+    auto vec2 = pinhole.ProjectPoint(vec3);
+    int img = bgr_img.at<int>(vec2[0], vec2[1]);
+  }
 
 }
 
+DefectCloud::Ptr MapLabeler::TransformMapToImage(ros::Time tf_time) {
+  geometry_msgs::TransformStamped transform_msg =
+      tf2_buffer_.lookupTransform("map", "base_link", tf_time);
+
+  auto transformed_cloud = boost::make_shared<DefectCloud>();
+
+  tf::Transform tf_;
+  tf::transformMsgToTF(transform_msg.transform, tf_);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl1;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl2;
+  pcl_ros::transformPointCloud(*defect_pointcloud_, *transformed_cloud, tf_);
+  return transformed_cloud;
+}
 
 void MapLabeler::LoadPrevPoses() {
   Eigen::Affine3d PoseK;
