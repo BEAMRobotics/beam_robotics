@@ -6,13 +6,13 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
-#include <beam/utils/log.hpp>
+#include <beam_utils/log.hpp>
 
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
-#include <beam/calibration/TfTree.h>
-#include <beam/calibration/Intrinsics.h>
-#include <beam/calibration/Pinhole.h>
+#include <beam_calibration/TfTree.h>
+#include <beam_calibration/Intrinsics.h>
+#include <beam_calibration/Pinhole.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
@@ -30,6 +30,7 @@
 #include <pcl_ros/impl/transforms.hpp>
 
 #include <pcl_conversions/pcl_conversions.h>
+#include <beam_utils/time.hpp>
 
 namespace inspection {
 
@@ -39,7 +40,7 @@ using TimePoint = std::chrono::time_point<Clock>;
 using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using json = nlohmann::json;
-
+using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 /**
  * @brief class for labeling/coloring a SLAM map given beam image containers
  */
@@ -60,7 +61,12 @@ public:
       ReadPoseFile(const std::string filename);
 
   DefectCloud::Ptr TransformMapToImage(ros::Time tf_time);
+
+  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img);
+
   pcl::visualization::PCLVisualizer::Ptr viewer;
+
+  void PlotFrames(std::string frame_id, PCLViewer viewer);
 
 private:
 
@@ -78,8 +84,11 @@ private:
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
+  std::vector<DefectCloud::Ptr> defect_clouds_ = {};
   beam_containers::ImageBridge img_bridge_;
   tf2::BufferCore tf2_buffer_{ros::Duration(1000)};
+
+  tf::Transform tf_temp_;
 };
 
 
