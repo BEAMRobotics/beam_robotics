@@ -11,8 +11,8 @@ int main(int argc, char* argv[]){
   inspection::MapLabeler mapper_{json_path};
   std::cout << "Test1" << std::endl;
 
-  mapper_.PlotFrames("hvlp_link");
-  mapper_.PlotFrames("F1_link");
+  mapper_.PlotFrames("hvlp_link", mapper_.viewer);
+  mapper_.PlotFrames("F1_link", mapper_.viewer);
 
   while (!mapper_.viewer->wasStopped ())
   {
