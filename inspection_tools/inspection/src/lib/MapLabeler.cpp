@@ -11,6 +11,7 @@ ros::Time TimePointToRosTime(const TimePoint& time_point) {
 
 MapLabeler::MapLabeler(const std::string config_file_location)
     : json_file_path_(config_file_location) {
+
   // Load JSON file
   std::ifstream i(json_file_path_);
   i >> json_config_;
@@ -31,11 +32,18 @@ MapLabeler::MapLabeler(const std::string config_file_location)
   std::cout << "Loaded calibrations from : " << tf_tree.GetCalibrationDate()
             << std::endl;
 
+
+//  Eigen::Affine3d cam_tf = tf_tree.GetTransform("camera" , "velodyne_horz");
+
+
+
   LoadPrevPoses();
 
   ros::Time start_time = TimePointToRosTime(final_poses_.front().first);
   ros::Time end_time = TimePointToRosTime(final_poses_.back().first);
   ros::Duration dur = end_time - start_time;
+  std::cout << "Start time of poses: " << start_time << std::endl;
+  std::cout << "End time of poses: " << end_time << std::endl;
   std::cout << "Duration of poses is : " << dur << std::endl;
 
   tf::Transform tf_transform;
@@ -44,13 +52,20 @@ MapLabeler::MapLabeler(const std::string config_file_location)
     tf_msg = tf2::eigenToTransform(pose.second);
     tf_msg.header.stamp = TimePointToRosTime(pose.first);
     tf_msg.header.frame_id = "map";
-    tf_msg.child_frame_id = "base_link";
+    tf_msg.child_frame_id = "hvlp_link";
+    tf_tree.AddTransform(tf_msg);
     tf2_buffer_.setTransform(tf_msg, "t");
   }
   //  std::cout << tf2_buffer_._allFramesAsDot() << std::endl;
 
-  beam_calibration::Intrinsics* it;
+  // Loading images
+//  beam_containers::ImageBridge img;
+  img_bridge_.LoadFromJSON("/home/steve/2019_02_13_19_44_Structures_Lab/images/camera0/ImageBridge1/");
+  cv::imwrite("/home/steve/test.jpg", img_bridge_.GetBGRImage());
+
+
   beam_calibration::Pinhole pinhole;
+
   pinhole.LoadJSON(path_to_camera_calib_);
   std::cout << pinhole << std::endl;
 
@@ -63,31 +78,73 @@ MapLabeler::MapLabeler(const std::string config_file_location)
   // Assign field on point cloud
 
   cv::Mat bgr_img = img_bridge_.GetBGRImage();
-  cv::Mat bgr_mask = img_bridge_.GetBGRMask();
-  bool is_distorted = img_bridge_.GetBGRIsDistorted();
+//  cv::Mat bgr_mask = img_bridge_.GetBGRMask();
+//  bool is_distorted = img_bridge_.GetBGRIsDistorted();
   TimePoint img_time = img_bridge_.GetTimePoint();
   ros::Time ros_img_time = TimePointToRosTime(img_time);
-
+  std::cout << "Image time: " << ros_img_time << std::endl;
   auto cloud = TransformMapToImage(ros_img_time);
+
+  int count = 0;
+
   for (const auto& point : *cloud) {
     beam::Vec3 vec3{point.x, point.y, point.z};
     auto vec2 = pinhole.ProjectPoint(vec3);
-    int img = bgr_img.at<int>(vec2[0], vec2[1]);
+    auto vec2_norm = pinhole.ProjectDistortedPoint(vec3);
+//    std::cout << "Projected pixel location = [" << vec2_norm[0] << ", " << vec2_norm[1]
+//    << "]....[" << vec2[0] << ", " << vec2[1] << "]." << std::endl;
+    auto img_dims = pinhole.GetImgDims();
+
+    if (vec2[0] < 0 || vec2[1] < 0) continue;
+    if (vec2[0] < img_dims[0] && vec2[1] < img_dims[1]){
+      count++;
+    }
+//    int img = bgr_img.at<int>(vec2[0], vec2[1]);
   }
+
+  std::cout << "Total pixels in point cloud = " << count << std::endl;
+  viewer = boost::make_shared<pcl::visualization::PCLVisualizer>();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2 = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  pcl::copyPointCloud(*defect_pointcloud_, *cloud2);
+  viewer->addPointCloud<pcl::PointXYZ> (cloud2, "sample cloud1");
+
+
+
+/*
+  viewer->initCameraParameters ();
+  int v1(0);
+  viewer->createViewPort(0.0, 0.0, 0.5, 1.0, v1);
+  viewer->setBackgroundColor (0, 0, 0, v1);
+  viewer->addText("Radius: 0.01", 10, 10, "v1 text", v1);
+  pcl::visualization::PointCloudColorHandlerRGBField<BridgePoint> rgb(defect_pointcloud_);
+  viewer->addPointCloud<BridgePoint> (defect_pointcloud_, rgb, "sample cloud1", v1);*/
+
 
 }
 
 DefectCloud::Ptr MapLabeler::TransformMapToImage(ros::Time tf_time) {
+
+/*  geometry_msgs::TransformStamped transform_msg =
+      tf2_buffer_.lookupTransform("map", "base_link", tf_time);*/
+
+std::string to_frame = "map";
+std::string from_frame = "hvlp_link";
+
   geometry_msgs::TransformStamped transform_msg =
-      tf2_buffer_.lookupTransform("map", "base_link", tf_time);
+      tf_tree.GetTransform(to_frame, from_frame, tf_time);
+
+  std::cout << "Transform lookup time = " << tf_time << std::endl;
+  std::cout << "Transform = " << transform_msg << std::endl;
 
   auto transformed_cloud = boost::make_shared<DefectCloud>();
 
   tf::Transform tf_;
   tf::transformMsgToTF(transform_msg.transform, tf_);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl1;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl2;
   pcl_ros::transformPointCloud(*defect_pointcloud_, *transformed_cloud, tf_);
+
+  std::cout << "Successfully transformed point cloud from map frame to image frame..." << std::endl;
+  std::cout << "Number of points = " << transformed_cloud->width << std::endl;
+
   return transformed_cloud;
 }
 

@@ -16,6 +16,8 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
 #include <boost/make_shared.hpp>
 #include <nlohmann/json.hpp>
 //#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -45,6 +47,8 @@ class MapLabeler {
 public:
   MapLabeler(const std::string config_file_location);
 
+  MapLabeler() = default;
+
   ~MapLabeler() = default;
   // Load JSON file containing image information
   // For each image, create image container
@@ -56,6 +60,8 @@ public:
       ReadPoseFile(const std::string filename);
 
   DefectCloud::Ptr TransformMapToImage(ros::Time tf_time);
+  pcl::visualization::PCLVisualizer::Ptr viewer;
+
 private:
 
   beam_calibration::TfTree tf_tree;
