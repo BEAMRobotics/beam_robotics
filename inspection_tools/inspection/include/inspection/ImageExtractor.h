@@ -17,9 +17,9 @@
 #include <sensor_msgs/Image.h>
 
 // beam includes
-#include <beam/utils/log.hpp>
-#include <beam/utils/math.hpp>
-#include <beam/utils/time.hpp>
+#include <beam_utils/log.hpp>
+#include <beam_utils/math.hpp>
+#include <beam_utils/time.hpp>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/Utilities.h>
 
