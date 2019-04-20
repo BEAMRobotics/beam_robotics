@@ -32,7 +32,7 @@ MapLabeler::MapLabeler(const std::string config_file_location)
     camera_list.emplace_back(camera);
     Camera cam{camera_folder_path.str(), "F1",
                json_config_["params"]["intrinsics_path"]};
-    cameras_.push_back(cam);
+    cameras_.push_back(std::move(cam));
   }
 
   map_file_name_ = json_config_["params"]["map_path"];
@@ -92,7 +92,7 @@ MapLabeler::MapLabeler(const std::string config_file_location)
     beam::HighResolutionTimer timer;
 
     DefectCloud::Ptr colored_cloud =
-        ProjectImgToMap(img_bridge_, &cameras_[0].cam_intrinsics);
+        ProjectImgToMap(img_bridge_, cameras_[0].cam_intrinsics.get());
     std::cout << "Elapsed time: " << timer.elapsed() << std::endl;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb =

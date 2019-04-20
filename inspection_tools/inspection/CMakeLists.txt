@@ -4,6 +4,7 @@ project(inspection)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(catkin REQUIRED COMPONENTS
+	cv_bridge
   geometry_msgs
   nav_msgs
 	pcl_ros
@@ -16,9 +17,10 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(beam REQUIRED utils containers calibration defects)
+find_package(beam REQUIRED utils containers calibration defects colorize)
 
 find_package(pcl_ros REQUIRED)
+find_package(cv_bridge REQUIRED)
 
 # Add the core inspection library
 add_subdirectory(src/lib)

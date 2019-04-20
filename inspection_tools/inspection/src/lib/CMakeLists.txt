@@ -14,10 +14,12 @@ target_include_directories(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME}
   beam::calibration
+  beam::colorize
   beam::containers
   beam::defects
   beam::utils
   catkin::catkin
   PCL::PCL
   ${pcl_ros_LIBRARIES}
+  ${cv_bridge_LIBRARIES}
 )

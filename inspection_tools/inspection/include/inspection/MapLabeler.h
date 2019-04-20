@@ -9,7 +9,8 @@
 #include <vector>
 
 #include <beam_calibration/Intrinsics.h>
-#include <beam_calibration/Pinhole.h>
+#include <beam_colorize/Colorizer.h>
+
 #include <beam_calibration/TfTree.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
@@ -49,8 +50,21 @@ class MapLabeler {
     Camera(std::string folder_path, std::string cam_id,
            std::string intrinsics_path)
         : camera_id(cam_id), folder_path_(folder_path) {
+      //      using namespace beam_calibration;
       std::string s = intrinsics_path + cam_id + std::string(".json");
-      cam_intrinsics.LoadJSON(s);
+
+      json J;
+      std::ifstream json_config_stream(s);
+      json_config_stream >> J;
+      std::string camera_type = J["type"];
+      if (camera_type.find("pinhole") != std::string::npos)
+        cam_intrinsics = beam_calibration::Intrinsics::Create(
+            beam_calibration::IntrinsicsType::PINHOLE);
+      else
+        cam_intrinsics = beam_calibration::Intrinsics::Create(
+            beam_calibration::IntrinsicsType::LADYBUG);
+
+      cam_intrinsics->LoadJSON(s);
 
       std::string test = folder_path + std::string("/ImagesList.json");
       std::cout << test << std::endl;
@@ -63,11 +77,18 @@ class MapLabeler {
         img_paths.emplace_back(folder_path + std::string("/") +
                                std::string(image_folder) + std::string("/"));
       }
+
+      colorizer = beam_colorize::Colorizer::Create(
+          beam_colorize::ColorizerType::PROJECTION);
+      colorizer->SetIntrinsics(cam_intrinsics.get());
     }
+
+    Camera() = default;
     std::string camera_id = {};
     std::string folder_path_ = {};
     std::vector<std::string> img_paths = {};
-    beam_calibration::Pinhole cam_intrinsics;
+    std::unique_ptr<beam_calibration::Intrinsics> cam_intrinsics;
+    std::unique_ptr<beam_colorize::Colorizer> colorizer;
   };
 
 public:
