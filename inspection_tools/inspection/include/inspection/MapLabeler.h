@@ -47,42 +47,65 @@ using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
  */
 class MapLabeler {
   struct Camera {
+    /**
+     * @brief Constructor
+     * @param folder_path Path to root folder containing CamerasList.json (e.g.,
+     * .../inspection/images)
+     * @param cam_id ID of camera being instantiated (e.g., "F1", corresponding
+     * to a folder such as .../inspection/images/F1)
+     * @param intrinsics_path Path to folder containing all camera intrinsics
+     * files (e.g., .../calibrations/)
+     */
     Camera(std::string folder_path, std::string cam_id,
            std::string intrinsics_path)
         : camera_id(cam_id), folder_path_(folder_path) {
-      //      using namespace beam_calibration;
-      std::string s = intrinsics_path + cam_id + std::string(".json");
+      using namespace beam_calibration;
 
-      json J;
-      std::ifstream json_config_stream(s);
-      json_config_stream >> J;
-      std::string camera_type = J["type"];
+      // Get the .json intrinsics file for the specified camera
+      std::string camera_intrinsics_path = intrinsics_path + cam_id + ".json";
+      //      std::cout << "Camera intrinsics path: " << camera_intrinsics_path
+      //      << std::endl;
+      json intrinsics_json;
+      std::ifstream json_config_stream(camera_intrinsics_path);
+      json_config_stream >> intrinsics_json;
+
+      // Check camera type from JSON and use intrinsics Factory method to
+      // instantiate correct type
+      std::string camera_type = intrinsics_json["type"];
       if (camera_type.find("pinhole") != std::string::npos)
-        cam_intrinsics = beam_calibration::Intrinsics::Create(
-            beam_calibration::IntrinsicsType::PINHOLE);
+        cam_intrinsics = Intrinsics::Create(IntrinsicsType::PINHOLE);
+      else if (camera_type.find("ladybug") != std::string::npos)
+        cam_intrinsics = Intrinsics::Create(IntrinsicsType::LADYBUG);
+      else if (camera_type.find("fisheye") != std::string::npos)
+        cam_intrinsics = Intrinsics::Create(IntrinsicsType::FISHEYE);
       else
-        cam_intrinsics = beam_calibration::Intrinsics::Create(
-            beam_calibration::IntrinsicsType::LADYBUG);
+        throw std::runtime_error("Invalid Camera intrinsics type");
 
-      cam_intrinsics->LoadJSON(s);
+      cam_intrinsics->LoadJSON(camera_intrinsics_path);
 
-      std::string test = folder_path + std::string("/ImagesList.json");
-      std::cout << test << std::endl;
-      std::ifstream i(folder_path + std::string("/ImagesList.json"));
+      // Next we create/fill in a string vector which will store the path to
+      // each image folder for our camera (this is used for instantiating image
+      // container objects)
       json json_images_list;
+      std::ifstream i(folder_path + "/ImagesList.json");
       i >> json_images_list;
-      std::cout << json_images_list << std::endl;
+      //      std::cout << json_images_list << std::endl;
       for (const auto& image_folder : json_images_list["Items"]) {
-        std::cout << image_folder << std::endl;
-        img_paths.emplace_back(folder_path + std::string("/") +
-                               std::string(image_folder) + std::string("/"));
+        img_paths.emplace_back(folder_path + "/" + std::string(image_folder));
+        //        std::cout << "Image path: " << img_paths.back() << std::endl;
       }
 
+      /**
+       * @todo add_colorizer_param
+       * @body In one of the config .json files we need to specify what type of
+       * colorizer we want to use for each camera - then we can read that in
+       * here and call the factory method with the appropriate enum type.
+       */
       colorizer = beam_colorize::Colorizer::Create(
           beam_colorize::ColorizerType::PROJECTION);
       colorizer->SetIntrinsics(cam_intrinsics.get());
+      colorizer->SetDistortion(true);
     }
-
     Camera() = default;
     std::string camera_id = {};
     std::string folder_path_ = {};
@@ -92,34 +115,40 @@ class MapLabeler {
   };
 
 public:
-  MapLabeler(const std::string config_file_location);
+  explicit MapLabeler(std::string config_file_location);
 
   MapLabeler() = default;
 
   ~MapLabeler() = default;
-  // Load JSON file containing image information
-  // For each image, create image container
-  //
+
   void LoadPrevPoses();
 
   std::vector<std::pair<uint64_t, Eigen::Matrix4d>>
       ReadPoseFile(const std::string filename);
 
-  DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time);
+  DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
+                                            std::string frame_id);
 
-  DefectCloud::Ptr
-      ProjectImgToMap(beam_containers::ImageBridge img,
-                      beam_calibration::Intrinsics* cam_intrinsics);
+  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img,
+                                   Camera* camera);
 
   pcl::visualization::PCLVisualizer::Ptr viewer =
       boost::make_shared<pcl::visualization::PCLVisualizer>();
 
   void PlotFrames(std::string frame_id, PCLViewer viewer);
 
+  void DrawColoredClouds();
+
+  void SaveLabeledClouds();
+
+  void FillTFTree();
+
+  void ProcessJSONConfig();
+
 private:
   beam_calibration::TfTree tf_tree;
 
-  std::string json_file_path_ = {};
+  std::string json_labeler_filepath_ = {};
   json json_config_ = {};
 
   std::string poses_file_name_ = {};
@@ -129,12 +158,13 @@ private:
   std::string path_to_camera_calib_ = {};
 
   std::vector<std::string> img_container_paths = {};
-  std::vector<std::string> camera_list = {};
+  std::vector<std::string> camera_list_ = {};
 
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
-  std::vector<DefectCloud::Ptr> defect_clouds_ = {};
+  std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
+  //  std::vector<DefectCloud::Ptr> defect_clouds_ = {};
   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds = {};
   beam_containers::ImageBridge img_bridge_;
   tf2::BufferCore tf2_buffer_{ros::Duration(1000)};

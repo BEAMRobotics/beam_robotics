@@ -13,6 +13,9 @@ int main(int argc, char* argv[]){
 
   mapper_.PlotFrames("hvlp_link", mapper_.viewer);
   mapper_.PlotFrames("F1_link", mapper_.viewer);
+  mapper_.PlotFrames("F2_link", mapper_.viewer);
+  mapper_.DrawColoredClouds();
+  mapper_.SaveLabeledClouds();
 
   while (!mapper_.viewer->wasStopped ())
   {
