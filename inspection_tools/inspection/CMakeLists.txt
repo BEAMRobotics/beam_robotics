@@ -62,3 +62,12 @@ target_link_libraries(${PROJECT_NAME}_map_labeller
 	${PROJECT_NAME}
 	${pcl_ros_LIBRARIES}
 )
+
+# Cloud outputter
+add_executable(${PROJECT_NAME}_cloud_output
+	src/MapLabeler_output_clouds.cpp
+)
+target_link_libraries(${PROJECT_NAME}_cloud_output
+	${PROJECT_NAME}
+	${pcl_ros_LIBRARIES}
+)

@@ -146,11 +146,15 @@ public:
 
   void DrawFinalMap();
 
+  void OutputCloudsForNick();
+
 private:
   beam_calibration::TfTree tf_tree;
 
   std::string json_labeler_filepath_ = {};
   json json_config_ = {};
+
+  bool output_clouds_for_nick = true;
 
   std::string poses_file_name_ = {};
   std::string map_file_name_ = {};
