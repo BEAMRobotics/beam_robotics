@@ -4,6 +4,7 @@ add_library(${PROJECT_NAME}
   GenerateReport.cpp
   ImageExtractor.cpp
   ImageLabeler.cpp
+  LadybugLabeler.cpp
   LoadHandLabels.cpp
   MapLabeler.cpp
   QuantifyDefects.cpp
