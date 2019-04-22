@@ -33,6 +33,7 @@
 
 #include <beam_utils/time.hpp>
 #include <pcl_conversions/pcl_conversions.h>
+#include "inspection/CloudCombiner.h"
 
 namespace inspection {
 
@@ -143,6 +144,8 @@ public:
 
   void ProcessJSONConfig();
 
+  void DrawFinalMap();
+
 private:
   beam_calibration::TfTree tf_tree;
 
@@ -169,6 +172,7 @@ private:
 
   std::vector<Camera> cameras_;
   tf::Transform tf_temp_;
+  inspection::CloudCombiner cloud_combiner_;
 }; // namespace inspection
 
 } // namespace inspection

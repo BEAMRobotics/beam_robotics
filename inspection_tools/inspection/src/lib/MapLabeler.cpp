@@ -1,9 +1,8 @@
 #include "inspection/MapLabeler.h"
 #include <beam_containers/Utilities.h>
+#include <beam_utils/time.hpp>
 
 namespace inspection {
-
-
 
 ros::Time TimePointToRosTime(const TimePoint& time_point) {
   ros::Time ros_time;
@@ -14,7 +13,6 @@ ros::Time TimePointToRosTime(const TimePoint& time_point) {
 
 MapLabeler::MapLabeler(std::string config_file_location)
     : json_labeler_filepath_(config_file_location) {
-
   // Process core json file
   ProcessJSONConfig();
 
@@ -33,7 +31,10 @@ MapLabeler::MapLabeler(std::string config_file_location)
   /**
    * Load Image Containers
    */
-  std::vector<int> indices = {0, 5, 10};
+//  std::vector<int> indices = {0, 5, 10};
+  std::vector<int> indices(50);
+  std::iota(indices.begin(), indices.end(), 0);
+
   int num_cams = cameras_.size();
   defect_clouds_.resize(num_cams);
   for (size_t cam = 0; cam < num_cams; cam++) {
@@ -44,16 +45,42 @@ MapLabeler::MapLabeler(std::string config_file_location)
       img_bridge_.LoadFromJSON(cameras_[cam].img_paths[indices[i]]);
       Camera* camera = &(cameras_[cam]);
       DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
+      std::cout << colored_cloud->points.size() << std::endl;
       defect_clouds_[cam].push_back(colored_cloud);
+
       std::cout << "Elapsed time: " << timer.elapsed() << std::endl;
 
-      PointCloudXYZRGB::Ptr cloud_rgb =
-          boost::make_shared<PointCloudXYZRGB>();
+      PointCloudXYZRGB::Ptr cloud_rgb = boost::make_shared<PointCloudXYZRGB>();
       pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
 
       rgb_clouds.push_back(cloud_rgb);
     }
   }
+
+  cloud_combiner_.CombineClouds(defect_clouds_);
+}
+
+void MapLabeler::DrawFinalMap(){
+
+  int id = 0;
+      pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb_field;
+
+      PointCloudXYZRGB::Ptr rgb_pc = boost::make_shared<PointCloudXYZRGB>();
+      pcl::copyPointCloud(*cloud_combiner_.GetCombinedCloud(), *rgb_pc);
+
+  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
+      rgb_pc);
+
+  viewer->addPointCloud<pcl::PointXYZRGB>(rgb_pc, rgb,
+                                          "Final");
+  viewer->setPointCloudRenderingProperties(
+      pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Final");
+
+
+  viewer->setBackgroundColor(1, 1, 1);
+  viewer->addCoordinateSystem(1.0);
+  viewer->initCameraParameters();
+
 }
 
 void MapLabeler::ProcessJSONConfig() {
@@ -75,7 +102,8 @@ void MapLabeler::ProcessJSONConfig() {
   // Now we create Camera objects for each camera defined in the
   // CamerasList.json file.
   for (const auto& camera_name : json_cameras_list["Items"]) {
-    std::string camera_folder_path = images_file_name_ + "/" + std::string(camera_name);
+    std::string camera_folder_path =
+        images_file_name_ + "/" + std::string(camera_name);
     std::cout << camera_folder_path << std::endl;
 
     camera_list_.emplace_back(camera_name);
@@ -103,6 +131,7 @@ void MapLabeler::FillTFTree() {
     tf_msg.child_frame_id = "hvlp_link";
     tf_tree.AddTransform(tf_msg);
     tf2_buffer_.setTransform(tf_msg, "t");
+
   }
 
   tf_tree.LoadJSON(extrinsics_file_name_);
@@ -124,6 +153,8 @@ void MapLabeler::SaveLabeledClouds() {
               << " labeled point clouds from Camera: "
               << cameras_[cam].camera_id << std::endl;
   }
+
+  pcl::io::savePCDFileBinary(root_cloud_folder + "/final.pcd", *cloud_combiner_.GetCombinedCloud());
 }
 
 void MapLabeler::DrawColoredClouds() {
@@ -198,10 +229,9 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
   }
 }
 
-DefectCloud::Ptr MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_container,
-                                             Camera* camera) {
-
-
+DefectCloud::Ptr
+    MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_container,
+                                Camera* camera) {
   TimePoint img_time = img_bridge_.GetTimePoint();
   ros::Time ros_img_time = TimePointToRosTime(img_time);
   beam::Vec2 img_dims = camera->cam_intrinsics->GetImgDims();
@@ -215,12 +245,14 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_co
 
   DefectCloud::Ptr return_cloud = boost::make_shared<DefectCloud>();
 
-  if (img_container.IsBGRImageSet()){
-//    cv::Mat bgr_img = img_container.GetBGRImage();
-    camera->colorizer->SetImage(img_container.GetBGRImage());
+  if (img_container.IsBGRImageSet()) {
+        cv::Mat bgr_img = img_container.GetBGRImage();
+    camera->colorizer->SetImage(bgr_img);
 
     // Get colored cloud & remove uncolored points
+
     auto xyzrgb_cloud = camera->colorizer->ColorizePointCloud();
+//    xyzrgb_cloud = camera->colorizer->ColorizePointCloud();
     xyzrgb_cloud->points.erase(
         std::remove_if(xyzrgb_cloud->points.begin(), xyzrgb_cloud->points.end(),
                        [](auto& point) {
@@ -228,25 +260,21 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_co
                        }),
         xyzrgb_cloud->points.end());
 
-
+    xyzrgb_cloud->width =  xyzrgb_cloud->points.size();
     std::cout << "XYZRGB cloud size = " << xyzrgb_cloud->width << std::endl;
     std::cout << "XYZRGB points size = " << xyzrgb_cloud->points.size()
               << std::endl;
 
     DefectCloud::Ptr colored_cloud = boost::make_shared<DefectCloud>();
     pcl::copyPointCloud(*xyzrgb_cloud, *return_cloud);
-
-
   }
-  if (img_container.IsBGRMaskSet()){
+  if (img_container.IsBGRMaskSet()) {
     cv::Mat bgr_mask = img_container.GetBGRMask();
-
   }
 
-  pcl_ros::transformPointCloud(*return_cloud, *return_cloud, tf_temp_);
+    pcl_ros::transformPointCloud(*return_cloud, *return_cloud, tf_temp_);
 
   return return_cloud;
 }
-
 
 } // end namespace inspection
