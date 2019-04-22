@@ -14,6 +14,8 @@
 #include <beam_calibration/TfTree.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
+#include <beam_containers/Utilities.h>
+
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>
@@ -125,26 +127,11 @@ public:
 
   ~MapLabeler() = default;
 
-  DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
-                                            std::string frame_id);
-
-  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
-                                   Camera* camera);
-
-  pcl::visualization::PCLVisualizer::Ptr viewer =
-      boost::make_shared<pcl::visualization::PCLVisualizer>();
-
-  void PlotFrames(std::string frame_id, PCLViewer viewer);
-
-  void DrawColoredClouds();
-
   void SaveLabeledClouds();
 
   void FillTFTree();
 
   void ProcessJSONConfig();
-
-  void DrawFinalMap();
 
   void OutputCloudsForNick();
 

@@ -53,7 +53,7 @@ void ImageExtractor::ExtractImages() {
 }
 
 void ImageExtractor::GetTimeStamps() {
-  poses_ = beam_containers::ReadPoseFile(poses_file_);
+  //  poses_ = beam_containers::ReadPoseFile(poses_file_);
 
   Eigen::Affine3d TA_last, TA_check;
   time_stamps_.clear();

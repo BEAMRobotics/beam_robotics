@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.2)
 project(inspection)
 
-add_compile_options(-std=c++17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-
+#set("${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_STANDARD 17)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
 	cv_bridge
@@ -53,15 +53,6 @@ add_executable(${PROJECT_NAME}_manual_B
 )
 target_link_libraries(${PROJECT_NAME}_manual_B
 	${PROJECT_NAME}
-)
-
-# Map Labeller
-add_executable(${PROJECT_NAME}_map_labeller
-	src/MapLabeller_main.cpp
-)
-target_link_libraries(${PROJECT_NAME}_map_labeller
-	${PROJECT_NAME}
-	${pcl_ros_LIBRARIES}
 )
 
 # Cloud outputter
