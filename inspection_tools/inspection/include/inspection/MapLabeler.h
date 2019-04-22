@@ -42,6 +42,9 @@ using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using json = nlohmann::json;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
+using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
+using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
+
 /**
  * @brief class for labeling/coloring a SLAM map given beam image containers
  */
@@ -121,15 +124,10 @@ public:
 
   ~MapLabeler() = default;
 
-  void LoadPrevPoses();
-
-  std::vector<std::pair<uint64_t, Eigen::Matrix4d>>
-      ReadPoseFile(const std::string filename);
-
   DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
                                             std::string frame_id);
 
-  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img,
+  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
                                    Camera* camera);
 
   pcl::visualization::PCLVisualizer::Ptr viewer =
