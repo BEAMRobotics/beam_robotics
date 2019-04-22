@@ -20,7 +20,10 @@ target_link_libraries(${PROJECT_NAME}
   beam::defects
   beam::utils
   catkin::catkin
+  OpenCV::OpenCV
   PCL::PCL
-  ${pcl_ros_LIBRARIES}
+  ${rosbag_LIBRARIES}
   ${cv_bridge_LIBRARIES}
+  ${pcl_ros_LIBRARIES}
+  nlohmann_json::nlohmann_json
 )
