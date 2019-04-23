@@ -37,6 +37,8 @@
 
 namespace inspection {
 
+ros::Time TimePointToRosTime(const TimePoint& time_point);
+
 using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
 using BridgePoint = beam_containers::PointBridge;

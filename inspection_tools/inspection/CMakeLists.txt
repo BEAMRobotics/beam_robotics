@@ -62,3 +62,11 @@ target_link_libraries(${PROJECT_NAME}_map_labeller
 	${PROJECT_NAME}
 	${pcl_ros_LIBRARIES}
 )
+
+# Map Labeller
+add_executable(${PROJECT_NAME}_ladybug
+	src/LadybugLabeler_main.cpp
+	)
+target_link_libraries(${PROJECT_NAME}_ladybug
+	${PROJECT_NAME}
+	)

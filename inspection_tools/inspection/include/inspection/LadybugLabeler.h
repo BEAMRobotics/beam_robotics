@@ -32,6 +32,7 @@
 #include <pcl_ros/transforms.h>
 
 #include "inspection/CloudCombiner.h"
+#include <beam_calibration/Ladybug.h>
 #include <beam_utils/time.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 
@@ -60,44 +61,14 @@ class LadybugLabeler {
      * @param intrinsics_path Path to folder containing all camera intrinsics
      * files (e.g., .../calibrations/)
      */
-    Camera(std::string folder_path, std::string cam_id,
-           std::string intrinsics_path)
-        : camera_id(cam_id), folder_path_(folder_path) {
+    Camera(int cam_id, std::string intrinsics_path) : camera_id(cam_id) {
       using namespace beam_calibration;
-
-      // Get the .json intrinsics file for the specified camera
-      std::string camera_intrinsics_path = intrinsics_path + cam_id + ".json";
-      //      std::cout << "Camera intrinsics path: " << camera_intrinsics_path
-      //      << std::endl;
-      json intrinsics_json;
-      std::ifstream json_config_stream(camera_intrinsics_path);
-      json_config_stream >> intrinsics_json;
 
       // Check camera type from JSON and use intrinsics Factory method to
       // instantiate correct type
-      std::string camera_type = intrinsics_json["type"];
-      if (camera_type.find("pinhole") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::PINHOLE);
-      else if (camera_type.find("ladybug") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::LADYBUG);
-      else if (camera_type.find("fisheye") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::FISHEYE);
-      else
-        throw std::runtime_error("Invalid Camera intrinsics type");
+      cam_intrinsics = Intrinsics::Create(IntrinsicsType::LADYBUG, cam_id);
 
-      cam_intrinsics->LoadJSON(camera_intrinsics_path);
-
-      // Next we create/fill in a string vector which will store the path to
-      // each image folder for our camera (this is used for instantiating image
-      // container objects)
-      json json_images_list;
-      std::ifstream i(folder_path + "/ImagesList.json");
-      i >> json_images_list;
-      //      std::cout << json_images_list << std::endl;
-      for (const auto& image_folder : json_images_list["Items"]) {
-        img_paths.emplace_back(folder_path + "/" + std::string(image_folder));
-        //        std::cout << "Image path: " << img_paths.back() << std::endl;
-      }
+      cam_intrinsics->LoadJSON(intrinsics_path);
 
       /**
        * @todo add_colorizer_param
@@ -111,7 +82,7 @@ class LadybugLabeler {
       colorizer->SetDistortion(true);
     }
     Camera() = default;
-    std::string camera_id = {};
+    int camera_id = {};
     std::string folder_path_ = {};
     std::vector<std::string> img_paths = {};
     std::unique_ptr<beam_calibration::Intrinsics> cam_intrinsics;
@@ -119,11 +90,11 @@ class LadybugLabeler {
   };
 
 public:
-  explicit MapLabeler(std::string config_file_location);
+  explicit LadybugLabeler(std::string config_file_location);
 
-  MapLabeler() = default;
+  LadybugLabeler() = default;
 
-  ~MapLabeler() = default;
+  ~LadybugLabeler() = default;
 
   DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
                                             std::string frame_id);
@@ -163,6 +134,8 @@ private:
 
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
+
+  std::vector<DefectCloud::Ptr> scan_clouds = {};
 
   std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
   //  std::vector<DefectCloud::Ptr> defect_clouds_ = {};

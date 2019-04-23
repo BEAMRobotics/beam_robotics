@@ -1,5 +1,6 @@
 # Core inspection library
 add_library(${PROJECT_NAME}
+  BagAnalyzer.cpp
   CloudCombiner.cpp
   GenerateReport.cpp
   ImageExtractor.cpp
