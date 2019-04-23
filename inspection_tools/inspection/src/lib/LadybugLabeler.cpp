@@ -1,5 +1,12 @@
-#include "inspection/LadybugLabeler.h"
+#define PCL_NO_PRECOMPILE
+
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/point_cloud.h>
+#include <pcl/search/impl/kdtree.hpp>
+#include <pcl/search/kdtree.h>
+
 #include "inspection/BagAnalyzer.h"
+#include "inspection/LadybugLabeler.h"
 #include "inspection/MapLabeler.h"
 #include <beam_containers/Utilities.h>
 #include <beam_utils/time.hpp>
@@ -29,7 +36,7 @@ LadybugLabeler::LadybugLabeler(std::string config_file_location)
     if (pcl::io::loadPCDFile<BridgePoint>(fname, *cloud) == -1) {
       PCL_ERROR("Couldn't read file test_pcd.pcd \n");
     }
-    if (i == 2) { defect_pointcloud_ = cloud; }
+    //    if (i == 2) { defect_pointcloud_ = cloud; }
     scan_clouds.push_back(cloud);
     std::cout << "Loaded scan of size: " << cloud->points.size() << std::endl;
   }
@@ -40,8 +47,10 @@ LadybugLabeler::LadybugLabeler(std::string config_file_location)
     cameras_.push_back(std::move(camera));
   }
 
-  for (int i = 2; i < 3; i++) {
-    for (int cam = 2; cam < 5; cam++) {
+  defect_clouds_.resize(5);
+
+  for (int i = 2; i < 12; i++) {
+    for (int cam = 0; cam < 5; cam++) {
       std::cout << "Camera id: " << cam << std::endl;
 
       //      beam_containers::ImageBridge img_bridge_;
@@ -49,62 +58,45 @@ LadybugLabeler::LadybugLabeler(std::string config_file_location)
                              std::to_string(i) + "/bgr/cam_0" +
                              std::to_string(cam_ids[cam]) + ".png";
       std::string bgr_mask_file = "/home/steve/ladybug_market/ImageBridge" +
-                                  std::to_string(i) + "mask/cam_0" +
+                                  std::to_string(i) + "/mask/cam_0" +
                                   std::to_string(cam_ids[cam]) + ".png";
-
+      std::cout << "BGR file: " << bgr_file << std::endl;
+      std::cout << "BGR MASK file : " << bgr_mask_file << std::endl;
       cv::Mat bgr_img = cv::imread(bgr_file);
-      cv::Mat bgr_mask = cv::imread(bgr_mask_file);
+      cv::Mat bgr_mask = cv::imread(bgr_mask_file, cv::IMREAD_GRAYSCALE);
       img_bridge_.SetBGRMask(bgr_mask);
       img_bridge_.SetBGRImage(bgr_img);
+      int seq = i - 1;
+      img_bridge_.SetImageSeq(seq);
+      std::cout << "ImageBridge" << std::to_string(i) << " : Scan " << seq
+                << std::endl;
 
       std::cout << bgr_img.rows << std::endl;
       std::cout << bgr_img.cols << std::endl;
+      std::cout << bgr_mask.rows << std::endl;
+      std::cout << bgr_mask.cols << std::endl;
 
       Camera* camera = &(cameras_[cam]);
       DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
-      std::cout << "Writing pcd" << std::endl;
-      pcl::io::savePCDFileBinary("/home/steve/test_cloud.pcd", *colored_cloud);
 
-      std::cout << colored_cloud->points.size() << std::endl;
-      defect_clouds_[cam].push_back(colored_cloud);
+      /*      std::cout << "Writing pcd" << std::endl;
+            pcl::io::savePCDFileBinary("/home/steve/test_cloud.pcd",
+         *colored_cloud);
 
-      PointCloudXYZRGB::Ptr cloud_rgb = boost::make_shared<PointCloudXYZRGB>();
-      pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
+            std::cout << colored_cloud->points.size() << std::endl;
+            defect_clouds_[cam].push_back(colored_cloud);
 
-      rgb_clouds.push_back(cloud_rgb);
-      pcl::io::savePCDFileBinary("/home/steve/test_cloud.pcd", *cloud_rgb);
+            PointCloudXYZRGB::Ptr cloud_rgb =
+         boost::make_shared<PointCloudXYZRGB>();
+            pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
+            rgb_clouds.push_back(cloud_rgb);*/
+
+      pcl::io::savePCDFileBinary("/home/steve/cloud_image" + std::to_string(i) +
+                                     "_cam " + std::to_string(cam_ids[cam]) +
+                                     ".pcd",
+                                 *colored_cloud);
     }
   }
-
-  /**
-   * Load Image Containers
-   */
-  //  std::vector<int> indices = {0, 5, 10};
-  std::vector<int> indices(50);
-  std::iota(indices.begin(), indices.end(), 0);
-
-  int num_cams = cameras_.size();
-  defect_clouds_.resize(num_cams);
-  for (size_t cam = 0; cam < num_cams; cam++) {
-    for (size_t i = 0; i < indices.size(); i++) {
-      beam::HighResolutionTimer timer;
-      std::cout << cameras_[cam].img_paths[indices[i]] << std::endl;
-      img_bridge_.LoadFromJSON(cameras_[cam].img_paths[indices[i]]);
-      Camera* camera = &(cameras_[cam]);
-      DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
-      std::cout << colored_cloud->points.size() << std::endl;
-      defect_clouds_[cam].push_back(colored_cloud);
-
-      std::cout << "Elapsed time: " << timer.elapsed() << std::endl;
-
-      PointCloudXYZRGB::Ptr cloud_rgb = boost::make_shared<PointCloudXYZRGB>();
-      pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
-
-      rgb_clouds.push_back(cloud_rgb);
-    }
-  }
-
-  cloud_combiner_.CombineClouds(defect_clouds_);
 }
 
 void LadybugLabeler::DrawFinalMap() {
@@ -226,9 +218,9 @@ void LadybugLabeler::DrawColoredClouds() {
   viewer->initCameraParameters();
 }
 
-DefectCloud::Ptr
-    LadybugLabeler::TransformMapToImageFrame(ros::Time tf_time,
-                                             std::string frame_id) {
+DefectCloud::Ptr LadybugLabeler::TransformMapToImageFrame(ros::Time tf_time,
+                                                          std::string frame_id,
+                                                          int scan_number) {
   std::string to_frame = frame_id;
   std::string from_frame = "m3d_link";
 
@@ -242,7 +234,8 @@ DefectCloud::Ptr
 
   tf::Transform tf_;
   tf::transformMsgToTF(transform_msg.transform, tf_);
-  pcl_ros::transformPointCloud(*defect_pointcloud_, *transformed_cloud, tf_);
+  pcl_ros::transformPointCloud(*scan_clouds[scan_number - 1],
+                               *transformed_cloud, tf_);
 
   tf_temp_ = tf_.inverse();
   std::cout
@@ -287,7 +280,8 @@ DefectCloud::Ptr
       "ladybug_cam" + std::to_string(camera->camera_id);
   // Get map in camera frame
   DefectCloud::Ptr map_cloud = TransformMapToImageFrame(
-      ros_img_time, camera_frame_id); // camera->cam_intrinsics->GetFrameId());
+      ros_img_time, camera_frame_id,
+      img_bridge_.GetImageSeq()); // camera->cam_intrinsics->GetFrameId());
 
   pcl::io::savePCDFileBinary("/home/steve/test_cloud2.pcd", *map_cloud);
 
@@ -316,11 +310,32 @@ DefectCloud::Ptr
     std::cout << "XYZRGB points size = " << xyzrgb_cloud->points.size()
               << std::endl;
 
-    DefectCloud::Ptr colored_cloud = boost::make_shared<DefectCloud>();
     pcl::copyPointCloud(*xyzrgb_cloud, *return_cloud);
   }
   if (img_container.IsBGRMaskSet()) {
     cv::Mat bgr_mask = img_container.GetBGRMask();
+    camera->colorizer->SetImage(bgr_mask);
+    auto masked_cloud = camera->colorizer->ColorizeMask();
+
+    pcl::search::KdTree<BridgePoint> kdtree;
+    kdtree.setInputCloud(return_cloud);
+    for (const auto& search_point : *masked_cloud) {
+      if (search_point.crack == 0 && search_point.delam == 0 &&
+          search_point.corrosion == 0) {
+        continue;
+      }
+      int K = 1;
+      std::vector<int> pointIdxNKNSearch(K);
+      std::vector<float> pointNKNSquaredDistance(K);
+      if (kdtree.nearestKSearch(search_point, K, pointIdxNKNSearch,
+                                pointNKNSquaredDistance) > 0) {
+        return_cloud->points[pointIdxNKNSearch[0]].crack += search_point.crack;
+        return_cloud->points[pointIdxNKNSearch[0]].delam += search_point.delam;
+        return_cloud->points[pointIdxNKNSearch[0]].corrosion +=
+            search_point.corrosion;
+        // 1 crack 2 spall 3 patches
+      }
+    }
   }
 
   pcl_ros::transformPointCloud(*return_cloud, *return_cloud, tf_temp_);

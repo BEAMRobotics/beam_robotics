@@ -97,7 +97,8 @@ public:
   ~LadybugLabeler() = default;
 
   DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
-                                            std::string frame_id);
+                                            std::string frame_id,
+                                            int scan_number);
 
   DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
                                    Camera* camera);
