@@ -6,17 +6,18 @@
   "distance_between_images": [1, 1, 1],
   "rotation_between_images": [30, 30, 30],
   "are_images_distorted": [true, true, true],
+  "is_ir_camera": [false, false, false],
   "image_container_type": "ImageBridge",
   "image_enhancing": [
     {
-      "enhance_method": "histogram",
-      "alpha": 1.5,
-      "beta": 50
+      "enhance_method": "linear",
+      "alpha": 7,
+      "beta": 0
     },
     {
       "enhance_method": "linear",
-      "alpha": 2.0,
-      "beta": 50
+      "alpha": 7,
+      "beta": 0
     },
     {
       "enhance_method": "none",
