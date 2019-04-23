@@ -28,6 +28,10 @@ ImageExtractor::ImageExtractor(const std::string &config_file_location) {
     are_images_distorted_.push_back(distorted.get<bool>());
   }
 
+  for (const auto &ir : J["is_ir_camera"]) {
+    is_ir_camera_.push_back(ir.get<bool>());
+  }
+
   if (image_topics_.size() != distance_between_images_.size()) {
     LOG_ERROR("Number of image topics not equal to number of distances between "
               "poses. Topics = %d, Distances = %d",
@@ -41,7 +45,16 @@ ImageExtractor::ImageExtractor(const std::string &config_file_location) {
               "specifying if images are distorted. Topics = %d, Distorted = %d",
               (int)image_topics_.size(), (int)are_images_distorted_.size());
     throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "distances between images"};
+                                "are_images_distorted"};
+  }
+
+  if (image_topics_.size() != is_ir_camera_.size()) {
+    LOG_ERROR(
+        "Number of image topics not equal to number of booleans "
+        "specifying if camera is an infrared camera. Topics = %d, Is IR = %d",
+        (int)image_topics_.size(), (int)is_ir_camera_.size());
+    throw std::invalid_argument{"Number of image topics not equal to number of "
+                                "is_ir_camera booleans"};
   }
 
   image_container_type_ = J["image_container_type"];
@@ -156,9 +169,22 @@ void ImageExtractor::OutputImages() {
           camera_dir + "/" + image_container_type_ + std::to_string(i);
       boost::filesystem::create_directories(image_container_dir);
       image_time_point = time_stamps_[k][i];
-      image_ki = GetImageFromBag(image_time_point, bag, image_topics_[k]);
-      image_ki_container.SetBGRImage(image_ki);
-      image_ki_container.SetBGRIsDistorted(are_images_distorted_[k]);
+      if (img_counter == 1) {
+        image_ki =
+            GetImageFromBag(image_time_point, bag, image_topics_[k], true);
+      } else {
+        image_ki =
+            GetImageFromBag(image_time_point, bag, image_topics_[k], false);
+      }
+      if (is_ir_camera_[k]) {
+        image_ki_container.SetIRImage(image_ki);
+        image_ki_container.SetIRIsDistorted(are_images_distorted_[k]);
+        image_ki_container.SetIRFrameId(frame_ids_[k]);
+      } else {
+        image_ki_container.SetBGRImage(image_ki);
+        image_ki_container.SetBGRIsDistorted(are_images_distorted_[k]);
+        image_ki_container.SetBGRFrameId(frame_ids_[k]);
+      }
       image_ki_container.SetTimePoint(image_time_point);
       image_ki_container.SetImageSeq(img_counter);
       image_ki_container.SetBagName(bag_file_);
@@ -173,7 +199,8 @@ void ImageExtractor::OutputImages() {
 
 cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
                                         rosbag::Bag &ros_bag,
-                                        std::string &image_topic) {
+                                        std::string &image_topic,
+                                        bool add_frame_id) {
   ros::Time search_time_start, search_time_end;
   double time_window = 10;
   ros::Duration time_window_half(time_window / 2);
@@ -193,25 +220,48 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
   // iterate through bag:
   for (auto iter = view.begin(); iter != view.end(); iter++) {
     if (iter->getTopic() == image_topic) {
-      auto img_msg = iter->instantiate<sensor_msgs::Image>();
-      beam::TimePoint curImgTimepoint = beam::rosTimeToChrono(img_msg->header);
+      sensor_msgs::ImageConstPtr img_msg =
+          iter->instantiate<sensor_msgs::Image>();
+      beam::TimePoint curImgTimepoint =
+          beam::rosTimeToChrono(img_msg->header);
       if (curImgTimepoint >= time_point) {
-        cv_bridge::CvImagePtr cv_img_ptr;
-        cv_img_ptr =
-            cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8);
-        return cv_img_ptr->image;
+        if (add_frame_id) {
+          frame_ids_.push_back(img_msg->header.frame_id);
+        }
+        if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
+          return ROSDebayer(img_msg);
+        } else {
+          return cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)->image;
+        }
       }
     }
   }
 }
 
+cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr &image_raw) {
+  cv::Mat image_color;
+  int code = 0, raw_type = CV_8UC1;
+  std::string raw_encoding = image_raw->encoding;
+  if (raw_encoding == sensor_msgs::image_encodings::BAYER_RGGB8) {
+    code = cv::COLOR_BayerBG2BGR;
+  } else {
+    LOG_ERROR("ROS msg encoding not supported.");
+    throw std::runtime_error{"ROS msg encoding not supported."};
+    return image_color;
+  }
+  cv::Mat raw(image_raw->height, image_raw->width, raw_type,
+              const_cast<uint8_t *>(&image_raw->data[0]), image_raw->step);
+  cv::cvtColor(raw, image_color, code);
+  return image_color;
+}
+
 void ImageExtractor::OutputJSONList(const std::string &file_name,
                                     const std::vector<std::string> &list) {
   std::string JSONString = "{ \"Items\": [";
-  for (uint32_t i = 0; i<list.size()-1; i++){
+  for (uint32_t i = 0; i < list.size() - 1; i++) {
     JSONString = JSONString + "\"" + list[i] + "\", ";
   }
-  JSONString = JSONString + "\"" + list[list.size()-1] + "\"]}";
+  JSONString = JSONString + "\"" + list[list.size() - 1] + "\"]}";
   auto J = nlohmann::json::parse(JSONString);
   std::ofstream file(file_name);
   file << std::setw(4) << J << std::endl;
