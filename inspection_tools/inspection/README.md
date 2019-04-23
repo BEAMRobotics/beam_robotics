@@ -39,9 +39,4 @@ There are currently 3 options for enhancing the images at extraction time.
 
  * none : do not edit images (it will still debayer and save as jpeg)
  * linear: linear enhancer g(i,j)=α⋅f(i,j)+β, where α = gain, and β = bias
- * contrast: full-scale contrast stretch according to:
-
- g(i,j) = round {255 * [f(i,j) - fmin] / [fmax - fmin]}
-
-if set to linear, you will need to set alpha and beta, otherwise it will not need
-those parameters.
+ * histogram: histogram equalization according to:
