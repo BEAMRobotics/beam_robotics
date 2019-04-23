@@ -10,9 +10,17 @@ std::string getJSONFileName(std::string file_name) {
 
 int main() {
   std::string quantify_defects_config;
-  quantify_defects_config = getJSONFileName("ImageExtractorConfig.json");
+  quantify_defects_config = getJSONFileName("QuantifyDefectsConfig.json");
 
   inspection::QuantifyDefects quant_defects(quantify_defects_config);
+  quant_defects.OutputCorrosionInfo();
+  quant_defects.SaveCorrosionOnlyCloud();
+
+  quant_defects.OutputCrackInfo();
+  quant_defects.SaveCrackOnlyCloud();
+
+  quant_defects.OutputSpallInfo();
+  quant_defects.SaveSpallOnlyCloud();
 
   return 0;
 }
