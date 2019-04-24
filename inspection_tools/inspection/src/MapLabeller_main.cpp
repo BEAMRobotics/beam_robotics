@@ -5,7 +5,7 @@ using namespace std::literals::chrono_literals;
 
 std::string getJSONFileName(std::string file_name) {
   std::string file_location = __FILE__;
-  file_location.erase(file_location.end() - 32, file_location.end());
+  file_location.erase(file_location.end() - 24, file_location.end());
   file_location += "config/";
   file_location += file_name;
   return file_location;

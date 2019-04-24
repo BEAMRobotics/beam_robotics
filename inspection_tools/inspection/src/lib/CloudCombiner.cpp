@@ -19,7 +19,7 @@ void CloudCombiner::CombineClouds(
   int num_cams = clouds.size();
   for (int cam = 0; cam < num_cams; cam++) {
     for (const auto& pc : clouds[cam]) {
-      std::cout << "Cam : " << cam << std::endl;
+      //      std::cout << "Cam : " << cam << std::endl;
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {
         int K = 1;
@@ -47,7 +47,8 @@ void CloudCombiner::CombineClouds(
     }
   }
 
-  std::cout << "Final point cloud: " << combined_cloud_->points.size() << std::endl;
+  std::cout << "Combined point cloud size: " << combined_cloud_->points.size()
+            << std::endl;
 }
 
 } // end namespace inspection
