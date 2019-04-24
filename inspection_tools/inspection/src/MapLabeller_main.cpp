@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
   //map_labeler_config = getJSONFileName("MapLabeler.json");
   //std::cout << "Loading MapLabeler.json from: " << map_labeler_config
    //         << std::endl;
-
+  std::cout << "Test" << std::endl;
   inspection::MapLabeler mapper_{"Test"};
 
 
