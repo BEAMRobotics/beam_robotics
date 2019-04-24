@@ -222,7 +222,7 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
     geometry_msgs::TransformStamped g_tf_stamped =
         tf_tree.GetTransform(to_frame, frame_id, time);
 
-    Eigen::Isometry3d eig = tf2::transformToEigen(g_tf_stamped);
+    Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
     Eigen::Affine3f affine_tf(eig.cast<float>());
 
     std::stringstream unique_id;
