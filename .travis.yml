@@ -35,4 +35,4 @@ env:
 script:
   - cd $CI_SOURCE_PATH
   - bash ./scripts/install.bash
-  - ./home/travis/catkin_ws/build/inspection/inspection_mab_labeler
+  - ./home/travis/catkin_ws/build/inspection/inspection_mab_labeller
