@@ -12,24 +12,14 @@ std::string getJSONFileName(std::string file_name) {
 }
 
 int main(int argc, char* argv[]) {
-  std::string map_labeler_config;
-  std::cout << map_labeler_config << std::endl;
-  map_labeler_config = getJSONFileName("MapLabeler.json");
-  std::cout << "Loading MapLabeler.json from: " << map_labeler_config
-            << std::endl;
+  //std::string map_labeler_config;
+  //std::cout << map_labeler_config << std::endl;
+  //map_labeler_config = getJSONFileName("MapLabeler.json");
+  //std::cout << "Loading MapLabeler.json from: " << map_labeler_config
+   //         << std::endl;
 
-  inspection::MapLabeler mapper_{map_labeler_config};
+  inspection::MapLabeler mapper_{"Test"};
 
-  mapper_.PlotFrames("hvlp_link", mapper_.viewer);
-  mapper_.PlotFrames("F1_link", mapper_.viewer);
-  mapper_.PlotFrames("F2_link", mapper_.viewer);
-  //  mapper_.DrawColoredClouds();
-  mapper_.DrawFinalMap();
-  mapper_.SaveLabeledClouds();
 
-  while (!mapper_.viewer->wasStopped()) {
-    mapper_.viewer->spinOnce(100);
-    std::this_thread::sleep_for(100ms);
-  }
   return 0;
 }
