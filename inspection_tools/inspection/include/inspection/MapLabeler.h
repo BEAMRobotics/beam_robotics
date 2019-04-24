@@ -14,6 +14,8 @@
 #include <beam_calibration/TfTree.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
+#include <beam_containers/Utilities.h>
+
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>

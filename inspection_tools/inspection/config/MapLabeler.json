@@ -1,0 +1,9 @@
+{
+  "params": {
+    "images_path": "/home/steve/2019_02_13_19_44_Structures_Lab/images",
+    "map_path": "/home/steve/inspection_labeler/2019_4_8_15_17_33_map.pcd",
+    "poses_path": "/home/steve/inspection_labeler/2019_4_8_15_17_13_opt_traj.txt",
+    "extrinsics_path": "/home/steve/inspection_labeler/extrinsics_2018_12_20.json",
+    "intrinsics_path": "/home/steve/inspection_labeler/"
+  }
+}
