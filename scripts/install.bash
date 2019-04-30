@@ -67,6 +67,7 @@ install_routine()
     # Ensure wget is available
     sudo apt-get install -qq wget  > /dev/null
     # Install dependencies
+    install_cmake
     install_eigen3
     install_ceres
     install_pcl
