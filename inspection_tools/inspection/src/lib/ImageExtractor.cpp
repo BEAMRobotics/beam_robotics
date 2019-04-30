@@ -32,6 +32,15 @@ ImageExtractor::ImageExtractor(const std::string &config_file_location) {
     is_ir_camera_.push_back(ir.get<bool>());
   }
 
+  for (const auto &enhancing : J["image_enhancing"]) {
+    std::string enhance_method = enhancing["enhance_method"].get<std::string>();
+    double alpha = enhancing["alpha"].get<double>();
+    double beta = enhancing["beta"].get<double>();
+    enhance_methods_.push_back(enhance_method);
+    alphas_.push_back(alpha);
+    betas_.push_back(beta);
+  }
+
   if (image_topics_.size() != distance_between_images_.size()) {
     LOG_ERROR("Number of image topics not equal to number of distances between "
               "poses. Topics = %d, Distances = %d",
@@ -55,6 +64,14 @@ ImageExtractor::ImageExtractor(const std::string &config_file_location) {
         (int)image_topics_.size(), (int)is_ir_camera_.size());
     throw std::invalid_argument{"Number of image topics not equal to number of "
                                 "is_ir_camera booleans"};
+  }
+
+  if (image_topics_.size() != enhance_methods_.size()) {
+    LOG_ERROR("Number of image topics not equal to number of image enhancing "
+              "objects. Topics = %d, Enhancing = %d",
+              (int)image_topics_.size(), (int)enhance_methods_.size());
+    throw std::invalid_argument{"Number of image topics not equal to number of "
+                                "image enhancing objects."};
   }
 
   image_container_type_ = J["image_container_type"];
@@ -171,10 +188,10 @@ void ImageExtractor::OutputImages() {
       image_time_point = time_stamps_[k][i];
       if (img_counter == 1) {
         image_ki =
-            GetImageFromBag(image_time_point, bag, image_topics_[k], true);
+            GetImageFromBag(image_time_point, bag, k, true);
       } else {
         image_ki =
-            GetImageFromBag(image_time_point, bag, image_topics_[k], false);
+            GetImageFromBag(image_time_point, bag, k, false);
       }
       if (is_ir_camera_[k]) {
         image_ki_container.SetIRImage(image_ki);
@@ -199,10 +216,11 @@ void ImageExtractor::OutputImages() {
 
 cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
                                         rosbag::Bag &ros_bag,
-                                        std::string &image_topic,
+                                        const int &cam_number,
                                         bool add_frame_id) {
   ros::Time search_time_start, search_time_end;
   double time_window = 10;
+  std::string image_topic = image_topics_[cam_number];
   ros::Duration time_window_half(time_window / 2);
   search_time_start = beam::chronoToRosTime(time_point) - time_window_half;
   search_time_end = beam::chronoToRosTime(time_point) + time_window_half;
@@ -229,12 +247,49 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
           frame_ids_.push_back(img_msg->header.frame_id);
         }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
-          return ROSDebayer(img_msg);
+          cv::Mat image_debayered = ROSDebayer(img_msg);
+          return EnhanceImage(image_debayered, cam_number);
         } else {
-          return cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)->image;
+          cv::Mat image = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)->image;
+          return EnhanceImage(image, cam_number);
         }
       }
     }
+  }
+}
+
+cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
+  if (enhance_methods_[cam_number] == "none") {
+    return input_image;
+  } else if (enhance_methods_[cam_number] == "linear") {
+    cv::Mat new_image = cv::Mat::zeros(input_image.size(), input_image.type());
+    double alpha = alphas_[cam_number];
+    double beta = betas_[cam_number];
+    for (int y = 0; y < input_image.rows; y++) {
+      for (int x = 0; x < input_image.cols; x++) {
+        for (int c = 0; c < input_image.channels(); c++) {
+          new_image.at<cv::Vec3b>(y, x)[c] = cv::saturate_cast<uchar>(
+              alpha * input_image.at<cv::Vec3b>(y, x)[c] + beta);
+        }
+      }
+    }
+    return new_image;
+  } else if (enhance_methods_[cam_number] == "histogram") {
+    cv::Mat ycrcb;
+    cv::cvtColor(input_image, ycrcb, CV_BGR2YCrCb);
+    std::vector<cv::Mat> channels;
+    cv::split(ycrcb, channels);
+    cv::equalizeHist(channels[0], channels[0]);
+    cv::Mat new_image;
+    cv::merge(channels, ycrcb);
+    cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
+    return new_image;
+  } else {
+    LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
+              "Options include: none, linear, and histogram");
+    throw std::invalid_argument{
+        "invalid enhance_method parameter in ImageExtractorConfig.json"};
+    return input_image;
   }
 }
 

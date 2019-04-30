@@ -7,5 +7,22 @@
   "rotation_between_images": [30, 30, 30],
   "are_images_distorted": [true, true, true],
   "is_ir_camera": [false, false, false],
-  "image_container_type": "ImageBridge"
+  "image_container_type": "ImageBridge",
+  "image_enhancing": [
+    {
+      "enhance_method": "linear",
+      "alpha": 7,
+      "beta": 0
+    },
+    {
+      "enhance_method": "linear",
+      "alpha": 7,
+      "beta": 0
+    },
+    {
+      "enhance_method": "none",
+      "alpha": 1.0,
+      "beta": 0
+    }
+  ]
 }
