@@ -14,8 +14,9 @@ target_include_directories(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME}
   catkin::catkin
-  PCL::PCL
-  beam::defects
-  beam::containers
+  OpenCV::OpenCV
+  ${rosbag_LIBRARIES}
+  ${cv_bridge_LIBRARIES}
+  beam::beam
   nlohmann_json::nlohmann_json
 )
