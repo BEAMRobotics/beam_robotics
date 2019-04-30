@@ -34,14 +34,44 @@ public:
    */
   ~QuantifyDefects() = default;
 
+  /**
+   * @brief Ouput the indexed cracks and corresponding lengths
+   */
   void OutputCrackInfo();
+
+  /**
+   * @brief Ouput the indexed spalls and corresponding areas
+   */
   void OutputSpallInfo();
+
+  /**
+   * @brief Ouput the indexed delaminations and corresponding areas
+   */
   void OutputDelamInfo();
+
+  /**
+   * @brief Ouput the indexed corrosion and corresponding areas
+   */
   void OutputCorrosionInfo();
 
+  /**
+   * @brief Save individual crack point clouds to directory
+   */
   void SaveCrackOnlyCloud();
+
+  /**
+   * @brief Save individual spall point clouds to directory
+   */
   void SaveSpallOnlyCloud();
+
+  /**
+   * @brief Save individual delamination point clouds to directory
+   */
   void SaveDelamOnlyCloud();
+
+  /**
+   * @brief Save individual corrosion point clouds to directory
+   */
   void SaveCorrosionOnlyCloud();
 
 private:
