@@ -71,12 +71,12 @@ install_routine()
     install_eigen3
     install_ceres
     install_pcl
-    install_geographiclib
-    install_gtsam
-    install_libwave
-    install_gflags
-    install_catch2
-    install_json
+    #install_geographiclib
+    #install_gtsam
+    #install_libwave
+    #install_gflags
+    #install_catch2
+    #install_json
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
@@ -93,7 +93,7 @@ install_routine()
         bash $INSTALL_SCRIPTS/robot_hardware_install.bash
     fi
 
-    compile
+    #compile
 
     echo "Beam robotics installation completed. Please open a new terminal to re-source environment variables."
     if [ -z "$CONTINUOUS_INTEGRATION" ]; then
