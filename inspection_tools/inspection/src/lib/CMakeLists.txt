@@ -17,8 +17,6 @@ target_link_libraries(${PROJECT_NAME}
   OpenCV::OpenCV
   ${rosbag_LIBRARIES}
   ${cv_bridge_LIBRARIES}
-  PCL::PCL
-  beam::utils
-  beam::containers
+  beam::beam
   nlohmann_json::nlohmann_json
 )

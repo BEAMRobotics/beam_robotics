@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 project(inspection)
 
-add_compile_options(-std=c++17)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -17,7 +17,7 @@ find_package(cv_bridge REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(beam REQUIRED utils containers calibration)
+find_package(beam REQUIRED calibration containers defects utils)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
 # Add the core inspection library
