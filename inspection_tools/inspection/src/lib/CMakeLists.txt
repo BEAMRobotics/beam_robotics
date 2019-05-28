@@ -18,11 +18,9 @@ target_link_libraries(${PROJECT_NAME}
   Boost::boost
   catkin::catkin
   PCL::PCL
-  ${pcl_ros_LIBRARIES}
-  ${cv_bridge_LIBRARIES}
   OpenCV::OpenCV
+  nlohmann_json::nlohmann_json
+  ${pcl_ros_LIBRARIES}
   ${rosbag_LIBRARIES}
   ${cv_bridge_LIBRARIES}
-  beam::beam
-  nlohmann_json::nlohmann_json
 )
