@@ -84,7 +84,9 @@ void MapLabeler::DrawFinalMap() {
 }
 
 void MapLabeler::ProcessJSONConfig() {
-  // Start by loading the root json file & assigning variables
+  BEAM_DEBUG("Processing MapLabeler json config file from : {} ...",
+             json_labeler_filepath_);
+
   std::ifstream json_config_stream(json_labeler_filepath_);
   json_config_stream >> json_config_;
   images_file_name_ = json_config_["params"]["images_path"];
@@ -93,19 +95,25 @@ void MapLabeler::ProcessJSONConfig() {
   extrinsics_file_name_ = json_config_["params"]["extrinsics_path"];
   path_to_camera_calib_ = json_config_["params"]["intrinsics_path"];
 
+  BEAM_DEBUG("MapLabeler JSON - Images path: {}", images_file_name_);
+  BEAM_DEBUG("MapLabeler JSON - Map path: {}", map_file_name_);
+  BEAM_DEBUG("MapLabeler JSON - Poses path: {}", poses_file_name_);
+  BEAM_DEBUG("MapLabeler JSON - Extrinsics: {}", extrinsics_file_name_);
+  BEAM_DEBUG("MapLabeler JSON - Intrinsics folder: {}", path_to_camera_calib_);
+
   // Next we load in the CamerasList.json
   nlohmann::json json_cameras_list;
   std::ifstream camera_list_stream(images_file_name_ + "/CamerasList.json");
   camera_list_stream >> json_cameras_list;
-  //  std::cout << json_cameras_list << std::endl;
+  BEAM_DEBUG("Creating {} camera objects for labeling...",
+             json_cameras_list["Items"].size());
 
   // Now we create Camera objects for each camera defined in the
   // CamerasList.json file.
   for (const auto& camera_name : json_cameras_list["Items"]) {
     std::string camera_folder_path =
         images_file_name_ + "/" + std::string(camera_name);
-    //    std::cout << camera_folder_path << std::endl;
-
+    BEAM_DEBUG("   Camera path: {}", camera_folder_path);
     camera_list_.emplace_back(camera_name);
     Camera cam{camera_folder_path, camera_name,
                json_config_["params"]["intrinsics_path"]};
@@ -118,11 +126,15 @@ void MapLabeler::FillTFTree() {
   ros::Time end_time = TimePointToRosTime(final_poses_.back().first);
   tf_tree.start_time_ = start_time;
   ros::Duration dur = end_time - start_time;
-  std::cout << "Start time of poses: " << start_time << std::endl;
-  std::cout << "End time of poses: " << end_time << std::endl;
-  std::cout << "Duration of poses is : " << dur << std::endl;
 
-  tf::Transform tf_transform;
+  BEAM_DEBUG("Filling TF Tree - Poses start time: {}",
+             std::to_string(start_time.toSec()));
+  BEAM_DEBUG("Filling TF Tree - Poses end time: {}",
+             std::to_string(end_time.toSec()));
+  BEAM_DEBUG("Filling TF Tree - Poses duration: {}", dur.toSec());
+
+  BEAM_DEBUG("Filling TF tree with {} dynamic transforms (i.e., poses)",
+             final_poses_.size());
   geometry_msgs::TransformStamped tf_msg;
   for (const auto& pose : final_poses_) {
     tf_msg = tf2::eigenToTransform(pose.second);
@@ -133,17 +145,18 @@ void MapLabeler::FillTFTree() {
     tf2_buffer_.setTransform(tf_msg, "t");
   }
 
+  BEAM_DEBUG("Filling TF tree with extrinsic transforms");
   tf_tree.LoadJSON(extrinsics_file_name_);
-  std::cout << "Loaded calibrations from : " << tf_tree.GetCalibrationDate()
-            << std::endl;
 }
 
 void MapLabeler::SaveLabeledClouds() {
   using namespace boost::filesystem;
   std::string root_cloud_folder = images_file_name_ + "/../clouds";
+  BEAM_INFO("Saving labeled clouds to: {}", root_cloud_folder);
+
   boost::filesystem::path path = root_cloud_folder;
   if (!is_directory(path)) {
-    std::cout << "No cloud folder in root, creating cloud folder" << std::endl;
+    BEAM_INFO("No cloud folder in {}, creating...", root_cloud_folder);
     create_directories(path);
   }
 
@@ -155,13 +168,15 @@ void MapLabeler::SaveLabeledClouds() {
       pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
       cloud_number++;
     }
-    std::cout << "Saved " << cloud_number - 1
-              << " labeled point clouds from Camera: "
-              << cameras_[cam].camera_id << std::endl;
+
+    BEAM_DEBUG("Saved {} labeled clouds from Camera: {}", cloud_number - 1,
+               cameras_[cam].camera_id);
   }
 
-  pcl::io::savePCDFileBinary(root_cloud_folder + "/_final.pcd",
+  std::string labeled_map_path = root_cloud_folder + "/_labeled_map.pcd";
+  pcl::io::savePCDFileBinary(labeled_map_path,
                              *cloud_combiner_.GetCombinedCloud());
+  BEAM_DEBUG("Saved combined labeled cloud to: {}", labeled_map_path);
 }
 
 void MapLabeler::DrawColoredClouds() {
@@ -173,8 +188,9 @@ void MapLabeler::DrawColoredClouds() {
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
         cloud);
     rgb_fields.push_back(rgb);
-    std::cout << "Adding point cloud with id: " << id << std::endl;
-    std::cout << "  Point cloud size = " << cloud->points.size() << std::endl;
+    BEAM_DEBUG("[PCLVisualizer] Adding point cloud - ID: {}, Size: {}", id,
+               cloud->points.size());
+
     viewer->addPointCloud<pcl::PointXYZRGB>(rgb_clouds[id], rgb_fields[id],
                                             std::to_string(id));
     viewer->setPointCloudRenderingProperties(
@@ -241,11 +257,13 @@ DefectCloud::Ptr
                                 Camera* camera) {
   TimePoint img_time = img_bridge_.GetTimePoint();
   ros::Time ros_img_time = TimePointToRosTime(img_time);
-  beam::Vec2 img_dims = camera->cam_intrinsics->GetImgDims();
+
+  beam::Vec2 img_dims = {camera->cam_model->GetWidth(),
+                         camera->cam_model->GetHeight()};
 
   // Get map in camera frame
-  DefectCloud::Ptr map_cloud = TransformMapToImageFrame(
-      ros_img_time, camera->cam_intrinsics->GetFrameId());
+  DefectCloud::Ptr map_cloud =
+      TransformMapToImageFrame(ros_img_time, camera->cam_model->GetFrameID());
   auto xyz_cloud = boost::make_shared<PointCloudXYZ>();
   pcl::copyPointCloud(*map_cloud, *xyz_cloud);
   camera->colorizer->SetPointCloud(xyz_cloud);

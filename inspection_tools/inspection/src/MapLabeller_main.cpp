@@ -1,4 +1,6 @@
 #include "inspection/MapLabeler.h"
+#include <beam_utils/log.hpp>
+
 #include <thread>
 
 using namespace std::literals::chrono_literals;
@@ -12,6 +14,8 @@ std::string getJSONFileName(std::string file_name) {
 }
 
 int main(int argc, char* argv[]) {
+  BEAM_DEBUG("TEST {} {}", "test", 15.0f);
+  spdlog::info("Hello, {}!", "World");
   std::string map_labeler_config;
   std::cout << map_labeler_config << std::endl;
   map_labeler_config = getJSONFileName("MapLabeler.json");

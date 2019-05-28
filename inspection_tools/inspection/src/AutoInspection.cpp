@@ -1,6 +1,5 @@
 // Example includes
 #include "inspection/ImageExtractor.h"
-#include <beam_calibration/Pinhole.h>
 #include <beam_utils/math.hpp>
 
 // #include <beam_defects/Crack.h>

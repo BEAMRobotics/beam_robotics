@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <beam_calibration/Intrinsics.h>
+#include <beam_calibration/CameraModel.h>
 #include <beam_colorize/Colorizer.h>
 
 #include <beam_calibration/TfTree.h>
@@ -33,9 +33,9 @@
 #include <pcl_ros/impl/transforms.hpp>
 #include <pcl_ros/transforms.h>
 
+#include "inspection/CloudCombiner.h"
 #include <beam_utils/time.hpp>
 #include <pcl_conversions/pcl_conversions.h>
-#include "inspection/CloudCombiner.h"
 
 namespace inspection {
 
@@ -69,25 +69,13 @@ class MapLabeler {
 
       // Get the .json intrinsics file for the specified camera
       std::string camera_intrinsics_path = intrinsics_path + cam_id + ".json";
-      //      std::cout << "Camera intrinsics path: " << camera_intrinsics_path
-      //      << std::endl;
+      BEAM_DEBUG("Camera intrinsics path: {}", camera_intrinsics_path);
+
       json intrinsics_json;
       std::ifstream json_config_stream(camera_intrinsics_path);
       json_config_stream >> intrinsics_json;
 
-      // Check camera type from JSON and use intrinsics Factory method to
-      // instantiate correct type
-      std::string camera_type = intrinsics_json["type"];
-      if (camera_type.find("pinhole") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::PINHOLE);
-      else if (camera_type.find("ladybug") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::LADYBUG);
-      else if (camera_type.find("fisheye") != std::string::npos)
-        cam_intrinsics = Intrinsics::Create(IntrinsicsType::FISHEYE);
-      else
-        throw std::runtime_error("Invalid Camera intrinsics type");
-
-      cam_intrinsics->LoadJSON(camera_intrinsics_path);
+      cam_model = CameraModel::LoadJSON(camera_intrinsics_path);
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
@@ -95,10 +83,10 @@ class MapLabeler {
       json json_images_list;
       std::ifstream i(folder_path + "/ImagesList.json");
       i >> json_images_list;
-      //      std::cout << json_images_list << std::endl;
+      BEAM_DEBUG("Loading {} images from: {}", json_images_list["Items"].size(),
+                 folder_path);
       for (const auto& image_folder : json_images_list["Items"]) {
         img_paths.emplace_back(folder_path + "/" + std::string(image_folder));
-        //        std::cout << "Image path: " << img_paths.back() << std::endl;
       }
 
       /**
@@ -107,16 +95,18 @@ class MapLabeler {
        * colorizer we want to use for each camera - then we can read that in
        * here and call the factory method with the appropriate enum type.
        */
+      BEAM_DEBUG("Creating colorizer object");
       colorizer = beam_colorize::Colorizer::Create(
           beam_colorize::ColorizerType::PROJECTION);
-      colorizer->SetIntrinsics(cam_intrinsics.get());
+      colorizer->SetIntrinsics(cam_model);
       colorizer->SetDistortion(true);
+      BEAM_DEBUG("Sucessfully constructed camera");
     }
     Camera() = default;
     std::string camera_id = {};
     std::string folder_path_ = {};
     std::vector<std::string> img_paths = {};
-    std::unique_ptr<beam_calibration::Intrinsics> cam_intrinsics;
+    std::shared_ptr<beam_calibration::CameraModel> cam_model;
     std::unique_ptr<beam_colorize::Colorizer> colorizer;
   };
 
