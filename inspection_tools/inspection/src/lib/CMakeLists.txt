@@ -20,4 +20,9 @@ target_link_libraries(${PROJECT_NAME}
   PCL::PCL
   ${pcl_ros_LIBRARIES}
   ${cv_bridge_LIBRARIES}
+  OpenCV::OpenCV
+  ${rosbag_LIBRARIES}
+  ${cv_bridge_LIBRARIES}
+  beam::beam
+  nlohmann_json::nlohmann_json
 )

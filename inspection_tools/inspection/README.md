@@ -21,3 +21,22 @@ The automated inspection exectuable can be run on its own. If performing the sem
   1. run ManualInspectionA
   2. label images exported during 1
   3. run ManualInspectionB
+
+## Image Extractor Instructions  
+
+Set all the parameters in ImageExtractorConfig.json located in the config directory.
+For each image topic, you have to specify the same number of variables for the
+following parameters:
+
+ * distance_between_images : minimum change in distance between extracted images
+ * rotation_between_images : minimum change in rotation between extracted images
+ * are_images_distorted : bool of wether or not the image have been undistorted
+ * image_enhancing : some image processing method have been implemented (see below)
+
+### Image Enhancing:
+
+There are currently 3 options for enhancing the images at extraction time.
+
+ * none : do not edit images (it will still debayer and save as jpeg)
+ * linear: linear enhancer g(i,j)=α⋅f(i,j)+β, where α = gain, and β = bias
+ * histogram: histogram equalization according to:
