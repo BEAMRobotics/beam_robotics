@@ -20,6 +20,8 @@ int main(int argc, char* argv[]) {
 
   inspection::MapLabeler mapper_{map_labeler_config};
 
+  mapper_.PrintConfiguration();
+  mapper_.Run();
   mapper_.PlotFrames("hvlp_link", mapper_.viewer);
   mapper_.PlotFrames("F1_link", mapper_.viewer);
   mapper_.PlotFrames("F2_link", mapper_.viewer);

@@ -104,6 +104,52 @@ public:
   ~MapLabeler() = default;
 
   /**
+   * @brief Adds the frame_id to viewer for all times specified in the poses
+   * file
+   * @param frame_id ID of frame being plotted
+   * @param viewer Viewer that frames should be added to
+   */
+  void PlotFrames(std::string frame_id, PCLViewer viewer);
+
+  /**
+   * @brief Main method to kick off execution
+   */
+  void Run();
+
+  /**
+   * @brief Print current configuration
+   */
+  void PrintConfiguration();
+
+  /**
+   * @brief Saves each of the labeled defect clouds in a clouds folder inside
+   * the images folder
+   */
+  void SaveLabeledClouds();
+
+
+  /**
+   * @brief Draw the final labeled map in the viewer
+   */
+  void DrawFinalMap();
+
+  pcl::visualization::PCLVisualizer::Ptr viewer =
+      boost::make_shared<pcl::visualization::PCLVisualizer>();
+
+private:
+  /**
+   * @brief Populate TF tree with dynamic transforms from poses file and with
+   * static transforms frome extrinsic calibrations
+   */
+  void FillTFTree();
+
+  /**
+   * @brief Loads the MapLabeler.json config file and sets up data parameters /
+   * cameras
+   */
+  void ProcessJSONConfig();
+
+  /**
    * @brief Transforms map point cloud into an image frame
    * @param tf_time Time to lookup map->frame_id transform
    * @param frame_id Frame that map is being transformed into
@@ -121,41 +167,6 @@ public:
   DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
                                    Camera* camera);
 
-  /**
-   * @brief Adds the frame_id to viewer for all times specified in the poses
-   * file
-   * @param frame_id ID of frame being plotted
-   * @param viewer Viewer that frames should be added to
-   */
-  void PlotFrames(std::string frame_id, PCLViewer viewer);
-
-  /**
-   * @brief Saves each of the labeled defect clouds in a clouds folder inside
-   * the images folder
-   */
-  void SaveLabeledClouds();
-
-  /**
-   * @brief Populate TF tree with dynamic transforms from poses file and with
-   * static transforms frome extrinsic calibrations
-   */
-  void FillTFTree();
-
-  /**
-   * @brief Loads the MapLabeler.json config file and sets up data parameters /
-   * cameras
-   */
-  void ProcessJSONConfig();
-
-  /**
-   * @brief Draw the final labeled map in the viewer
-   */
-  void DrawFinalMap();
-
-  pcl::visualization::PCLVisualizer::Ptr viewer =
-      boost::make_shared<pcl::visualization::PCLVisualizer>();
-
-private:
   beam_calibration::TfTree tf_tree_;
 
   std::string json_labeler_filepath_ = {};
@@ -180,6 +191,7 @@ private:
   std::vector<Camera> cameras_;
   tf::Transform tf_temp_;
   inspection::CloudCombiner cloud_combiner_;
+
 }; // namespace inspection
 
 } // namespace inspection

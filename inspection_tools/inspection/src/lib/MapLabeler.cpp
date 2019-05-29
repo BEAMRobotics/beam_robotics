@@ -6,8 +6,11 @@
 #include <beam_containers/Utilities.h>
 #include <beam_utils/time.hpp>
 #include <boost/filesystem.hpp>
+#include <thread>
 
 #include "inspection/MapLabeler.h"
+
+using namespace std::literals::chrono_literals;
 
 namespace inspection {
 
@@ -31,7 +34,9 @@ MapLabeler::MapLabeler(std::string config_file_location)
 
   // Load previous poses file specified in labeler json
   final_poses_ = beam_containers::ReadPoseFile(poses_file_name_);
+}
 
+void MapLabeler::Run() {
   // Fill tf tree object with robot poses & extrinsics
   FillTFTree();
 
@@ -61,6 +66,27 @@ MapLabeler::MapLabeler(std::string config_file_location)
   cloud_combiner_.CombineClouds(defect_clouds_);
 }
 
+void MapLabeler::PrintConfiguration() {
+  BEAM_INFO("------------------ Map Labeler Configuration ------------------");
+  BEAM_INFO("---------------------------------------------------------------");
+  BEAM_INFO("Using poses file: {}", poses_file_name_);
+  BEAM_INFO("Number of poses: {}", final_poses_.size());
+  BEAM_INFO("Using point cloud map: {}", map_file_name_);
+  BEAM_INFO("Map number of points: {}", defect_pointcloud_->size());
+  BEAM_INFO("Strategy for combining clouds: {}", "Most Recent");
+  BEAM_INFO("Number of cameras: {}", cameras_.size());
+  BEAM_INFO("Sensor extrinsics: {}", extrinsics_file_name_);
+  for (size_t cam = 0; cam < cameras_.size(); cam++) {
+    BEAM_INFO("Camera: {} info...", cam);
+    BEAM_INFO("   Cam ID: {}", cameras_[cam].camera_id);
+    BEAM_INFO("   Camera frame: {}", cameras_[cam].cam_model->GetFrameID());
+    BEAM_INFO("   Camera colorizer: {}", "Projection or raytrace");
+    BEAM_INFO("   Number of images: {}", cameras_[cam].img_paths.size());
+  }
+  BEAM_INFO("--------------------------------------------------------- \n {}",
+            "\n");
+}
+
 void MapLabeler::DrawFinalMap() {
   int id = 0;
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB>
@@ -87,6 +113,9 @@ void MapLabeler::ProcessJSONConfig() {
 
   std::ifstream json_config_stream(json_labeler_filepath_);
   json_config_stream >> json_config_;
+
+  std::cout << json_config_ << std::endl;
+
   images_file_name_ = json_config_["params"]["images_path"];
   map_file_name_ = json_config_["params"]["map_path"];
   poses_file_name_ = json_config_["params"]["poses_path"];
