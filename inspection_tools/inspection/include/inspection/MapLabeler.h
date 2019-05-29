@@ -1,41 +1,23 @@
 #pragma once
 
-#include <Eigen/Eigen>
-#include <beam_utils/log.hpp>
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-
 #include <beam_calibration/CameraModel.h>
-#include <beam_colorize/Colorizer.h>
-
 #include <beam_calibration/TfTree.h>
+#include <beam_colorize/Colorizer.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
 #include <beam_containers/Utilities.h>
-
+#include <beam_utils/log.hpp>
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/visualization/pcl_visualizer.h>
-
-#include <boost/make_shared.hpp>
-#include <nlohmann/json.hpp>
-//#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <pcl_ros/impl/transforms.hpp>
+#include <pcl_ros/transforms.h>
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
 
-#include <rosbag/bag.h>
-
-#include <pcl_ros/impl/transforms.hpp>
-#include <pcl_ros/transforms.h>
-
 #include "inspection/CloudCombiner.h"
-#include <beam_utils/time.hpp>
-#include <pcl_conversions/pcl_conversions.h>
 
 namespace inspection {
 
@@ -52,6 +34,10 @@ using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
  * @brief class for labeling/coloring a SLAM map given beam image containers
  */
 class MapLabeler {
+  /**
+   * @brief Struct for holding information relevant for every camera being used
+   * for labeling
+   */
   struct Camera {
     /**
      * @brief Constructor
@@ -62,9 +48,9 @@ class MapLabeler {
      * @param intrinsics_path Path to folder containing all camera intrinsics
      * files (e.g., .../calibrations/)
      */
-    Camera(std::string folder_path, std::string cam_id,
+    Camera(std::string root_folder_path, std::string cam_id,
            std::string intrinsics_path)
-        : camera_id(cam_id), folder_path_(folder_path) {
+        : camera_id(cam_id), folder_path(root_folder_path) {
       using namespace beam_calibration;
 
       // Get the .json intrinsics file for the specified camera
@@ -104,7 +90,7 @@ class MapLabeler {
     }
     Camera() = default;
     std::string camera_id = {};
-    std::string folder_path_ = {};
+    std::string folder_path = {};
     std::vector<std::string> img_paths = {};
     std::shared_ptr<beam_calibration::CameraModel> cam_model;
     std::unique_ptr<beam_colorize::Colorizer> colorizer;
@@ -117,29 +103,60 @@ public:
 
   ~MapLabeler() = default;
 
+  /**
+   * @brief Transforms map point cloud into an image frame
+   * @param tf_time Time to lookup map->frame_id transform
+   * @param frame_id Frame that map is being transformed into
+   * @return Map cloud in image frame
+   */
   DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
                                             std::string frame_id);
 
+  /**
+   * @brief Labels point cloud map with image specified
+   * @param img_container Image container used for labeling
+   * @param camera Camera corresponding to image container
+   * @return Labeled point cloud map
+   */
   DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
                                    Camera* camera);
+
+  /**
+   * @brief Adds the frame_id to viewer for all times specified in the poses
+   * file
+   * @param frame_id ID of frame being plotted
+   * @param viewer Viewer that frames should be added to
+   */
+  void PlotFrames(std::string frame_id, PCLViewer viewer);
+
+  /**
+   * @brief Saves each of the labeled defect clouds in a clouds folder inside
+   * the images folder
+   */
+  void SaveLabeledClouds();
+
+  /**
+   * @brief Populate TF tree with dynamic transforms from poses file and with
+   * static transforms frome extrinsic calibrations
+   */
+  void FillTFTree();
+
+  /**
+   * @brief Loads the MapLabeler.json config file and sets up data parameters /
+   * cameras
+   */
+  void ProcessJSONConfig();
+
+  /**
+   * @brief Draw the final labeled map in the viewer
+   */
+  void DrawFinalMap();
 
   pcl::visualization::PCLVisualizer::Ptr viewer =
       boost::make_shared<pcl::visualization::PCLVisualizer>();
 
-  void PlotFrames(std::string frame_id, PCLViewer viewer);
-
-  void DrawColoredClouds();
-
-  void SaveLabeledClouds();
-
-  void FillTFTree();
-
-  void ProcessJSONConfig();
-
-  void DrawFinalMap();
-
 private:
-  beam_calibration::TfTree tf_tree;
+  beam_calibration::TfTree tf_tree_;
 
   std::string json_labeler_filepath_ = {};
   json json_config_ = {};
@@ -150,17 +167,15 @@ private:
   std::string extrinsics_file_name_ = {};
   std::string path_to_camera_calib_ = {};
 
-  std::vector<std::string> img_container_paths = {};
   std::vector<std::string> camera_list_ = {};
 
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
   std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
-  //  std::vector<DefectCloud::Ptr> defect_clouds_ = {};
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds = {};
+
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds_ = {};
   beam_containers::ImageBridge img_bridge_;
-  tf2::BufferCore tf2_buffer_{ros::Duration(1000)};
 
   std::vector<Camera> cameras_;
   tf::Transform tf_temp_;

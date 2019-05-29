@@ -12,14 +12,13 @@ void CloudCombiner::CombineClouds(
     std::vector<std::vector<pcl::PointCloud<beam_containers::PointBridge>::Ptr>>
         clouds) {
   pcl::search::KdTree<BridgePoint> kdtree;
-  BridgePoint bp = {0,0,0};
+  BridgePoint bp = {0, 0, 0};
   combined_cloud_->points.push_back(bp);
 
   // Iterate through and successfully add point clouds to final
   int num_cams = clouds.size();
   for (int cam = 0; cam < num_cams; cam++) {
     for (const auto& pc : clouds[cam]) {
-      //      std::cout << "Cam : " << cam << std::endl;
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {
         int K = 1;
@@ -35,20 +34,12 @@ void CloudCombiner::CombineClouds(
             // with the most recently observed version of the point
             combined_cloud_->points[pointIdxNKNSearch[0]] = search_point;
           }
-
-/*          for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i)
-            std::cout << "    " << pc->points[pointIdxNKNSearch[i]].x << " "
-                      << pc->points[pointIdxNKNSearch[i]].y << " "
-                      << pc->points[pointIdxNKNSearch[i]].z
-                      << " (squared distance: " << pointNKNSquaredDistance[i]
-                      << ")" << std::endl;*/
         }
       }
     }
   }
-
-  std::cout << "Combined point cloud size: " << combined_cloud_->points.size()
-            << std::endl;
+  BEAM_INFO("Finished combining point clouds - final map is: {} points",
+            combined_cloud_->points.size());
 }
 
 } // end namespace inspection

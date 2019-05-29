@@ -1,19 +1,10 @@
 #pragma once
 
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-
 #include <beam_containers/PointBridge.h>
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
-
-#include <boost/make_shared.hpp>
-
 
 
 namespace inspection {
@@ -25,17 +16,27 @@ using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
 
+/**
+ * @brief Class for combining labeled clouds from each image / camera labeled
+ * cloud
+ */
 class CloudCombiner {
 public:
   CloudCombiner() = default;
   ~CloudCombiner() = default;
 
+  /**
+   * @brief Main function for combining clouds
+   * @param clouds Labeled clouds as 2d vec
+   * @details Clouds - each element in outer vector corresponds to a different
+   * camera, each element in inner vector corresponds to different image used to
+   * label
+   */
   void CombineClouds(std::vector<std::vector<DefectCloud::Ptr>> clouds);
 
-  DefectCloud::Ptr GetCombinedCloud(){return combined_cloud_;}
+  DefectCloud::Ptr GetCombinedCloud() { return combined_cloud_; }
 
-private:
-  std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
+protected:
   DefectCloud::Ptr combined_cloud_ = boost::make_shared<DefectCloud>();
 };
 

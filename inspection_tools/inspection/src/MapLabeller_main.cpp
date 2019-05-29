@@ -1,7 +1,6 @@
-#include "inspection/MapLabeler.h"
-#include <beam_utils/log.hpp>
-
 #include <thread>
+
+#include "inspection/MapLabeler.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -14,20 +13,16 @@ std::string getJSONFileName(std::string file_name) {
 }
 
 int main(int argc, char* argv[]) {
-  BEAM_DEBUG("TEST {} {}", "test", 15.0f);
-  spdlog::info("Hello, {}!", "World");
   std::string map_labeler_config;
-  std::cout << map_labeler_config << std::endl;
   map_labeler_config = getJSONFileName("MapLabeler.json");
-  std::cout << "Loading MapLabeler.json from: " << map_labeler_config
-            << std::endl;
+
+  BEAM_INFO("Loading config from: {}", map_labeler_config);
 
   inspection::MapLabeler mapper_{map_labeler_config};
 
   mapper_.PlotFrames("hvlp_link", mapper_.viewer);
   mapper_.PlotFrames("F1_link", mapper_.viewer);
   mapper_.PlotFrames("F2_link", mapper_.viewer);
-  //  mapper_.DrawColoredClouds();
   mapper_.DrawFinalMap();
   mapper_.SaveLabeledClouds();
 
