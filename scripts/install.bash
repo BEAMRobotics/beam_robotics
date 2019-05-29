@@ -77,6 +77,7 @@ install_routine()
     install_gflags
     install_catch2
     install_json
+    install_ladybug_sdk
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
