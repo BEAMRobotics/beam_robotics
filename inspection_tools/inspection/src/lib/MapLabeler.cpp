@@ -27,13 +27,12 @@ MapLabeler::MapLabeler(std::string config_file_location)
   ProcessJSONConfig();
 
   // Load map
-  if (pcl::io::loadPCDFile<BridgePoint>(map_file_name_, *defect_pointcloud_) ==
-      -1) {
+  if (pcl::io::loadPCDFile<BridgePoint>(map_path_, *defect_pointcloud_) == -1) {
     PCL_ERROR("Couldn't read file test_pcd.pcd \n");
   }
 
   // Load previous poses file specified in labeler json
-  final_poses_ = beam_containers::ReadPoseFile(poses_file_name_);
+  final_poses_ = beam_containers::ReadPoseFile(poses_path_);
 }
 
 void MapLabeler::Run() {
@@ -44,11 +43,11 @@ void MapLabeler::Run() {
   int num_cams = cameras_.size();
   defect_clouds_.resize(num_cams);
   for (size_t cam = 0; cam < num_cams; cam++) {
-    int num_images = cameras_[cam].img_paths.size();
+    int num_images = cameras_[cam].img_paths_.size();
     for (size_t img_index = 0; img_index < num_images; img_index++) {
       beam::HighResolutionTimer timer;
 
-      img_bridge_.LoadFromJSON(cameras_[cam].img_paths[img_index]);
+      img_bridge_.LoadFromJSON(cameras_[cam].img_paths_[img_index]);
       Camera* camera = &(cameras_[cam]);
       DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
       defect_clouds_[cam].push_back(colored_cloud);
@@ -69,22 +68,26 @@ void MapLabeler::Run() {
 void MapLabeler::PrintConfiguration() {
   BEAM_INFO("------------------ Map Labeler Configuration ------------------");
   BEAM_INFO("---------------------------------------------------------------");
-  BEAM_INFO("Using poses file: {}", poses_file_name_);
+  BEAM_INFO("Using poses file: {}", poses_path_);
   BEAM_INFO("Number of poses: {}", final_poses_.size());
-  BEAM_INFO("Using point cloud map: {}", map_file_name_);
+  BEAM_INFO("Using point cloud map: {}", map_path_);
   BEAM_INFO("Map number of points: {}", defect_pointcloud_->size());
-  BEAM_INFO("Strategy for combining clouds: {}", "Most Recent");
+  BEAM_INFO("Strategy for combining clouds: {}", cloud_combiner_type_);
+  BEAM_INFO("Saving final map to: {}", final_map_name_);
+  BEAM_INFO("Saving individual labeled clouds: {}",
+            output_individual_clouds_ ? "True" : "False");
   BEAM_INFO("Number of cameras: {}", cameras_.size());
-  BEAM_INFO("Sensor extrinsics: {}", extrinsics_file_name_);
+  BEAM_INFO("Sensor extrinsics: {}", extrinsics_path_);
   for (size_t cam = 0; cam < cameras_.size(); cam++) {
     BEAM_INFO("Camera: {} info...", cam);
-    BEAM_INFO("   Cam ID: {}", cameras_[cam].camera_id);
-    BEAM_INFO("   Camera frame: {}", cameras_[cam].cam_model->GetFrameID());
-    BEAM_INFO("   Camera colorizer: {}", "Projection or raytrace");
-    BEAM_INFO("   Number of images: {}", cameras_[cam].img_paths.size());
+    BEAM_INFO("   Cam ID: {}", cameras_[cam].camera_name_);
+    BEAM_INFO("   Camera frame: {}", cameras_[cam].cam_model_->GetFrameID());
+    BEAM_INFO("   Camera colorizer: {}", cameras_[cam].colorizer_type_);
+    BEAM_INFO("   Number of images: {}", cameras_[cam].img_paths_.size());
   }
-  BEAM_INFO("--------------------------------------------------------- \n {}",
-            "\n");
+  BEAM_INFO(
+      "--------------------------------------------------------------- \n {}",
+      "\n");
 }
 
 void MapLabeler::DrawFinalMap() {
@@ -108,44 +111,46 @@ void MapLabeler::DrawFinalMap() {
 }
 
 void MapLabeler::ProcessJSONConfig() {
-  BEAM_DEBUG("Processing MapLabeler json config file from : {} ...",
-             json_labeler_filepath_);
+  try {
+    BEAM_DEBUG("Processing MapLabeler json config file from : {} ...",
+               json_labeler_filepath_);
 
-  std::ifstream json_config_stream(json_labeler_filepath_);
-  json_config_stream >> json_config_;
+    std::ifstream json_config_stream(json_labeler_filepath_);
+    json_config_stream >> json_config_;
 
-  std::cout << json_config_ << std::endl;
+    images_folder_ = json_config_.at("images_folder");
+    intrinsics_folder_ = json_config_.at("intrinsics_folder");
+    map_path_ = json_config_.at("map_path");
+    poses_path_ = json_config_.at("poses_path");
+    extrinsics_path_ = json_config_.at("extrinsics_path");
+    output_individual_clouds_ = json_config_.at("output_individual_clouds");
+    if (!json_config_.at("final_map_name").empty())
+      final_map_name_ = json_config_.at("final_map_name");
+    if (!json_config_.at("cloud_combiner").empty())
+      cloud_combiner_type_ = json_config_.at("cloud_combiner");
+    json cameras_json = json_config_.at("cameras");
 
-  images_file_name_ = json_config_["params"]["images_path"];
-  map_file_name_ = json_config_["params"]["map_path"];
-  poses_file_name_ = json_config_["params"]["poses_path"];
-  extrinsics_file_name_ = json_config_["params"]["extrinsics_path"];
-  path_to_camera_calib_ = json_config_["params"]["intrinsics_path"];
+    BEAM_DEBUG("MapLabeler JSON - Images path: {}", images_folder_);
+    BEAM_DEBUG("MapLabeler JSON - Map path: {}", map_path_);
+    BEAM_DEBUG("MapLabeler JSON - Poses path: {}", poses_path_);
+    BEAM_DEBUG("MapLabeler JSON - Extrinsics: {}", extrinsics_path_);
+    BEAM_DEBUG("MapLabeler JSON - Intrinsics folder: {}", intrinsics_folder_);
+    BEAM_DEBUG("Creating {} camera objects for labeling...",
+               cameras_json.size());
 
-  BEAM_DEBUG("MapLabeler JSON - Images path: {}", images_file_name_);
-  BEAM_DEBUG("MapLabeler JSON - Map path: {}", map_file_name_);
-  BEAM_DEBUG("MapLabeler JSON - Poses path: {}", poses_file_name_);
-  BEAM_DEBUG("MapLabeler JSON - Extrinsics: {}", extrinsics_file_name_);
-  BEAM_DEBUG("MapLabeler JSON - Intrinsics folder: {}", path_to_camera_calib_);
+    for (const auto& camera : cameras_json) {
+      if (!camera.at("Enabled")) continue;
+      std::string camera_name = camera.at("Name");
+      std::string cam_imgs_folder = images_folder_ + "/" + camera_name;
+      Camera cam{camera, cam_imgs_folder, intrinsics_folder_};
+      cameras_.push_back(std::move(cam));
+    }
 
-  // Next we load in the CamerasList.json
-  nlohmann::json json_cameras_list;
-  std::ifstream camera_list_stream(images_file_name_ + "/CamerasList.json");
-  camera_list_stream >> json_cameras_list;
-  BEAM_DEBUG("Creating {} camera objects for labeling...",
-             json_cameras_list["Items"].size());
-
-  // Now we create Camera objects for each camera defined in the
-  // CamerasList.json file.
-  for (const auto& camera_name : json_cameras_list["Items"]) {
-    std::string camera_folder_path =
-        images_file_name_ + "/" + std::string(camera_name);
-    BEAM_DEBUG("   Camera path: {}", camera_folder_path);
-    camera_list_.emplace_back(camera_name);
-    Camera cam{camera_folder_path, camera_name,
-               json_config_["params"]["intrinsics_path"]};
-    cameras_.push_back(std::move(cam));
+  } catch (json::exception& e) {
+    BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
+                  e.id);
   }
+  BEAM_INFO("Successfully loaded config");
 }
 
 void MapLabeler::FillTFTree() {
@@ -172,12 +177,12 @@ void MapLabeler::FillTFTree() {
   }
 
   BEAM_DEBUG("Filling TF tree with extrinsic transforms");
-  tf_tree_.LoadJSON(extrinsics_file_name_);
+  tf_tree_.LoadJSON(extrinsics_path_);
 }
 
 void MapLabeler::SaveLabeledClouds() {
   using namespace boost::filesystem;
-  std::string root_cloud_folder = images_file_name_ + "/../clouds";
+  std::string root_cloud_folder = images_folder_ + "/../clouds";
   BEAM_INFO("Saving labeled clouds to: {}", root_cloud_folder);
 
   boost::filesystem::path path = root_cloud_folder;
@@ -189,14 +194,14 @@ void MapLabeler::SaveLabeledClouds() {
   for (size_t cam = 0; cam < defect_clouds_.size(); cam++) {
     int cloud_number = 1;
     for (const auto& cloud : defect_clouds_[cam]) {
-      std::string file_name =
-          cameras_[cam].camera_id + "_" + std::to_string(cloud_number) + ".pcd";
+      std::string file_name = cameras_[cam].camera_name_ + "_" +
+                              std::to_string(cloud_number) + ".pcd";
       pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
       cloud_number++;
     }
 
     BEAM_DEBUG("Saved {} labeled clouds from Camera: {}", cloud_number - 1,
-               cameras_[cam].camera_id);
+               cameras_[cam].camera_name_);
   }
 
   std::string labeled_map_path = root_cloud_folder + "/_labeled_map.pcd";
@@ -250,26 +255,26 @@ DefectCloud::Ptr
                                 Camera* camera) {
   ros::Time ros_img_time = TimePointToRosTime(img_bridge_.GetTimePoint());
 
-  beam::Vec2 img_dims = {camera->cam_model->GetWidth(),
-                         camera->cam_model->GetHeight()};
+  beam::Vec2 img_dims = {camera->cam_model_->GetWidth(),
+                         camera->cam_model_->GetHeight()};
 
   // Get map in camera frame
   DefectCloud::Ptr map_cloud =
-      TransformMapToImageFrame(ros_img_time, camera->cam_model->GetFrameID());
+      TransformMapToImageFrame(ros_img_time, camera->cam_model_->GetFrameID());
   auto xyz_cloud = boost::make_shared<PointCloudXYZ>();
   pcl::copyPointCloud(*map_cloud, *xyz_cloud);
 
   // Set up the camera colorizer with the point cloud which is being labeled
-  camera->colorizer->SetPointCloud(xyz_cloud);
+  camera->colorizer_->SetPointCloud(xyz_cloud);
 
   DefectCloud::Ptr return_cloud = boost::make_shared<DefectCloud>();
 
   // Color point cloud with BGR images
   if (img_container.IsBGRImageSet()) {
-    camera->colorizer->SetImage(img_container.GetBGRImage());
+    camera->colorizer_->SetImage(img_container.GetBGRImage());
 
     // Get colored cloud & remove uncolored points
-    auto xyzrgb_cloud = camera->colorizer->ColorizePointCloud();
+    auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
     xyzrgb_cloud->points.erase(
         std::remove_if(xyzrgb_cloud->points.begin(), xyzrgb_cloud->points.end(),
                        [](auto& point) {
@@ -284,10 +289,10 @@ DefectCloud::Ptr
 
   // Color point cloud with Mask
   if (img_container.IsBGRMaskSet()) {
-    camera->colorizer->SetImage(img_container.GetBGRMask());
+    camera->colorizer_->SetImage(img_container.GetBGRMask());
 
     // Get labeled cloud & remove unlabeled points
-    DefectCloud::Ptr labeled_cloud = camera->colorizer->ColorizeMask();
+    DefectCloud::Ptr labeled_cloud = camera->colorizer_->ColorizeMask();
     labeled_cloud->points.erase(std::remove_if(labeled_cloud->points.begin(),
                                                labeled_cloud->points.end(),
                                                [](auto& point) {
