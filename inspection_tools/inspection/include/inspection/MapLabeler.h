@@ -43,57 +43,71 @@ class MapLabeler {
      * @brief Constructor
      * @param folder_path Path to root folder containing CamerasList.json (e.g.,
      * .../inspection/images)
-     * @param cam_id ID of camera being instantiated (e.g., "F1", corresponding
-     * to a folder such as .../inspection/images/F1)
-     * @param intrinsics_path Path to folder containing all camera intrinsics
-     * files (e.g., .../calibrations/)
+     * @param cam_name ID of camera being instantiated (e.g., "F1",
+     * corresponding to a folder such as .../inspection/images/F1)
+     * @param cam_intrinsics_path Path to folder containing all camera
+     * intrinsics files (e.g., .../calibrations/)
      */
-    Camera(std::string root_folder_path, std::string cam_id,
-           std::string intrinsics_path)
-        : camera_id(cam_id), folder_path(root_folder_path) {
+    Camera(json camera_config_json, std::string cam_imgs_folder,
+           std::string intrin_folder)
+        : camera_name_(camera_config_json.at("Name")),
+          cam_imgs_folder_(cam_imgs_folder),
+          cam_intrinsics_path_(intrin_folder + camera_name_ + ".json") {
+      BEAM_DEBUG("Creating camera: {}", camera_name_);
+
       using namespace beam_calibration;
+      using namespace beam_colorize;
+      using namespace boost::filesystem;
 
-      // Get the .json intrinsics file for the specified camera
-      std::string camera_intrinsics_path = intrinsics_path + cam_id + ".json";
-      BEAM_DEBUG("Camera intrinsics path: {}", camera_intrinsics_path);
-
-      json intrinsics_json;
-      std::ifstream json_config_stream(camera_intrinsics_path);
-      json_config_stream >> intrinsics_json;
-
-      cam_model = CameraModel::LoadJSON(camera_intrinsics_path);
+      cam_model_ = CameraModel::LoadJSON(cam_intrinsics_path_);
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
       // container objects)
-      json json_images_list;
-      std::ifstream i(folder_path + "/ImagesList.json");
-      i >> json_images_list;
-      BEAM_DEBUG("Loading {} images from: {}", json_images_list["Items"].size(),
-                 folder_path);
-      for (const auto& image_folder : json_images_list["Items"]) {
-        img_paths.emplace_back(folder_path + "/" + std::string(image_folder));
+      path p{cam_imgs_folder_};
+      BEAM_DEBUG("    Getting image paths for camera...");
+      for (const auto& imgs : camera_config_json.at("Images")) {
+        std::string img_type = imgs.at("Type");
+        for (const auto& ids : imgs.at("IDs")) {
+          if (ids == "All") {
+            for (auto& entry :
+                 boost::make_iterator_range(directory_iterator(p), {})) {
+              std::string path = entry.path().string();
+              img_paths_.emplace_back(path);
+              BEAM_DEBUG("      Adding path: {}", path);
+            }
+          } else {
+            img_paths_.emplace_back(cam_imgs_folder_ + "/" + img_type +
+                                    std::string(ids));
+            BEAM_DEBUG("      Adding path: {}", img_paths_.back());
+          }
+        }
       }
+      std::sort(img_paths_.begin(), img_paths_.end());
+      BEAM_DEBUG("    Total image paths: {}", img_paths_.size());
 
-      /**
-       * @todo add_colorizer_param
-       * @body In one of the config .json files we need to specify what type of
-       * colorizer we want to use for each camera - then we can read that in
-       * here and call the factory method with the appropriate enum type.
-       */
-      BEAM_DEBUG("Creating colorizer object");
-      colorizer = beam_colorize::Colorizer::Create(
-          beam_colorize::ColorizerType::PROJECTION);
-      colorizer->SetIntrinsics(cam_model);
-      colorizer->SetDistortion(true);
-      BEAM_DEBUG("Sucessfully constructed camera");
+      if (camera_config_json.at("Colorizer") == "Projection") {
+        colorizer_ = Colorizer::Create(ColorizerType::PROJECTION);
+        colorizer_type_ = "Projection";
+      } else if (camera_config_json.at("Colorizer") == "RayTrace") {
+        colorizer_ = Colorizer::Create(ColorizerType::RAY_TRACE);
+        colorizer_type_ = "RayTrace";
+      }
+      BEAM_DEBUG("    Creating {} colorizer object", colorizer_type_);
+
+      colorizer_->SetIntrinsics(cam_model_);
+      colorizer_->SetDistortion(true);
+      BEAM_DEBUG("    Sucessfully constructed camera: {}!", camera_name_);
     }
     Camera() = default;
-    std::string camera_id = {};
-    std::string folder_path = {};
-    std::vector<std::string> img_paths = {};
-    std::shared_ptr<beam_calibration::CameraModel> cam_model;
-    std::unique_ptr<beam_colorize::Colorizer> colorizer;
+
+    std::string colorizer_type_ = {};
+    std::string camera_name_ = {};
+    std::string cam_imgs_folder_ = {};
+    std::string cam_intrinsics_path_ = {};
+    std::vector<std::string> img_paths_ = {};
+    std::shared_ptr<beam_calibration::CameraModel> cam_model_;
+    std::unique_ptr<beam_colorize::Colorizer> colorizer_;
   };
 
 public:
@@ -126,7 +140,6 @@ public:
    * the images folder
    */
   void SaveLabeledClouds();
-
 
   /**
    * @brief Draw the final labeled map in the viewer
@@ -172,13 +185,14 @@ private:
   std::string json_labeler_filepath_ = {};
   json json_config_ = {};
 
-  std::string poses_file_name_ = {};
-  std::string map_file_name_ = {};
-  std::string images_file_name_ = {};
-  std::string extrinsics_file_name_ = {};
-  std::string path_to_camera_calib_ = {};
-
-  std::vector<std::string> camera_list_ = {};
+  std::string images_folder_ = {};
+  std::string intrinsics_folder_ = {};
+  std::string map_path_ = {};
+  std::string poses_path_ = {};
+  std::string extrinsics_path_ = {};
+  std::string final_map_name_ = "_final_map.pcd";
+  std::string cloud_combiner_type_ = "Override";
+  bool output_individual_clouds_ = false;
 
   std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
@@ -191,7 +205,6 @@ private:
   std::vector<Camera> cameras_;
   tf::Transform tf_temp_;
   inspection::CloudCombiner cloud_combiner_;
-
-}; // namespace inspection
+};
 
 } // namespace inspection
