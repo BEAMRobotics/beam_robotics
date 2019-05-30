@@ -253,10 +253,8 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
 DefectCloud::Ptr
     MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_container,
                                 Camera* camera) {
+  BEAM_DEBUG("Projecting image to map");
   ros::Time ros_img_time = TimePointToRosTime(img_bridge_.GetTimePoint());
-
-  beam::Vec2 img_dims = {camera->cam_model_->GetWidth(),
-                         camera->cam_model_->GetHeight()};
 
   // Get map in camera frame
   DefectCloud::Ptr map_cloud =
@@ -265,16 +263,21 @@ DefectCloud::Ptr
   pcl::copyPointCloud(*map_cloud, *xyz_cloud);
 
   // Set up the camera colorizer with the point cloud which is being labeled
+  BEAM_DEBUG("Setting map cloud in colorizer");
+
   camera->colorizer_->SetPointCloud(xyz_cloud);
 
   DefectCloud::Ptr return_cloud = boost::make_shared<DefectCloud>();
 
   // Color point cloud with BGR images
   if (img_container.IsBGRImageSet()) {
+    BEAM_DEBUG("Setting BGR image in colorizer");
     camera->colorizer_->SetImage(img_container.GetBGRImage());
 
     // Get colored cloud & remove uncolored points
+    BEAM_DEBUG("Coloring point cloud");
     auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
+    BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(
         std::remove_if(xyzrgb_cloud->points.begin(), xyzrgb_cloud->points.end(),
                        [](auto& point) {
