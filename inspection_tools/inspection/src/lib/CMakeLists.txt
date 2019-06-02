@@ -1,5 +1,6 @@
 # Core inspection library
 add_library(${PROJECT_NAME}
+  CloudCombiner.cpp
   GenerateReport.cpp
   ImageExtractor.cpp
   ImageLabeler.cpp
@@ -13,10 +14,13 @@ target_include_directories(${PROJECT_NAME}
     ../../include
 )
 target_link_libraries(${PROJECT_NAME}
+  beam::beam
+  Boost::boost
   catkin::catkin
+  PCL::PCL
   OpenCV::OpenCV
+  nlohmann_json::nlohmann_json
+  ${pcl_ros_LIBRARIES}
   ${rosbag_LIBRARIES}
   ${cv_bridge_LIBRARIES}
-  beam::beam
-  nlohmann_json::nlohmann_json
 )
