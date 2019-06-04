@@ -20,13 +20,12 @@ void CloudCombiner::CombineClouds(
   int num_cams = clouds.size();
   for (int cam = 0; cam < num_cams; cam++) {
     std::vector<Eigen::Affine3f> camera_tfs = transforms[cam];
-    int i = 1;
+    int i = 0;
     Eigen::Vector3f prev_origin(0, 0, 0);
     for (const auto& pc : clouds[cam]) {
       Eigen::Affine3f img_to_map = camera_tfs[i++];
       Eigen::Vector4f origin(0, 0, 0, 1);
       Eigen::Vector3f tf_origin = (img_to_map * origin).head<3>();
-
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {
         int K = 1;
@@ -38,15 +37,13 @@ void CloudCombiner::CombineClouds(
           if (pointNKNSquaredDistance[0] > 0.001) {
             combined_cloud_->push_back(search_point);
           } else {
-            /*
-            BridgePoint prev_point =
-                combined_cloud_->points[pointIdxNKNSearch[0]];
-            float prev_distance = sqrt(((prev_point.x - prev_origin[0]) *
-                                        (prev_point.x - prev_origin[0])) +
-                                       ((prev_point.y - prev_origin[1]) *
-                                        (prev_point.y - prev_origin[1])) +
-                                       ((prev_point.z - prev_origin[2]) *
-                                        (prev_point.z - prev_origin[2])));
+            // compute distance between point and previous origin and current
+            float prev_distance = sqrt(((search_point.x - prev_origin[0]) *
+                                        (search_point.x - prev_origin[0])) +
+                                       ((search_point.y - prev_origin[1]) *
+                                        (search_point.y - prev_origin[1])) +
+                                       ((search_point.z - prev_origin[2]) *
+                                        (search_point.z - prev_origin[2])));
 
             float cur_distance = sqrt(((search_point.x - tf_origin[0]) *
                                        (search_point.x - tf_origin[0])) +
@@ -54,13 +51,15 @@ void CloudCombiner::CombineClouds(
                                        (search_point.y - tf_origin[1])) +
                                       ((search_point.z - tf_origin[2]) *
                                        (search_point.z - tf_origin[2])));
-            if (cur_distance < prev_distance) {*/
-            combined_cloud_->points[pointIdxNKNSearch[0]] = search_point;
-            //}
+            // if the point is closer to the current camera, then replace,
+            // otherwise keep
+            if (cur_distance < prev_distance) {
+              combined_cloud_->points[pointIdxNKNSearch[0]] = search_point;
+            }
           }
         }
       }
-      // prev_origin = tf_origin;
+      prev_origin = tf_origin;
     }
   }
   BEAM_INFO("Finished combining point clouds - final map is: {} points",
