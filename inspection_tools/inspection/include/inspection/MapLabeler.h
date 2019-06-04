@@ -60,6 +60,7 @@ class MapLabeler {
       using namespace boost::filesystem;
 
       cam_model_ = CameraModel::LoadJSON(cam_intrinsics_path_);
+      frame_id_ = cam_model_->GetFrameID();
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
@@ -79,6 +80,7 @@ class MapLabeler {
           } else {
             img_paths_.emplace_back(cam_imgs_folder_ + "/" + img_type +
                                     std::string(ids));
+            camera_pose_ids_.push_back(std::stoi(std::string(ids)));
             BEAM_DEBUG("      Adding path: {}", img_paths_.back());
           }
         }
@@ -108,6 +110,9 @@ class MapLabeler {
     std::vector<std::string> img_paths_ = {};
     std::shared_ptr<beam_calibration::CameraModel> cam_model_;
     std::unique_ptr<beam_colorize::Colorizer> colorizer_;
+    std::vector<Eigen::Affine3f> transforms_;
+    std::vector<uint32_t> camera_pose_ids_;
+    std::string frame_id_;
   };
 
 public:
@@ -140,6 +145,11 @@ public:
    * the images folder
    */
   void SaveLabeledClouds();
+
+  /**
+   * @brief Fill each camera with a list of its transformations
+   */
+  void FillCameraPoses();
 
   /**
    * @brief Draw the final labeled map in the viewer

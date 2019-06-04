@@ -61,8 +61,10 @@ void MapLabeler::Run() {
       rgb_clouds_.push_back(cloud_rgb);
     }
   }
-
-  cloud_combiner_.CombineClouds(defect_clouds_);
+  FillCameraPoses();
+  std::vector<std::vector<Eigen::Affine3f>> transforms;
+  for (auto& camera : cameras_) { transforms.push_back(camera.transforms_); }
+  cloud_combiner_.CombineClouds(defect_clouds_, transforms);
 }
 
 void MapLabeler::PrintConfiguration() {
@@ -247,6 +249,20 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
     unique_id << frame_id << "_" << time.sec;
 
     viewer->addCoordinateSystem(0.5, affine_tf, unique_id.str());
+  }
+}
+
+void MapLabeler::FillCameraPoses() {
+  for (auto& camera : cameras_) {
+    for (const auto& pose : final_poses_) {
+      ros::Time time = TimePointToRosTime(pose.first);
+      std::string to_frame = "map";
+      geometry_msgs::TransformStamped g_tf_stamped =
+          tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
+      Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
+      Eigen::Affine3f affine_tf(eig.cast<float>());
+      camera.transforms_.push_back(affine_tf);
+    }
   }
 }
 
