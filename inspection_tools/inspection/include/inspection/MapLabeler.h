@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef NDEBUG
+#  define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif
 #include <beam_calibration/CameraModel.h>
 #include <beam_calibration/TfTree.h>
 #include <beam_colorize/Colorizer.h>

@@ -254,14 +254,27 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
 
 void MapLabeler::FillCameraPoses() {
   for (auto& camera : cameras_) {
-    for (const auto& pose : final_poses_) {
-      ros::Time time = TimePointToRosTime(pose.first);
-      std::string to_frame = "map";
-      geometry_msgs::TransformStamped g_tf_stamped =
-          tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
-      Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
-      Eigen::Affine3f affine_tf(eig.cast<float>());
-      camera.transforms_.push_back(affine_tf);
+    if (camera.camera_pose_ids_.size() > 0) {
+      for (const auto& pose_id : camera.camera_pose_ids_) {
+        auto pose = final_poses_[pose_id - 1];
+        ros::Time time = TimePointToRosTime(pose.first);
+        std::string to_frame = "map";
+        geometry_msgs::TransformStamped g_tf_stamped =
+            tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
+        Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
+        Eigen::Affine3f affine_tf(eig.cast<float>());
+        camera.transforms_.push_back(affine_tf);
+      }
+    } else {
+      for (const auto& pose : final_poses_) {
+        ros::Time time = TimePointToRosTime(pose.first);
+        std::string to_frame = "map";
+        geometry_msgs::TransformStamped g_tf_stamped =
+            tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
+        Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
+        Eigen::Affine3f affine_tf(eig.cast<float>());
+        camera.transforms_.push_back(affine_tf);
+      }
     }
   }
 }
