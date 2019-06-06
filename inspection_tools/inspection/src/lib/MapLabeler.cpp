@@ -257,6 +257,7 @@ void MapLabeler::FillCameraPoses() {
   for (auto& camera : cameras_) {
     std::string cam_frame = camera.cam_model_->GetFrameID();
     if (camera.camera_pose_ids_.size() > 0) {
+      // if config file specifies specific poses then only add those
       for (const auto& pose_id : camera.camera_pose_ids_) {
         auto pose = final_poses_[pose_id - 1];
         ros::Time time = TimePointToRosTime(pose.first);
@@ -267,6 +268,7 @@ void MapLabeler::FillCameraPoses() {
         camera.transforms_.push_back(affine_tf);
       }
     } else {
+      // if no poses are specified, add every pose
       for (const auto& pose : final_poses_) {
         ros::Time time = TimePointToRosTime(pose.first);
         geometry_msgs::TransformStamped g_tf_stamped =

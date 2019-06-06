@@ -20,11 +20,12 @@ void CloudCombiner::CombineClouds(
   int num_cams = clouds.size();
   std::vector<float> closest_camera_pose;
   for (int cam = 0; cam < num_cams; cam++) {
+    // get transformations for the specific camera
     std::vector<Eigen::Affine3f> camera_tfs = transforms[cam];
     int i = 0;
     for (const auto& pc : clouds[cam]) {
-      Eigen::Affine3f img_to_map = camera_tfs[i++];
-      Eigen::Vector3f tf_origin = img_to_map.translation();
+      // for each cloud for the camera, get origin in map frame
+      Eigen::Vector3f tf_origin = camera_tfs[i++].translation();
       int replaced_points = 0;
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {
