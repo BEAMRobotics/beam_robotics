@@ -307,7 +307,6 @@ DefectCloud::Ptr
 
     // Get colored cloud & remove uncolored points
     BEAM_DEBUG("Coloring point cloud");
-    // camera->colorizer_->CorrectImageGamma();
     auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
     BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(

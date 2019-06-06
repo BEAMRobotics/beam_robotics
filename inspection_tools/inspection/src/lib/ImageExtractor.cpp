@@ -2,7 +2,7 @@
 
 namespace inspection {
 
-ImageExtractor::ImageExtractor(const std::string &config_file_location) {
+ImageExtractor::ImageExtractor(const std::string& config_file_location) {
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
@@ -11,28 +11,28 @@ ImageExtractor::ImageExtractor(const std::string &config_file_location) {
   poses_file_ = J["poses_file"];
   save_directory_ = J["save_directory"];
 
-  for (const auto &topic : J["image_topics"]) {
+  for (const auto& topic : J["image_topics"]) {
     image_topics_.push_back(topic.get<std::string>());
   }
 
-  for (const auto &dist : J["distance_between_images"]) {
+  for (const auto& dist : J["distance_between_images"]) {
     distance_between_images_.push_back(dist.get<double>());
   }
 
-  for (const auto &rot : J["rotation_between_images"]) {
+  for (const auto& rot : J["rotation_between_images"]) {
     double DEG_TO_RAD = 3.14159265359 / 180;
     rotation_between_images_.push_back(rot.get<double>() * DEG_TO_RAD);
   }
 
-  for (const auto &distorted : J["are_images_distorted"]) {
+  for (const auto& distorted : J["are_images_distorted"]) {
     are_images_distorted_.push_back(distorted.get<bool>());
   }
 
-  for (const auto &ir : J["is_ir_camera"]) {
+  for (const auto& ir : J["is_ir_camera"]) {
     is_ir_camera_.push_back(ir.get<bool>());
   }
 
-  for (const auto &enhancing : J["image_enhancing"]) {
+  for (const auto& enhancing : J["image_enhancing"]) {
     std::string enhance_method = enhancing["enhance_method"].get<std::string>();
     double alpha = enhancing["alpha"].get<double>();
     double beta = enhancing["beta"].get<double>();
@@ -112,8 +112,8 @@ void ImageExtractor::GetTimeStamps() {
 }
 
 std::pair<double, double>
-ImageExtractor::CalculatePoseChange(const Eigen::Affine3d &p1,
-                                    const Eigen::Affine3d &p2) {
+    ImageExtractor::CalculatePoseChange(const Eigen::Affine3d& p1,
+                                        const Eigen::Affine3d& p2) {
   double translation = sqrt((p1.matrix()(0, 3) - p2.matrix()(0, 3)) *
                                 (p1.matrix()(0, 3) - p2.matrix()(0, 3)) +
                             (p1.matrix()(1, 3) - p2.matrix()(1, 3)) *
@@ -164,7 +164,7 @@ void ImageExtractor::OutputImages() {
 
   try {
     bag.open(bag_file_, rosbag::bagmode::Read);
-  } catch (rosbag::BagException &ex) {
+  } catch (rosbag::BagException& ex) {
     LOG_ERROR("Bag exception : %s", ex.what());
     throw std::invalid_argument{ex.what()};
     return;
@@ -187,11 +187,9 @@ void ImageExtractor::OutputImages() {
       boost::filesystem::create_directories(image_container_dir);
       image_time_point = time_stamps_[k][i];
       if (img_counter == 1) {
-        image_ki =
-            GetImageFromBag(image_time_point, bag, k, true);
+        image_ki = GetImageFromBag(image_time_point, bag, k, true);
       } else {
-        image_ki =
-            GetImageFromBag(image_time_point, bag, k, false);
+        image_ki = GetImageFromBag(image_time_point, bag, k, false);
       }
       if (is_ir_camera_[k]) {
         image_ki_container.SetIRImage(image_ki);
@@ -214,9 +212,9 @@ void ImageExtractor::OutputImages() {
   OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
 }
 
-cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
-                                        rosbag::Bag &ros_bag,
-                                        const int &cam_number,
+cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
+                                        rosbag::Bag& ros_bag,
+                                        const int& cam_number,
                                         bool add_frame_id) {
   ros::Time search_time_start, search_time_end;
   double time_window = 10;
@@ -240,17 +238,16 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
     if (iter->getTopic() == image_topic) {
       sensor_msgs::ImageConstPtr img_msg =
           iter->instantiate<sensor_msgs::Image>();
-      beam::TimePoint curImgTimepoint =
-          beam::rosTimeToChrono(img_msg->header);
+      beam::TimePoint curImgTimepoint = beam::rosTimeToChrono(img_msg->header);
       if (curImgTimepoint >= time_point) {
-        if (add_frame_id) {
-          frame_ids_.push_back(img_msg->header.frame_id);
-        }
+        if (add_frame_id) { frame_ids_.push_back(img_msg->header.frame_id); }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
           cv::Mat image_debayered = ROSDebayer(img_msg);
           return EnhanceImage(image_debayered, cam_number);
         } else {
-          cv::Mat image = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)->image;
+          cv::Mat image =
+              cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
+                  ->image;
           return EnhanceImage(image, cam_number);
         }
       }
@@ -258,7 +255,7 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
   }
 }
 
-cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
+cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
   if (enhance_methods_[cam_number] == "none") {
     return input_image;
   } else if (enhance_methods_[cam_number] == "linear") {
@@ -284,6 +281,25 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
     cv::merge(channels, ycrcb);
     cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
     return new_image;
+  } else if (enhance_methods_[cam_number] == "clahe") {
+    cv::Mat bgr_image = input_image.clone();
+    cv::Mat lab_image;
+    cv::cvtColor(bgr_image, lab_image, CV_BGR2Lab);
+    std::vector<cv::Mat> lab_planes(6);
+    cv::split(lab_image, lab_planes);
+    // apply the CLAHE algorithm to the L channel
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    // Explanation of ClipLimit
+    // here:https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
+    clahe->setClipLimit(3);
+    cv::Mat dst;
+    clahe->apply(lab_planes[0], dst);
+    // Merge the the color planes back into an Lab image
+    dst.copyTo(lab_planes[0]);
+    cv::merge(lab_planes, lab_image);
+    cv::Mat new_image;
+    cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
+    return new_image;
   } else {
     LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
               "Options include: none, linear, and histogram");
@@ -293,7 +309,7 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
   }
 }
 
-cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr &image_raw) {
+cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr& image_raw) {
   cv::Mat image_color;
   int code = 0, raw_type = CV_8UC1;
   std::string raw_encoding = image_raw->encoding;
@@ -305,13 +321,13 @@ cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr &image_raw) {
     return image_color;
   }
   cv::Mat raw(image_raw->height, image_raw->width, raw_type,
-              const_cast<uint8_t *>(&image_raw->data[0]), image_raw->step);
+              const_cast<uint8_t*>(&image_raw->data[0]), image_raw->step);
   cv::cvtColor(raw, image_color, code);
   return image_color;
 }
 
-void ImageExtractor::OutputJSONList(const std::string &file_name,
-                                    const std::vector<std::string> &list) {
+void ImageExtractor::OutputJSONList(const std::string& file_name,
+                                    const std::vector<std::string>& list) {
   std::string JSONString = "{ \"Items\": [";
   for (uint32_t i = 0; i < list.size() - 1; i++) {
     JSONString = JSONString + "\"" + list[i] + "\", ";
