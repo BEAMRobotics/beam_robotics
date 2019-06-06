@@ -18,13 +18,14 @@ void CloudCombiner::CombineClouds(
 
   // Iterate through and successfully add point clouds to final
   int num_cams = clouds.size();
+  std::vector<float> closest_camera_pose;
   for (int cam = 0; cam < num_cams; cam++) {
     std::vector<Eigen::Affine3f> camera_tfs = transforms[cam];
-    std::vector<float> closest_camera_pose;
     int i = 0;
     for (const auto& pc : clouds[cam]) {
       Eigen::Affine3f img_to_map = camera_tfs[i++];
       Eigen::Vector3f tf_origin = img_to_map.translation();
+      int replaced_points = 0;
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {
         int K = 1;
@@ -32,12 +33,8 @@ void CloudCombiner::CombineClouds(
         std::vector<float> pointNKNSquaredDistance(K);
         if (kdtree.nearestKSearch(search_point, K, pointIdxNKNSearch,
                                   pointNKNSquaredDistance) > 0) {
-          float cur_distance = sqrt(((search_point.x - tf_origin[0]) *
-                                     (search_point.x - tf_origin[0])) +
-                                    ((search_point.y - tf_origin[1]) *
-                                     (search_point.y - tf_origin[1])) +
-                                    ((search_point.z - tf_origin[2]) *
-                                     (search_point.z - tf_origin[2])));
+          // distance from point to the current camera
+          float cur_distance = beam::distance(search_point, tf_origin);
           // If this point isn't already in our cloud, add it
           if (pointNKNSquaredDistance[0] > 0.001) {
             combined_cloud_->push_back(search_point);
@@ -45,12 +42,19 @@ void CloudCombiner::CombineClouds(
           } else {
             // if the point is closer to the current camera, then replace
             if (cur_distance < closest_camera_pose[pointIdxNKNSearch[0]]) {
+              replaced_points++;
               closest_camera_pose[pointIdxNKNSearch[0]] = cur_distance;
               combined_cloud_->points[pointIdxNKNSearch[0]] = search_point;
             }
           }
         }
       }
+      std::stringstream ss;
+      ss << "[" << tf_origin[0] << "," << tf_origin[1] << "," << tf_origin[2]
+         << "]";
+      std::string camera_pose = ss.str();
+      BEAM_INFO("Camera #{} Pose: {}, Number of points replaced: {}", cam + 1,
+                camera_pose, replaced_points);
     }
   }
   BEAM_INFO("Finished combining point clouds - final map is: {} points",

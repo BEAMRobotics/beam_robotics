@@ -63,7 +63,6 @@ class MapLabeler {
       using namespace boost::filesystem;
 
       cam_model_ = CameraModel::LoadJSON(cam_intrinsics_path_);
-      frame_id_ = cam_model_->GetFrameID();
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
@@ -115,7 +114,6 @@ class MapLabeler {
     std::unique_ptr<beam_colorize::Colorizer> colorizer_;
     std::vector<Eigen::Affine3f> transforms_;
     std::vector<uint32_t> camera_pose_ids_;
-    std::string frame_id_;
   };
 
 public:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <beam_containers/PointBridge.h>
+#include <beam_utils/math.hpp>
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>

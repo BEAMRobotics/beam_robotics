@@ -253,14 +253,15 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
 }
 
 void MapLabeler::FillCameraPoses() {
+  std::string to_frame = "map";
   for (auto& camera : cameras_) {
+    std::string cam_frame = camera.cam_model_->GetFrameID();
     if (camera.camera_pose_ids_.size() > 0) {
       for (const auto& pose_id : camera.camera_pose_ids_) {
         auto pose = final_poses_[pose_id - 1];
         ros::Time time = TimePointToRosTime(pose.first);
-        std::string to_frame = "map";
         geometry_msgs::TransformStamped g_tf_stamped =
-            tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
+            tf_tree_.GetTransform(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
         Eigen::Affine3f affine_tf(eig.cast<float>());
         camera.transforms_.push_back(affine_tf);
@@ -268,9 +269,8 @@ void MapLabeler::FillCameraPoses() {
     } else {
       for (const auto& pose : final_poses_) {
         ros::Time time = TimePointToRosTime(pose.first);
-        std::string to_frame = "map";
         geometry_msgs::TransformStamped g_tf_stamped =
-            tf_tree_.GetTransform(to_frame, camera.frame_id_, time);
+            tf_tree_.GetTransform(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
         Eigen::Affine3f affine_tf(eig.cast<float>());
         camera.transforms_.push_back(affine_tf);
@@ -305,6 +305,7 @@ DefectCloud::Ptr
 
     // Get colored cloud & remove uncolored points
     BEAM_DEBUG("Coloring point cloud");
+    // camera->colorizer_->CorrectImageGamma();
     auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
     BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(

@@ -16,7 +16,8 @@
         {
           "Type": "ImageBridge",
           "IDs": [
-            "All"
+            "1",
+            "2"
           ]
         }
       ]
@@ -29,7 +30,8 @@
         {
           "Type": "ImageBridge",
           "IDs": [
-            "All"
+            "1",
+            "2"
           ]
         }
       ]
