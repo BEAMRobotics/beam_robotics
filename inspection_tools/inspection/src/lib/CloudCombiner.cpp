@@ -11,7 +11,7 @@ namespace inspection {
 void CloudCombiner::CombineClouds(
     std::vector<std::vector<pcl::PointCloud<beam_containers::PointBridge>::Ptr>>
         clouds,
-    std::vector<std::vector<Eigen::Affine3f>> transforms) {
+    const std::vector<std::vector<Eigen::Affine3f>>& transforms) {
   pcl::search::KdTree<BridgePoint> kdtree;
   BridgePoint bp = {0, 0, 0};
   combined_cloud_->points.push_back(bp);

@@ -15,12 +15,12 @@
         { "Type": "ImageBridge", "IDs": ["All"] }
       ]
     },
-    { "Name": "F2",
+    {  "Name": "F2",
       "Enabled": true,
       "Colorizer": "RayTrace",
       "Images": [
-        { "Type": "ImageBridge", "IDs": ["All"] }
+        { "Type": "ImageBridge", "IDs": ["All"]}
       ]
     }
   ]
-} 
+}

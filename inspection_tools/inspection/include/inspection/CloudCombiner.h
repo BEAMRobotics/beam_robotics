@@ -32,8 +32,9 @@ public:
    * camera, each element in inner vector corresponds to different image used to
    * label
    */
-  void CombineClouds(std::vector<std::vector<DefectCloud::Ptr>> clouds,
-                     std::vector<std::vector<Eigen::Affine3f>> transforms);
+  void CombineClouds(
+      std::vector<std::vector<DefectCloud::Ptr>> clouds,
+      const std::vector<std::vector<Eigen::Affine3f>>& transforms);
 
   DefectCloud::Ptr GetCombinedCloud() { return combined_cloud_; }
 
