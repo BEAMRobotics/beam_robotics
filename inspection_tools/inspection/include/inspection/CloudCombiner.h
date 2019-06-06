@@ -1,11 +1,11 @@
 #pragma once
 
 #include <beam_containers/PointBridge.h>
+#include <beam_utils/math.hpp>
 #include <beam_utils/time.hpp>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
-
 
 namespace inspection {
 
@@ -32,7 +32,9 @@ public:
    * camera, each element in inner vector corresponds to different image used to
    * label
    */
-  void CombineClouds(std::vector<std::vector<DefectCloud::Ptr>> clouds);
+  void CombineClouds(
+      std::vector<std::vector<DefectCloud::Ptr>> clouds,
+      const std::vector<std::vector<Eigen::Affine3f>>& transforms);
 
   DefectCloud::Ptr GetCombinedCloud() { return combined_cloud_; }
 
@@ -40,4 +42,4 @@ protected:
   DefectCloud::Ptr combined_cloud_ = boost::make_shared<DefectCloud>();
 };
 
-}
+} // namespace inspection

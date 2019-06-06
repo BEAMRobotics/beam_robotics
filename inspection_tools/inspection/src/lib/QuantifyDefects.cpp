@@ -23,7 +23,7 @@ void QuantifyDefects::OutputCrackInfo() {
       beam_defects::GetCracks(point_cloud_, crack_threshold_);
 
   int j = 1;
-  for (auto &defect : crack_vector_) {
+  for (auto& defect : crack_vector_) {
     std::cout << "Crack " << j << " length: " << defect.GetSize() << "m"
               << std::endl;
     j++;
@@ -35,7 +35,7 @@ void QuantifyDefects::OutputSpallInfo() {
       beam_defects::GetSpalls(point_cloud_, spall_threshold_);
 
   int j = 1;
-  for (auto &defect : spall_vector) {
+  for (auto& defect : spall_vector) {
     std::cout << "Spall " << j << " area: " << defect.GetSize() << "m^2"
               << std::endl;
     j++;
@@ -47,7 +47,7 @@ void QuantifyDefects::OutputDelamInfo() {
       beam_defects::GetDelams(point_cloud_, delam_threshold_);
 
   int j = 1;
-  for (auto &defect : delam_vector) {
+  for (auto& defect : delam_vector) {
     std::cout << "Delamination " << j << " area: " << defect.GetSize() << "m^2"
               << std::endl;
     j++;
@@ -59,7 +59,7 @@ void QuantifyDefects::OutputCorrosionInfo() {
       beam_defects::GetCorrosion(point_cloud_, corrosion_threshold_);
 
   int j = 1;
-  for (auto &defect : corrosion_vector) {
+  for (auto& defect : corrosion_vector) {
     std::cout << "Corrosion " << j << " area: " << defect.GetSize() << "m^2"
               << std::endl;
     j++;
@@ -74,7 +74,7 @@ void QuantifyDefects::SaveCrackOnlyCloud() {
       beam_defects::GetExtractedClouds(cloud_filtered);
 
   int j = 1;
-  for (auto &cloud : cloud_vector) {
+  for (auto& cloud : cloud_vector) {
     std::stringstream ss;
     ss << cloud_savedir_ << "crack_" << j << ".pcd";
     pcl::io::savePCDFile(ss.str(), *cloud);
@@ -90,7 +90,7 @@ void QuantifyDefects::SaveSpallOnlyCloud() {
       beam_defects::GetExtractedClouds(cloud_filtered);
 
   int j = 1;
-  for (auto &cloud : cloud_vector) {
+  for (auto& cloud : cloud_vector) {
     std::stringstream ss;
     ss << cloud_savedir_ << "spall_" << j << ".pcd";
     pcl::io::savePCDFile(ss.str(), *cloud);
@@ -106,7 +106,7 @@ void QuantifyDefects::SaveDelamOnlyCloud() {
       beam_defects::GetExtractedClouds(cloud_filtered);
 
   int j = 1;
-  for (auto &cloud : cloud_vector) {
+  for (auto& cloud : cloud_vector) {
     std::stringstream ss;
     ss << cloud_savedir_ << "delam_" << j << ".pcd";
     pcl::io::savePCDFile(ss.str(), *cloud);
@@ -122,7 +122,7 @@ void QuantifyDefects::SaveCorrosionOnlyCloud() {
       beam_defects::GetExtractedClouds(cloud_filtered);
 
   int j = 1;
-  for (auto &cloud : cloud_vector) {
+  for (auto& cloud : cloud_vector) {
     std::stringstream ss;
     ss << cloud_savedir_ << "corrosion_" << j << ".pcd";
     pcl::io::savePCDFile(ss.str(), *cloud);

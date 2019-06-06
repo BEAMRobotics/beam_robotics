@@ -61,8 +61,10 @@ void MapLabeler::Run() {
       rgb_clouds_.push_back(cloud_rgb);
     }
   }
-
-  cloud_combiner_.CombineClouds(defect_clouds_);
+  FillCameraPoses();
+  std::vector<std::vector<Eigen::Affine3f>> transforms;
+  for (auto& camera : cameras_) { transforms.push_back(camera.transforms_); }
+  cloud_combiner_.CombineClouds(defect_clouds_, transforms);
 }
 
 void MapLabeler::PrintConfiguration() {
@@ -250,6 +252,35 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
   }
 }
 
+void MapLabeler::FillCameraPoses() {
+  std::string to_frame = "map";
+  for (auto& camera : cameras_) {
+    std::string cam_frame = camera.cam_model_->GetFrameID();
+    if (camera.camera_pose_ids_.size() > 0) {
+      // if config file specifies specific poses then only add those
+      for (const auto& pose_id : camera.camera_pose_ids_) {
+        auto pose = final_poses_[pose_id - 1];
+        ros::Time time = TimePointToRosTime(pose.first);
+        geometry_msgs::TransformStamped g_tf_stamped =
+            tf_tree_.GetTransform(to_frame, cam_frame, time);
+        Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
+        Eigen::Affine3f affine_tf(eig.cast<float>());
+        camera.transforms_.push_back(affine_tf);
+      }
+    } else {
+      // if no poses are specified, add every pose
+      for (const auto& pose : final_poses_) {
+        ros::Time time = TimePointToRosTime(pose.first);
+        geometry_msgs::TransformStamped g_tf_stamped =
+            tf_tree_.GetTransform(to_frame, cam_frame, time);
+        Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
+        Eigen::Affine3f affine_tf(eig.cast<float>());
+        camera.transforms_.push_back(affine_tf);
+      }
+    }
+  }
+}
+
 DefectCloud::Ptr
     MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_container,
                                 Camera* camera) {
@@ -276,6 +307,7 @@ DefectCloud::Ptr
 
     // Get colored cloud & remove uncolored points
     BEAM_DEBUG("Coloring point cloud");
+    // camera->colorizer_->CorrectImageGamma();
     auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
     BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(
