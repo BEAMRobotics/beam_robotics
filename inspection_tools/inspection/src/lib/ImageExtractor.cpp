@@ -187,11 +187,9 @@ void ImageExtractor::OutputImages() {
       boost::filesystem::create_directories(image_container_dir);
       image_time_point = time_stamps_[k][i];
       if (img_counter == 1) {
-        image_ki =
-            GetImageFromBag(image_time_point, bag, k, true);
+        image_ki = GetImageFromBag(image_time_point, bag, k, true);
       } else {
-        image_ki =
-            GetImageFromBag(image_time_point, bag, k, false);
+        image_ki = GetImageFromBag(image_time_point, bag, k, false);
       }
       if (is_ir_camera_[k]) {
         image_ki_container.SetIRImage(image_ki);
@@ -240,17 +238,18 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
     if (iter->getTopic() == image_topic) {
       sensor_msgs::ImageConstPtr img_msg =
           iter->instantiate<sensor_msgs::Image>();
-      beam::TimePoint curImgTimepoint =
-          beam::rosTimeToChrono(img_msg->header);
+      beam::TimePoint curImgTimepoint = beam::rosTimeToChrono(img_msg->header);
       if (curImgTimepoint >= time_point) {
-        if (add_frame_id) {
+        if (add_frame_id) { 
           frame_ids_.push_back(img_msg->header.frame_id);
         }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
           cv::Mat image_debayered = ROSDebayer(img_msg);
           return EnhanceImage(image_debayered, cam_number);
         } else {
-          cv::Mat image = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)->image;
+          cv::Mat image =
+              cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
+                  ->image;
           return EnhanceImage(image, cam_number);
         }
       }
@@ -284,9 +283,25 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
     cv::merge(channels, ycrcb);
     cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
     return new_image;
+  } else if (enhance_methods_[cam_number] == "clahe") {
+    cv::Mat lab_image;
+    cv::cvtColor(input_image, lab_image, CV_BGR2Lab);
+    std::vector<cv::Mat> lab_planes(6);
+    cv::split(lab_image, lab_planes);
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    // Explanation of ClipLimit
+    // here:https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
+    clahe->setClipLimit(3);
+    cv::Mat dst;
+    clahe->apply(lab_planes[0], dst);
+    dst.copyTo(lab_planes[0]);
+    cv::merge(lab_planes, lab_image);
+    cv::Mat new_image;
+    cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
+    return new_image;
   } else {
     LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
-              "Options include: none, linear, and histogram");
+              "Options include: none, linear, histogram, and clahe");
     throw std::invalid_argument{
         "invalid enhance_method parameter in ImageExtractorConfig.json"};
     return input_image;
