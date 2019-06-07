@@ -301,7 +301,7 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
     return new_image;
   } else {
     LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
-              "Options include: none, linear, and histogram");
+              "Options include: none, linear, histogram, and clahe");
     throw std::invalid_argument{
         "invalid enhance_method parameter in ImageExtractorConfig.json"};
     return input_image;
