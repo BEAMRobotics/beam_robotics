@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_name" default="roben"/>
+
+  <node name="calibration_publisher_node" pkg="calibration" type="calibration_publisher_node">
+    <param name="robot_name" value="$(arg robot_name)"/>
+  </node>
+
+</launch>

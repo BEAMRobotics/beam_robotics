@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <package>
-  <name>calibration_util</name>
+  <name>calibration</name>
   <version>1.0.0</version>
-  <description>The calibration_util package</description>
+  <description>The calibration package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <maintainer email="nbedi@uwaterloo.ca">Nicholash Bedi</maintainer>
+  <maintainer email="yhj.ser@gmail.com">Avery Jung</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -14,21 +14,13 @@
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-
-  <build_depend>roscpp</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>rosbag</build_depend>
-  <build_depend>pcl_ros</build_depend>
-  <build_depend>message_filters</build_depend>
-  <build_depend>geometry_msgs</build_depend>
   <build_depend>libbeam</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>geometry_msgs</build_depend>
   <build_depend>tf</build_depend>
-
   <run_depend>roscpp</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>rosbag</run_depend>
-  <run_depend>pcl_ros</run_depend>
-  <run_depend>message_filters</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>tf</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
