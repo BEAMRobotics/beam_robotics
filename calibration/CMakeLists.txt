@@ -17,11 +17,14 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 add_subdirectory(calibration_util)
 
 catkin_package(
-  INCLUDE_DIRS include
+  CATKIN_DEPENDS
+  roscpp
+  geometry_msgs
+  std_msgs
+  tf
 )
 
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
 )
 
