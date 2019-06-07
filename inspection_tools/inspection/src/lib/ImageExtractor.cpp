@@ -2,7 +2,7 @@
 
 namespace inspection {
 
-ImageExtractor::ImageExtractor(const std::string& config_file_location) {
+ImageExtractor::ImageExtractor(const std::string &config_file_location) {
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
@@ -11,28 +11,28 @@ ImageExtractor::ImageExtractor(const std::string& config_file_location) {
   poses_file_ = J["poses_file"];
   save_directory_ = J["save_directory"];
 
-  for (const auto& topic : J["image_topics"]) {
+  for (const auto &topic : J["image_topics"]) {
     image_topics_.push_back(topic.get<std::string>());
   }
 
-  for (const auto& dist : J["distance_between_images"]) {
+  for (const auto &dist : J["distance_between_images"]) {
     distance_between_images_.push_back(dist.get<double>());
   }
 
-  for (const auto& rot : J["rotation_between_images"]) {
+  for (const auto &rot : J["rotation_between_images"]) {
     double DEG_TO_RAD = 3.14159265359 / 180;
     rotation_between_images_.push_back(rot.get<double>() * DEG_TO_RAD);
   }
 
-  for (const auto& distorted : J["are_images_distorted"]) {
+  for (const auto &distorted : J["are_images_distorted"]) {
     are_images_distorted_.push_back(distorted.get<bool>());
   }
 
-  for (const auto& ir : J["is_ir_camera"]) {
+  for (const auto &ir : J["is_ir_camera"]) {
     is_ir_camera_.push_back(ir.get<bool>());
   }
 
-  for (const auto& enhancing : J["image_enhancing"]) {
+  for (const auto &enhancing : J["image_enhancing"]) {
     std::string enhance_method = enhancing["enhance_method"].get<std::string>();
     double alpha = enhancing["alpha"].get<double>();
     double beta = enhancing["beta"].get<double>();
@@ -112,8 +112,8 @@ void ImageExtractor::GetTimeStamps() {
 }
 
 std::pair<double, double>
-    ImageExtractor::CalculatePoseChange(const Eigen::Affine3d& p1,
-                                        const Eigen::Affine3d& p2) {
+ImageExtractor::CalculatePoseChange(const Eigen::Affine3d &p1,
+                                        const Eigen::Affine3d &p2) {
   double translation = sqrt((p1.matrix()(0, 3) - p2.matrix()(0, 3)) *
                                 (p1.matrix()(0, 3) - p2.matrix()(0, 3)) +
                             (p1.matrix()(1, 3) - p2.matrix()(1, 3)) *
@@ -164,7 +164,7 @@ void ImageExtractor::OutputImages() {
 
   try {
     bag.open(bag_file_, rosbag::bagmode::Read);
-  } catch (rosbag::BagException& ex) {
+  } catch (rosbag::BagException &ex) {
     LOG_ERROR("Bag exception : %s", ex.what());
     throw std::invalid_argument{ex.what()};
     return;
@@ -212,9 +212,9 @@ void ImageExtractor::OutputImages() {
   OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
 }
 
-cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
-                                        rosbag::Bag& ros_bag,
-                                        const int& cam_number,
+cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
+                                        rosbag::Bag &ros_bag,
+                                        const int &cam_number,
                                         bool add_frame_id) {
   ros::Time search_time_start, search_time_end;
   double time_window = 10;
@@ -255,7 +255,7 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
   }
 }
 
-cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
+cv::Mat ImageExtractor::EnhanceImage(cv::Mat &input_image, int cam_number) {
   if (enhance_methods_[cam_number] == "none") {
     return input_image;
   } else if (enhance_methods_[cam_number] == "linear") {
@@ -306,7 +306,7 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
   }
 }
 
-cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr& image_raw) {
+cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr &image_raw) {
   cv::Mat image_color;
   int code = 0, raw_type = CV_8UC1;
   std::string raw_encoding = image_raw->encoding;
@@ -323,8 +323,8 @@ cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr& image_raw) {
   return image_color;
 }
 
-void ImageExtractor::OutputJSONList(const std::string& file_name,
-                                    const std::vector<std::string>& list) {
+void ImageExtractor::OutputJSONList(const std::string &file_name,
+                                    const std::vector<std::string> &list) {
   std::string JSONString = "{ \"Items\": [";
   for (uint32_t i = 0; i < list.size() - 1; i++) {
     JSONString = JSONString + "\"" + list[i] + "\", ";
