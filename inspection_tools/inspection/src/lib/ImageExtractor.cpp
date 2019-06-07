@@ -113,7 +113,7 @@ void ImageExtractor::GetTimeStamps() {
 
 std::pair<double, double>
 ImageExtractor::CalculatePoseChange(const Eigen::Affine3d &p1,
-                                        const Eigen::Affine3d &p2) {
+                                    const Eigen::Affine3d &p2) {
   double translation = sqrt((p1.matrix()(0, 3) - p2.matrix()(0, 3)) *
                                 (p1.matrix()(0, 3) - p2.matrix()(0, 3)) +
                             (p1.matrix()(1, 3) - p2.matrix()(1, 3)) *
@@ -240,7 +240,9 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint &time_point,
           iter->instantiate<sensor_msgs::Image>();
       beam::TimePoint curImgTimepoint = beam::rosTimeToChrono(img_msg->header);
       if (curImgTimepoint >= time_point) {
-        if (add_frame_id) { frame_ids_.push_back(img_msg->header.frame_id); }
+        if (add_frame_id) { 
+          frame_ids_.push_back(img_msg->header.frame_id);
+        }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
           cv::Mat image_debayered = ROSDebayer(img_msg);
           return EnhanceImage(image_debayered, cam_number);
@@ -318,7 +320,7 @@ cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr &image_raw) {
     return image_color;
   }
   cv::Mat raw(image_raw->height, image_raw->width, raw_type,
-              const_cast<uint8_t*>(&image_raw->data[0]), image_raw->step);
+              const_cast<uint8_t *>(&image_raw->data[0]), image_raw->step);
   cv::cvtColor(raw, image_color, code);
   return image_color;
 }
