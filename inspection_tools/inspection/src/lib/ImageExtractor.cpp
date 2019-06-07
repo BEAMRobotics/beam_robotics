@@ -282,19 +282,16 @@ cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
     cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
     return new_image;
   } else if (enhance_methods_[cam_number] == "clahe") {
-    cv::Mat bgr_image = input_image.clone();
     cv::Mat lab_image;
-    cv::cvtColor(bgr_image, lab_image, CV_BGR2Lab);
+    cv::cvtColor(input_image, lab_image, CV_BGR2Lab);
     std::vector<cv::Mat> lab_planes(6);
     cv::split(lab_image, lab_planes);
-    // apply the CLAHE algorithm to the L channel
     cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
     // Explanation of ClipLimit
     // here:https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
     clahe->setClipLimit(3);
     cv::Mat dst;
     clahe->apply(lab_planes[0], dst);
-    // Merge the the color planes back into an Lab image
     dst.copyTo(lab_planes[0]);
     cv::merge(lab_planes, lab_image);
     cv::Mat new_image;
