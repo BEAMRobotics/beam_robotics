@@ -2,7 +2,7 @@
 <launch>
   <arg name="robot_name" default="roben"/>
 
-  <node name="calibration_publisher_node" pkg="calibration" type="calibration_publisher_node">
+  <node name="calibration_publisher_main" pkg="calibration_publisher" type="calibration_publisher_main">
     <param name="robot_name" value="$(arg robot_name)"/>
   </node>
 

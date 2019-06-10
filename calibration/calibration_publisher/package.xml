@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>calibration</name>
+  <name>calibration_publisher</name>
   <version>1.0.0</version>
-  <description>The calibration package</description>
+  <description>The calibration_publisher package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <maintainer email="yhj.ser@gmail.com">Avery Jung</maintainer>
@@ -23,6 +23,7 @@
   <run_depend>geometry_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>std_msgs</run_depend>
+  <!-- <depend>sensor_msgs</depend> -->
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
