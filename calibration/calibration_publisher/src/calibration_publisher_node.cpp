@@ -1,9 +1,9 @@
-#include <ros/ros.h>
 #include <beam_calibration/TfTree.h>
-#include <tf2_ros/static_transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <ros/ros.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   ros::init(argc, argv, "calibration_publisher");
 
   ros::NodeHandle node_handle("~");
@@ -13,22 +13,20 @@ int main(int argc, char* argv[]) {
   std::string robot_name;
   if (!node_handle.getParam("robot_name", robot_name)) {
     ROS_ERROR("Failed to load parameter");
+    return -1;
   }
-
   ROS_INFO("Finished loading parameters");
-  robot_name = "inspector_gadget";
 
-  std::string current_filepath = "calibration_publisher/src/calibration_publisher_node.cpp";
+  std::string current_filepath =
+      "calibration_publisher/src/calibration_publisher_node.cpp";
 
   std::string calibration_filepath = __FILE__;
-  std::cout << calibration_filepath << std::endl;
   calibration_filepath.erase(calibration_filepath.end() -
                                  current_filepath.size(),
                              calibration_filepath.end());
   calibration_filepath += "results/";
   calibration_filepath += robot_name;
   calibration_filepath += "/current/extrinsics/extrinsics.json";
-  std::cout << calibration_filepath << std::endl;
 
   beam_calibration::TfTree tf_tree;
 
@@ -39,7 +37,8 @@ int main(int argc, char* argv[]) {
   for (auto frame : frames) {
     parent_frame = frame.first;
     for (auto child_frame : frame.second) {
-      auto tf_msg = tf_tree.GetTransform(parent_frame, child_frame, ros::Time::now());
+      auto tf_msg =
+          tf_tree.GetTransform(parent_frame, child_frame, ros::Time::now());
       static_broadcaster.sendTransform(tf_msg);
     }
   }
