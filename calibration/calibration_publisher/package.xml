@@ -4,8 +4,9 @@
   <version>1.0.0</version>
   <description>The calibration_publisher package</description>
 
+  <author email="yhj.ser@gmail.com">Avery Jung</author>
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <maintainer email="yhj.ser@gmail.com">Avery Jung</maintainer>
+  <maintainer email="nick@beamrobotics.io">Nick Charron</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
