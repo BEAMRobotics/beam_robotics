@@ -14,6 +14,7 @@ set(catkin_deps
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  geometry_msgs
   sensor_msgs
   pcl_ros
 )
@@ -33,6 +34,7 @@ if(NOT EIGEN3_FOUND)
   set(EIGEN3_INCLUDE_DIR ${EIGEN_INCLUDE_DIRS})
   set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
 endif(NOT EIGEN3_FOUND)
+
 add_definitions(${EIGEN_DEFINITIONS})
 find_package(Ceres REQUIRED)
 add_definitions(-DUSE_CERES)
@@ -66,7 +68,6 @@ add_library(${PROJECT_NAME}
   src/calibration_util/calibration_util.cpp
   src/calibration_util/lidar_util.cpp
 )
-
 
 if (CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
