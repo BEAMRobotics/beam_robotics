@@ -6,6 +6,7 @@
 #include <beam_containers/Utilities.h>
 #include <beam_utils/time.hpp>
 #include <boost/filesystem.hpp>
+#include <tf2_eigen/tf2_eigen.h>
 #include <thread>
 
 #include "inspection/MapLabeler.h"
@@ -158,7 +159,7 @@ void MapLabeler::ProcessJSONConfig() {
 void MapLabeler::FillTFTree() {
   ros::Time start_time = TimePointToRosTime(final_poses_.front().first);
   ros::Time end_time = TimePointToRosTime(final_poses_.back().first);
-  tf_tree_.start_time_ = start_time;
+  tf_tree_.start_time = start_time;
   ros::Duration dur = end_time - start_time;
 
   BEAM_DEBUG("Filling TF Tree - Poses start time: {}",
