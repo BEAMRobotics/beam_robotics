@@ -37,8 +37,9 @@ int main(int argc, char *argv[]) {
   for (auto frame : frames) {
     parent_frame = frame.first;
     for (auto child_frame : frame.second) {
+      ros::Time time_now = ros::Time::now();
       auto tf_msg =
-          tf_tree.GetTransform(parent_frame, child_frame, ros::Time::now());
+          tf_tree.GetTransformROS(parent_frame, child_frame, time_now);
       static_broadcaster.sendTransform(tf_msg);
     }
   }
