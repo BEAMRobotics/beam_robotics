@@ -6,6 +6,7 @@
 #include <beam_containers/Utilities.h>
 #include <beam_utils/time.hpp>
 #include <boost/filesystem.hpp>
+#include <tf2_eigen/tf2_eigen.h>
 #include <thread>
 
 #include "inspection/MapLabeler.h"
@@ -158,7 +159,7 @@ void MapLabeler::ProcessJSONConfig() {
 void MapLabeler::FillTFTree() {
   ros::Time start_time = TimePointToRosTime(final_poses_.front().first);
   ros::Time end_time = TimePointToRosTime(final_poses_.back().first);
-  tf_tree_.start_time_ = start_time;
+  tf_tree_.start_time = start_time;
   ros::Duration dur = end_time - start_time;
 
   BEAM_DEBUG("Filling TF Tree - Poses start time: {}",
@@ -218,7 +219,7 @@ DefectCloud::Ptr MapLabeler::TransformMapToImageFrame(ros::Time tf_time,
   std::string from_frame = "map";
 
   geometry_msgs::TransformStamped transform_msg =
-      tf_tree_.GetTransform(to_frame, from_frame, tf_time);
+      tf_tree_.GetTransformROS(to_frame, from_frame, tf_time);
 
   auto transformed_cloud = boost::make_shared<DefectCloud>();
 
@@ -240,7 +241,7 @@ void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
     ros::Time time = TimePointToRosTime(pose.first);
     std::string to_frame = "map";
     geometry_msgs::TransformStamped g_tf_stamped =
-        tf_tree_.GetTransform(to_frame, frame_id, time);
+        tf_tree_.GetTransformROS(to_frame, frame_id, time);
 
     Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
     Eigen::Affine3f affine_tf(eig.cast<float>());
@@ -262,7 +263,7 @@ void MapLabeler::FillCameraPoses() {
         auto pose = final_poses_[pose_id - 1];
         ros::Time time = TimePointToRosTime(pose.first);
         geometry_msgs::TransformStamped g_tf_stamped =
-            tf_tree_.GetTransform(to_frame, cam_frame, time);
+            tf_tree_.GetTransformROS(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
         Eigen::Affine3f affine_tf(eig.cast<float>());
         camera.transforms_.push_back(affine_tf);
@@ -272,7 +273,7 @@ void MapLabeler::FillCameraPoses() {
       for (const auto& pose : final_poses_) {
         ros::Time time = TimePointToRosTime(pose.first);
         geometry_msgs::TransformStamped g_tf_stamped =
-            tf_tree_.GetTransform(to_frame, cam_frame, time);
+            tf_tree_.GetTransformROS(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
         Eigen::Affine3f affine_tf(eig.cast<float>());
         camera.transforms_.push_back(affine_tf);
