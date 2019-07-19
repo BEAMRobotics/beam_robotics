@@ -33,10 +33,10 @@ int main(int argc, char *argv[]) {
   tf_tree.LoadJSON(calibration_filepath);
 
   auto frames = tf_tree.GetAllFrames();
-  std::string parent_frame;
+  std::string child_frame;
   for (auto frame : frames) {
-    parent_frame = frame.first;
-    for (auto child_frame : frame.second) {
+    child_frame = frame.first;
+    for (auto parent_frame : frame.second) {
       ros::Time time_now = ros::Time::now();
       auto tf_msg =
           tf_tree.GetTransformROS(parent_frame, child_frame, time_now);
