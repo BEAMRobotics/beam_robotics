@@ -28,6 +28,8 @@ int main(int argc, char *argv[]) {
   calibration_filepath += robot_name;
   calibration_filepath += "/current/extrinsics/extrinsics.json";
 
+  std::cout << calibration_filepath << std::endl;
+
   beam_calibration::TfTree tf_tree;
 
   tf_tree.LoadJSON(calibration_filepath);
