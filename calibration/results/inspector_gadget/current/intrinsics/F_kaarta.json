@@ -1,0 +1,25 @@
+{
+  "camera_type": "pinhole",
+  "date": "2019-07-24",
+  "method": "opencv",
+  "calibration": [
+    {
+      "image_width": 2048,
+      "image_height": 1536,
+      "frame_id": "F_kaarta",
+      "distortion_model": "radtan",
+      "intrinsics": [
+        463.510914755,
+        463.333045636,
+        318.906539381,
+        177.762307309
+      ],
+      "distortion_coefficients": [
+        -0.057425198469,
+        0.0847185628653,
+        0.000283146068693,
+        0.00112844736811
+      ]
+    }
+  ]
+}
