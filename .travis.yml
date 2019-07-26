@@ -1,6 +1,6 @@
 # Specify xenial linux distribution and minimal language support
 sudo: required
-language: minimal
+language: generic
 dist: xenial
 
 # Setup build cache
