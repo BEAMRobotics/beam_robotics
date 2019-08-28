@@ -19,48 +19,48 @@ QuantifyDefects::QuantifyDefects(const std::string config_file_location) {
 }
 
 void QuantifyDefects::OutputCrackInfo() {
-  std::vector<beam_defects::Crack> crack_vector_ =
+  std::vector<beam_defects::Defect::Ptr> crack_vector_ =
       beam_defects::GetCracks(point_cloud_, crack_threshold_);
 
   int j = 1;
   for (auto& defect : crack_vector_) {
-    std::cout << "Crack " << j << " length: " << defect.GetSize() << "m"
+    std::cout << "Crack " << j << " length: " << defect->GetSize() << "m"
               << std::endl;
     j++;
   }
 };
 
 void QuantifyDefects::OutputSpallInfo() {
-  std::vector<beam_defects::Spall> spall_vector =
+  std::vector<beam_defects::Defect::Ptr> spall_vector =
       beam_defects::GetSpalls(point_cloud_, spall_threshold_);
 
   int j = 1;
   for (auto& defect : spall_vector) {
-    std::cout << "Spall " << j << " area: " << defect.GetSize() << "m^2"
+    std::cout << "Spall " << j << " area: " << defect->GetSize() << "m^2"
               << std::endl;
     j++;
   }
 };
 
 void QuantifyDefects::OutputDelamInfo() {
-  std::vector<beam_defects::Delam> delam_vector =
+  std::vector<beam_defects::Defect::Ptr> delam_vector =
       beam_defects::GetDelams(point_cloud_, delam_threshold_);
 
   int j = 1;
   for (auto& defect : delam_vector) {
-    std::cout << "Delamination " << j << " area: " << defect.GetSize() << "m^2"
+    std::cout << "Delamination " << j << " area: " << defect->GetSize() << "m^2"
               << std::endl;
     j++;
   }
 };
 
 void QuantifyDefects::OutputCorrosionInfo() {
-  std::vector<beam_defects::Corrosion> corrosion_vector =
+  std::vector<beam_defects::Defect::Ptr> corrosion_vector =
       beam_defects::GetCorrosion(point_cloud_, corrosion_threshold_);
 
   int j = 1;
   for (auto& defect : corrosion_vector) {
-    std::cout << "Corrosion " << j << " area: " << defect.GetSize() << "m^2"
+    std::cout << "Corrosion " << j << " area: " << defect->GetSize() << "m^2"
               << std::endl;
     j++;
   }
