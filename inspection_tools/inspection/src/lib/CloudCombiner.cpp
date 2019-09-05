@@ -1,10 +1,14 @@
 #define PCL_NO_PRECOMPILE
 
-#include "inspection/CloudCombiner.h"
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/point_cloud.h>
 #include <pcl/search/impl/kdtree.hpp>
 #include <pcl/search/kdtree.h>
+
+/* must include after kdtree include
+   explanation: OpenCV headers must be included after flann headers. kdtree uses
+   flann and CloudCombiner has OpenCV somewhere in the chain. */
+#include "inspection/CloudCombiner.h"
 
 namespace inspection {
 
