@@ -47,7 +47,6 @@ void MapLabeler::Run() {
     int num_images = cameras_[cam].img_paths_.size();
     for (size_t img_index = 0; img_index < num_images; img_index++) {
       beam::HighResolutionTimer timer;
-
       img_bridge_.LoadFromJSON(cameras_[cam].img_paths_[img_index]);
       Camera* camera = &(cameras_[cam]);
       DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
@@ -199,8 +198,10 @@ void MapLabeler::SaveLabeledClouds() {
     for (const auto& cloud : defect_clouds_[cam]) {
       std::string file_name = cameras_[cam].camera_name_ + "_" +
                               std::to_string(cloud_number) + ".pcd";
-      pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
-      cloud_number++;
+      if(cloud->points.size() > 0) {
+        pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
+        cloud_number++;
+      }
     }
 
     BEAM_DEBUG("Saved {} labeled clouds from Camera: {}", cloud_number - 1,
@@ -308,6 +309,7 @@ DefectCloud::Ptr
 
     // Get colored cloud & remove uncolored points
     BEAM_DEBUG("Coloring point cloud");
+
     auto xyzrgb_cloud = camera->colorizer_->ColorizePointCloud();
     BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(
