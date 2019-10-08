@@ -43,7 +43,6 @@ def main(args):
 
     last_time = time.clock()
     topic_list = []
-    diff = None
 
     for topic, msg, t in rosbag.Bag(orig).read_messages():
 
@@ -63,14 +62,14 @@ def main(args):
         diff = math.fabs(msg.header.stamp.to_sec() - t.to_sec())
         outbag.write(topic, msg, msg.header.stamp if diff < args.max_offset else t)
       else:
+        diff = None
         outbag.write(topic, msg, t)
 
-      if diff is not None and diff > args.max_offset:
+      if diff > args.max_offset and topic not in topic_list:
         topic_list.append(topic)
 
   status(40, 1)
 
-  topic_list = list(dict.fromkeys(topic_list))
   print "\nThe following topics fell outside of the max time offset:"
   for i in range(len(topic_list)):
     print "  " + topic_list[i]
