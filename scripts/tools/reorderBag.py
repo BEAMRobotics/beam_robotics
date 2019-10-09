@@ -27,6 +27,7 @@ def main(args):
 
   parser = argparse.ArgumentParser(description='Reorder a bagfile based on header timestamps.')
   parser.add_argument('bagfile', nargs=1, help='input bag file')
+  parser.add_argument('--output', nargs=1, help='output bag file', default=['output.bag'])
   parser.add_argument('--max-offset', nargs=1, help='max time offset (sec) to correct.', default='5', type=float)
   args = parser.parse_args()
 
@@ -36,15 +37,12 @@ def main(args):
   duration = info_dict['duration']
   start_time = info_dict['start']
 
-  orig = os.path.splitext(bagfile)[0] + ".orig.bag"
-  move(bagfile, orig)
-
-  with rosbag.Bag(bagfile, 'w') as outbag:
+  with rosbag.Bag(args.output[0], 'w') as outbag:
 
     last_time = time.clock()
     topic_list = []
 
-    for topic, msg, t in rosbag.Bag(orig).read_messages():
+    for topic, msg, t in rosbag.Bag(bagfile).read_messages():
 
       # set time bar
       if time.clock() - last_time > .1:
