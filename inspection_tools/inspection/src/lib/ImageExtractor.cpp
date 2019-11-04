@@ -220,8 +220,8 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
   double time_window = 10;
   std::string image_topic = image_topics_[cam_number];
   ros::Duration time_window_half(time_window / 2);
-  search_time_start = beam::chronoToRosTime(time_point) - time_window_half;
-  search_time_end = beam::chronoToRosTime(time_point) + time_window_half;
+  search_time_start = beam::ChronoToRosTime(time_point) - time_window_half;
+  search_time_end = beam::ChronoToRosTime(time_point) + time_window_half;
   rosbag::View view(ros_bag, rosbag::TopicQuery(image_topic), search_time_start,
                     search_time_end, true);
 
@@ -238,7 +238,7 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
     if (iter->getTopic() == image_topic) {
       sensor_msgs::ImageConstPtr img_msg =
           iter->instantiate<sensor_msgs::Image>();
-      beam::TimePoint curImgTimepoint = beam::rosTimeToChrono(img_msg->header);
+      beam::TimePoint curImgTimepoint = beam::RosTimeToChrono(img_msg->header);
       if (curImgTimepoint >= time_point) {
         if (add_frame_id) { frame_ids_.push_back(img_msg->header.frame_id); }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
