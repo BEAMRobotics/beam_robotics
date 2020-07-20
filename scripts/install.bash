@@ -78,7 +78,7 @@ install_routine()
     install_catch2
     install_json
     install_ladybug_sdk
-		install_velodyne
+    install_velodyne
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
