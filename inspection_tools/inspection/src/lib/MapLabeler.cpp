@@ -198,7 +198,7 @@ void MapLabeler::SaveLabeledClouds() {
     for (const auto& cloud : defect_clouds_[cam]) {
       std::string file_name = cameras_[cam].camera_name_ + "_" +
                               std::to_string(cloud_number) + ".pcd";
-      if (cloud->points.size() > 0) {
+      if(cloud->points.size() > 0) {
         pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
         cloud_number++;
       }
@@ -327,12 +327,6 @@ DefectCloud::Ptr
   // Color point cloud with Mask
   if (img_container.IsBGRMaskSet()) {
     camera->colorizer_->SetImage(img_container.GetBGRMask());
-
-    /* 1. Extract depth map
-     * 2. Perform depth completion
-     * 3. Keep only completed points corresponding to a defect pixel
-     * 4. Reproject depth map into point cloud, add the new points to the cloud
-     */
 
     // Get labeled cloud & remove unlabeled points
     DefectCloud::Ptr labeled_cloud = camera->colorizer_->ColorizeMask();
