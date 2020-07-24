@@ -43,32 +43,22 @@ void MapLabeler::Run() {
   // Main loop for labeling
   int num_cams = cameras_.size();
   defect_clouds_.resize(num_cams);
-  /*
-   *
-   * Rather than going through every one, just color image F1-158
-   * Use F1-226 to verify coordinate system
-   *
-   */
   for (size_t cam = 0; cam < num_cams; cam++) {
     int num_images = cameras_[cam].img_paths_.size();
     for (size_t img_index = 0; img_index < num_images; img_index++) {
-      if (img_index == 226) {
-        beam::HighResolutionTimer timer;
-        img_bridge_.LoadFromJSON(cameras_[cam].img_paths_[img_index]);
-        Camera* camera = &(cameras_[cam]);
-        DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
-        defect_clouds_[cam].push_back(colored_cloud);
+      beam::HighResolutionTimer timer;
+      img_bridge_.LoadFromJSON(cameras_[cam].img_paths_[img_index]);
+      Camera* camera = &(cameras_[cam]);
+      DefectCloud::Ptr colored_cloud = ProjectImgToMap(img_bridge_, camera);
+      defect_clouds_[cam].push_back(colored_cloud);
 
-        BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
-                  cam + 1, num_cams, img_index + 1, num_images,
-                  timer.elapsed());
+      BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
+                cam + 1, num_cams, img_index + 1, num_images, timer.elapsed());
 
-        PointCloudXYZRGB::Ptr cloud_rgb =
-            boost::make_shared<PointCloudXYZRGB>();
-        pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
+      PointCloudXYZRGB::Ptr cloud_rgb = boost::make_shared<PointCloudXYZRGB>();
+      pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
 
-        rgb_clouds_.push_back(cloud_rgb);
-      }
+      rgb_clouds_.push_back(cloud_rgb);
     }
   }
   FillCameraPoses();
@@ -337,10 +327,11 @@ DefectCloud::Ptr
   // Color point cloud with Mask
   if (img_container.IsBGRMaskSet()) {
     camera->colorizer_->SetImage(img_container.GetBGRMask());
-    /*
-     * 1. Extract depth map
+
+    /* 1. Extract depth map
      * 2. Perform depth completion
-     * 3. Reproject points associated to defect back into cloud
+     * 3. Keep only completed points corresponding to a defect pixel
+     * 4. Reproject depth map into point cloud, add the new points to the cloud
      */
 
     // Get labeled cloud & remove unlabeled points
