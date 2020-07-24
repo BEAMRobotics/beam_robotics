@@ -28,7 +28,8 @@ def main(args):
   parser = argparse.ArgumentParser(description='Reorder a bagfile based on header timestamps.')
   parser.add_argument('bagfile', nargs=1, help='input bag file')
   parser.add_argument('--output', nargs=1, help='output bag file', default=['output.bag'])
-  parser.add_argument('--max-offset', nargs=1, help='max time offset (sec) to correct.', default='5', type=float)
+  parser.add_argument('--include-tf', nargs=1, help='flag for setting all tf messages ahead by 1 second', default=False, type=bool)
+  parser.add_argument('--max-offset', nargs=1, help='max time offset (sec) to correct.', default='30', type=float)
   args = parser.parse_args()
 
   bagfile = args.bagfile[0]
@@ -44,16 +45,12 @@ def main(args):
 
     for topic, msg, t in rosbag.Bag(bagfile).read_messages():
 
-      # set time bar
       if time.clock() - last_time > .1:
           percent = (t.to_sec() - start_time) / duration
           status(40, percent)
           last_time = time.clock()
 
-      # This also replaces tf timestamps under the assumption
-      # that all transforms in the message share the same timestamp
-      if topic == "/tf" and msg.transforms:
-        # Writing transforms to bag file 1 second ahead of time to ensure availability
+      if args.include_tf and topic == "/tf" and msg.transforms:
         diff = math.fabs(msg.transforms[0].header.stamp.to_sec() - t.to_sec())
         outbag.write(topic, msg, msg.transforms[0].header.stamp - rospy.Duration(1) if diff < args.max_offset else t)
       elif msg._has_header:
@@ -68,7 +65,7 @@ def main(args):
 
   status(40, 1)
 
-  print "\nThe following topics fell outside of the max time offset:"
+  print "The following topics fell outside of the max time offset of", args.max_offset, "sec: "
   for i in range(len(topic_list)):
     print "  " + topic_list[i]
 
