@@ -48,6 +48,7 @@ install_routine()
 
     # source catkin setup script
     source $INSTALL_SCRIPTS/catkin_setup.bash
+    install_gcc7
 
     unlink_routine
     catkin_clean
