@@ -48,7 +48,6 @@ install_routine()
 
     # source catkin setup script
     source $INSTALL_SCRIPTS/catkin_setup.bash
-    install_gcc7
 
     unlink_routine
     catkin_clean
@@ -63,7 +62,7 @@ install_routine()
 
     # Import functions to install required dependencies
     source $INSTALL_SCRIPTS/beam_dependencies_install.bash
-
+    install_gcc7
 
     # Ensure wget is available
     sudo apt-get install -qq wget  > /dev/null
