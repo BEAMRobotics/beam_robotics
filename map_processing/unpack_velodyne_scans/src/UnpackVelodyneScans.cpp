@@ -55,15 +55,15 @@ void UnpackVelodyneScans::Unpack() {
   for (auto iter = view.begin(); iter != view.end(); iter++) {
 		message_counter++;
     auto vel_scan_msg = iter->instantiate<velodyne_msgs::VelodyneScan>();
+		std::string out_topic = iter->getTopic();
+		out_topic += "_unpacked";
+
 		if (vel_scan_msg != NULL) {
 			for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
 				container_ptr_->setup(vel_scan_msg);
 				data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
 					vel_scan_msg->header.stamp);
 				container_ptr_->modify_pkt_time(vel_scan_msg->packets[i]);
-
-				std::string out_topic = iter->getTopic();
-				out_topic += "_unpacked";
 
 				sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
 				bag_out.write(out_topic, cloud_packet.header.stamp, cloud_packet);
