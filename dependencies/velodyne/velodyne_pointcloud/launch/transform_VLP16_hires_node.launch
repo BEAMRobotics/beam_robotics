@@ -1,0 +1,17 @@
+<!-- -*- mode: XML -*- -->
+<!-- run velodyne_pointcloud/TransformNodelet in a nodelet manager -->
+
+<launch>
+  <arg name="calibration" default="$(find velodyne_pointcloud)/params/VLP16_hires_db.yaml" />
+  <arg name="fixed_frame_id" default="odom" />
+  <arg name="frame_id" default="lidar" />
+  <arg name="max_range" default="130.0" />
+  <arg name="min_range" default="0.9" />
+  <node pkg="velodyne_pointcloud" type="transform_node" name="node_transform" >
+    <param name="calibration" value="$(arg calibration)"/>
+    <param name="fixed_frame_id" value="$(arg fixed_frame_id)" />
+    <param name="frame_id" value="$(arg frame_id)"/>
+    <param name="max_range" value="$(arg max_range)"/>
+    <param name="min_range" value="$(arg min_range)"/>
+  </node>
+</launch>
