@@ -73,7 +73,7 @@ install_routine()
     install_pcl
     install_geographiclib
     install_gtsam
-    install_libwave
+    # install_libwave
     install_gflags
     install_catch2
     install_json
