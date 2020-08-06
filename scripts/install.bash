@@ -62,7 +62,7 @@ install_routine()
 
     # Import functions to install required dependencies
     source $INSTALL_SCRIPTS/beam_dependencies_install.bash
-
+    install_gcc7
 
     # Ensure wget is available
     sudo apt-get install -qq wget  > /dev/null
@@ -73,7 +73,7 @@ install_routine()
     install_pcl
     install_geographiclib
     install_gtsam
-    install_libwave
+    # install_libwave
     install_gflags
     install_catch2
     install_json
