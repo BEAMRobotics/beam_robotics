@@ -59,7 +59,7 @@ class MapLabeler {
       using namespace beam_colorize;
       using namespace boost::filesystem;
 
-      cam_model_ = CameraModel::LoadJSON(cam_intrinsics_path_);
+      cam_model_ = CameraModel::Create(cam_intrinsics_path_);
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
