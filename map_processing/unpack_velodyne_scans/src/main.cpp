@@ -19,7 +19,6 @@ int main(int argc, char* argv[]) {
 
     unpack_velodyne_scans::UnpackVelodyneScans unpack_velodyne_scans(
 			bag_file_path, calibration_file);
-    unpack_velodyne_scans.Unpack();
   }
   return 0;
 }
