@@ -1,0 +1,12 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jake/projects/beam_robotics/relocalization/src/debug.cpp
+relocalization/include/ImageDatabase.h
+/home/jake/projects/beam_robotics/relocalization/src/relocalization/include/ImageDatabase.h
+

@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/jake/projects/beam_robotics/relocalization/build/devel/setup.sh
