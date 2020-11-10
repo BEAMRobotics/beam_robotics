@@ -1,4 +1,5 @@
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/install.dir
+/home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/list_install_components.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/tf2_msgs_generate_messages_cpp.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/std_msgs_generate_messages_py.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/std_msgs_generate_messages_nodejs.dir
@@ -8,8 +9,8 @@
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/test.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/tests.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/std_msgs_generate_messages_eus.dir
+/home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/relocalization_debug.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/geometry_msgs_generate_messages_eus.dir
-/home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/list_install_components.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/download_extra_data.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/actionlib_msgs_generate_messages_nodejs.dir
 /home/jake/projects/beam_robotics/relocalization/build/CMakeFiles/run_tests.dir

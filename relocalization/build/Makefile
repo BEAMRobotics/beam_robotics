@@ -68,6 +68,16 @@ install/fast: preinstall/fast
 	/opt/cmake/cmake-3.14.1-Linux-x86_64/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+
+.PHONY : list_install_components/fast
+
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
@@ -78,16 +88,6 @@ test:
 test/fast: test
 
 .PHONY : test/fast
-
-# Special rule for the target list_install_components
-list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
-.PHONY : list_install_components
-
-# Special rule for the target list_install_components
-list_install_components/fast: list_install_components
-
-.PHONY : list_install_components/fast
 
 # Special rule for the target edit_cache
 edit_cache:
@@ -270,6 +270,19 @@ std_msgs_generate_messages_eus: cmake_check_build_system
 std_msgs_generate_messages_eus/fast:
 	$(MAKE) -f CMakeFiles/std_msgs_generate_messages_eus.dir/build.make CMakeFiles/std_msgs_generate_messages_eus.dir/build
 .PHONY : std_msgs_generate_messages_eus/fast
+
+#=============================================================================
+# Target rules for targets named relocalization_debug
+
+# Build rule for target.
+relocalization_debug: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 relocalization_debug
+.PHONY : relocalization_debug
+
+# fast build rule for target.
+relocalization_debug/fast:
+	$(MAKE) -f CMakeFiles/relocalization_debug.dir/build.make CMakeFiles/relocalization_debug.dir/build
+.PHONY : relocalization_debug/fast
 
 #=============================================================================
 # Target rules for targets named geometry_msgs_generate_messages_eus
@@ -662,6 +675,33 @@ src/ImageDatabase.cpp.s:
 	$(MAKE) -f CMakeFiles/relocalization.dir/build.make CMakeFiles/relocalization.dir/src/ImageDatabase.cpp.s
 .PHONY : src/ImageDatabase.cpp.s
 
+src/debug.o: src/debug.cpp.o
+
+.PHONY : src/debug.o
+
+# target to build an object file
+src/debug.cpp.o:
+	$(MAKE) -f CMakeFiles/relocalization_debug.dir/build.make CMakeFiles/relocalization_debug.dir/src/debug.cpp.o
+.PHONY : src/debug.cpp.o
+
+src/debug.i: src/debug.cpp.i
+
+.PHONY : src/debug.i
+
+# target to preprocess a source file
+src/debug.cpp.i:
+	$(MAKE) -f CMakeFiles/relocalization_debug.dir/build.make CMakeFiles/relocalization_debug.dir/src/debug.cpp.i
+.PHONY : src/debug.cpp.i
+
+src/debug.s: src/debug.cpp.s
+
+.PHONY : src/debug.s
+
+# target to generate assembly for a file
+src/debug.cpp.s:
+	$(MAKE) -f CMakeFiles/relocalization_debug.dir/build.make CMakeFiles/relocalization_debug.dir/src/debug.cpp.s
+.PHONY : src/debug.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -669,6 +709,7 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... install"
+	@echo "... list_install_components"
 	@echo "... tf2_msgs_generate_messages_cpp"
 	@echo "... std_msgs_generate_messages_py"
 	@echo "... std_msgs_generate_messages_nodejs"
@@ -678,8 +719,8 @@ help:
 	@echo "... test"
 	@echo "... tests"
 	@echo "... std_msgs_generate_messages_eus"
+	@echo "... relocalization_debug"
 	@echo "... geometry_msgs_generate_messages_eus"
-	@echo "... list_install_components"
 	@echo "... download_extra_data"
 	@echo "... actionlib_msgs_generate_messages_nodejs"
 	@echo "... run_tests"
@@ -714,6 +755,9 @@ help:
 	@echo "... src/ImageDatabase.o"
 	@echo "... src/ImageDatabase.i"
 	@echo "... src/ImageDatabase.s"
+	@echo "... src/debug.o"
+	@echo "... src/debug.i"
+	@echo "... src/debug.s"
 .PHONY : help
 
 

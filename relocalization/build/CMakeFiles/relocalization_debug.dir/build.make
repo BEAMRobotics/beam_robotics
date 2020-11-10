@@ -90,13 +90,13 @@ relocalization_debug: /usr/local/lib/ladybug/libladybug.so
 relocalization_debug: /home/jake/catkin_ws/devel/lib/libbeam_filtering.a
 relocalization_debug: /home/jake/catkin_ws/devel/lib/libbeam_matching.a
 relocalization_debug: /home/jake/catkin_ws/devel/lib/libbeam_utils.a
-relocalization_debug: /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.5.2
 relocalization_debug: /opt/ros/kinetic/lib/libtf2.so
 relocalization_debug: /opt/ros/kinetic/lib/libroscpp_serialization.so
 relocalization_debug: /opt/ros/kinetic/lib/librostime.so
 relocalization_debug: /opt/ros/kinetic/lib/libcpp_common.so
 relocalization_debug: /usr/lib/x86_64-linux-gnu/libpthread.so
 relocalization_debug: /usr/lib/x86_64-linux-gnu/libconsole_bridge.so
+relocalization_debug: /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.5.2
 relocalization_debug: /usr/lib/x86_64-linux-gnu/libvtkDomainsChemistry-6.2.so.6.2.0
 relocalization_debug: /usr/lib/x86_64-linux-gnu/libvtkFiltersGeneric-6.2.so.6.2.0
 relocalization_debug: /usr/lib/x86_64-linux-gnu/libvtkFiltersHyperTree-6.2.so.6.2.0

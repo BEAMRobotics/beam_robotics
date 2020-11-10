@@ -1,3 +1,5 @@
 #include <ImageDatabase.h>
 
-int main() { return 0; }
+int main() {
+  std::shared_ptr id = std::make_shared<relocalization::ImageDatabase>();
+}

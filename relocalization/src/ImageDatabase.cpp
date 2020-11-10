@@ -1,5 +1,6 @@
 #include <ImageDatabase.h>
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 
@@ -11,12 +12,25 @@
 #include <beam_cv/detectors/ORBDetector.h>
 #include <beam_cv/detectors/SIFTDetector.h>
 
+#include "beam_cv/Utils.h"
 #include <beam_calibration/TfTree.h>
 #include <beam_mapping/Poses.h>
 
 namespace relocalization {
 
-ImageDatabase::ImageDatabase(std::string database_config) {
+ImageDatabase::ImageDatabase() {
+  auto time = std::chrono::system_clock::now();
+  std::time_t date = std::chrono::system_clock::to_time_t(time);
+  std::string cur_date = std::string(std::ctime(&date));
+  std::replace(cur_date.begin(), cur_date.end(), ' ', '_');
+  std::replace(cur_date.begin(), cur_date.end(), '\n', '_');
+
+  std::string current_location = __FILE__;
+  current_location.erase(current_location.end() - 50, current_location.end());
+  image_folder_ = current_location + cur_date + "/";
+}
+
+ImageDatabase::ImageDatabase(std::string database_config) : ImageDatabase() {
   json J_db_config;
   std::ifstream db_config(database_config);
   db_config >> J_db_config;
@@ -34,21 +48,22 @@ ImageDatabase::ImageDatabase(std::string database_config) {
     this->descriptor_ = std::make_shared<beam_cv::SIFTDescriptor>();
   } else if (descriptor_types_[descriptor_t] == DescriptorType::BRISK) {
     this->descriptor_ = std::make_shared<beam_cv::BRISKDescriptor>();
-  }
-  // determine the detector to use
-  std::string detector_t = J_db_config["detector"];
-  if (detector_types_[detector_t] == DetectorType::ORB) {
-    this->detector_ = std::make_shared<beam_cv::ORBDetector>();
-  } else if (detector_types_[detector_t] == DetectorType::SIFT) {
-    this->detector_ = std::make_shared<beam_cv::SIFTDetector>();
-  } else if (detector_types_[detector_t] == DetectorType::FAST) {
-    this->detector_ = std::make_shared<beam_cv::FASTDetector>();
-  }
+  } /*
+   // determine the detector to use
+   std::string detector_t = J_db_config["detector"];
+   if (detector_types_[detector_t] == DetectorType::ORB) {
+     this->detector_ = std::make_shared<beam_cv::ORBDetector>();
+   } else if (detector_types_[detector_t] == DetectorType::SIFT) {
+     this->detector_ = std::make_shared<beam_cv::SIFTDetector>();
+   } else if (detector_types_[detector_t] == DetectorType::FAST) {
+     this->detector_ = std::make_shared<beam_cv::FASTDetector>();
+   }*/
 }
 
 ImageDatabase::ImageDatabase(std::string vocab_location,
                              std::shared_ptr<beam_cv::Descriptor> descriptor,
-                             std::shared_ptr<beam_cv::Detector> detector) {
+                             std::shared_ptr<beam_cv::Detector> detector)
+    : ImageDatabase() {
   DBoW3::Vocabulary vocab(vocab_location);
   this->bow_db_ = std::make_shared<DBoW3::Database>(vocab);
   this->descriptor_ = descriptor;
@@ -110,27 +125,28 @@ void ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
   cv::Mat features = descriptor_->ExtractDescriptors(image, kps);
   unsigned int idx = this->bow_db_->add(features);
 
-  std::stringstream pose_stream;
-  pose_stream << pose(0, 0) << "," << pose(0, 1) << "," << pose(0, 2) << ","
-              << pose(0, 3) << "," << pose(1, 0) << "," << pose(1, 1) << ","
-              << pose(1, 2) << "," << pose(1, 3) << "," << pose(2, 0) << ","
-              << pose(2, 1) << "," << pose(2, 2) << "," << pose(2, 3) << ","
-              << pose(3, 0) << "," << pose(3, 1) << "," << pose(3, 2) << ","
-              << pose(3, 3);
-  std::string pose_str = pose_stream.str();
-  image_db_.push_back({"index": idx, "pose": pose_str, "path": path_to_image});
+  std::string idx_string = std::to_string(idx);
+  image_db_[idx_string] = {
+      {"pose",
+       {pose(0, 0), pose(0, 1), pose(0, 2), pose(0, 3), pose(1, 0), pose(1, 1),
+        pose(1, 2), pose(1, 3), pose(2, 0), pose(2, 1), pose(2, 2), pose(2, 3),
+        pose(3, 0), pose(3, 1), pose(3, 2), pose(3, 3)}},
+      {"path", path_to_image}};
 }
 
 void ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose) {
-  auto time = std::chrono::system_clock::now();
-  std::time_t date = std::chrono::system_clock::to_time_t(time);
-  std::string cur_date = std::string(std::ctime(&date));
-}
+  std::vector<cv::KeyPoint> kps = detector_->DetectFeatures(image);
+  cv::Mat features = descriptor_->ExtractDescriptors(image, kps);
+  unsigned int idx = this->bow_db_->add(features);
 
-void ImageDatabase::AddImageFolder(std::string path_to_folder,
-                                   std::string path_to_poses,
-                                   std::string tftree_path,
-                                   std::string from_frame,
-                                   std::string to_frame) {}
+  std::string idx_string = std::to_string(idx);
+  std::string path_to_image = image_folder_ + "image" + idx_string;
+  image_db_[idx_string] = {
+      {"pose",
+       {pose(0, 0), pose(0, 1), pose(0, 2), pose(0, 3), pose(1, 0), pose(1, 1),
+        pose(1, 2), pose(1, 3), pose(2, 0), pose(2, 1), pose(2, 2), pose(2, 3),
+        pose(3, 0), pose(3, 1), pose(3, 2), pose(3, 3)}},
+      {"path", path_to_image}};
+}
 
 } // namespace relocalization

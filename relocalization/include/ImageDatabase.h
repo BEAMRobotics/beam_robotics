@@ -25,7 +25,7 @@ public:
   /**
    * @brief Default constructor
    */
-  ImageDatabase() = default;
+  ImageDatabase();
 
   /**
    * @brief Constructor to initialize with already gathered dbow dv and image db
@@ -108,18 +108,12 @@ public:
    */
   void AddImage(cv::Mat image, Eigen::Matrix4d pose);
 
-  /**
-   * @brief Create dbow database from a folder of images extracted in inspection
-   */
-  void AddImageFolder(std::string path_to_folder, std::string path_to_poses,
-                      std::string tftree_path, std::string from_frame,
-                      std::string to_frame);
-
 private:
   std::shared_ptr<DBoW3::Database> bow_db_;
   json image_db_;
   std::shared_ptr<beam_cv::Descriptor> descriptor_;
   std::shared_ptr<beam_cv::Detector> detector_;
+  std::string image_folder_;
 
   std::map<std::string, DescriptorType> descriptor_types_ = {
       {"ORB", DescriptorType::ORB},
