@@ -1,0 +1,6 @@
+{
+  "dbow_database_path": "path to dbow image database to use",
+  "image_db_path": "path to json storing a map from index to image path",
+  "detector": "ORB",
+  "descriptor": "ORB"
+}

@@ -21,7 +21,11 @@ target_include_directories(${PROJECT_NAME}
     include
 )
 target_link_libraries(${PROJECT_NAME}
-  beam::beam
+  beam::cv
+  beam::calibration
+  beam::containers
+  beam::utils
+  beam::mapping
   Boost::boost
   PCL::PCL
   OpenCV::OpenCV
@@ -34,5 +38,13 @@ add_executable(${PROJECT_NAME}_debug
 	src/debug.cpp
 )
 target_link_libraries(${PROJECT_NAME}_debug
-	${PROJECT_NAME}
+  ${PROJECT_NAME}
+)
+
+
+add_executable(${PROJECT_NAME}_build_db
+	src/BuildImageDB.cpp
+)
+target_link_libraries(${PROJECT_NAME}_build_db
+  ${PROJECT_NAME}
 )

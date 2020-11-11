@@ -48,16 +48,16 @@ ImageDatabase::ImageDatabase(std::string database_config) : ImageDatabase() {
     this->descriptor_ = std::make_shared<beam_cv::SIFTDescriptor>();
   } else if (descriptor_types_[descriptor_t] == DescriptorType::BRISK) {
     this->descriptor_ = std::make_shared<beam_cv::BRISKDescriptor>();
-  } /*
-   // determine the detector to use
-   std::string detector_t = J_db_config["detector"];
-   if (detector_types_[detector_t] == DetectorType::ORB) {
-     this->detector_ = std::make_shared<beam_cv::ORBDetector>();
-   } else if (detector_types_[detector_t] == DetectorType::SIFT) {
-     this->detector_ = std::make_shared<beam_cv::SIFTDetector>();
-   } else if (detector_types_[detector_t] == DetectorType::FAST) {
-     this->detector_ = std::make_shared<beam_cv::FASTDetector>();
-   }*/
+  }
+  // determine the detector to use
+  std::string detector_t = J_db_config["detector"];
+  if (detector_types_[detector_t] == DetectorType::ORB) {
+    this->detector_ = std::make_shared<beam_cv::ORBDetector>();
+  } else if (detector_types_[detector_t] == DetectorType::SIFT) {
+    this->detector_ = std::make_shared<beam_cv::SIFTDetector>();
+  } else if (detector_types_[detector_t] == DetectorType::FAST) {
+    this->detector_ = std::make_shared<beam_cv::FASTDetector>();
+  }
 }
 
 ImageDatabase::ImageDatabase(std::string vocab_location,
