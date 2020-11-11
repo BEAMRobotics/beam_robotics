@@ -108,7 +108,20 @@ public:
    */
   void AddImage(cv::Mat image, Eigen::Matrix4d pose);
 
+  /**
+   * @brief Get image object given an index
+   * @param index to fetch
+   */
+  cv::Mat GetImage(unsigned int index);
+
+  /**
+   * @brief Get pose of image given index
+   * @param index to fetch
+   */
+  Eigen::Matrix4d GetPose(unsigned int index);
+
 private:
+  size_t num_images_ = 0;
   std::shared_ptr<DBoW3::Database> bow_db_;
   json image_db_;
   std::shared_ptr<beam_cv::Descriptor> descriptor_;

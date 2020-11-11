@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <beam_cv/descriptors/BRISKDescriptor.h>
 #include <beam_cv/descriptors/ORBDescriptor.h>
@@ -16,6 +19,7 @@
 #include <beam_calibration/TfTree.h>
 #include <beam_mapping/Poses.h>
 
+
 namespace relocalization {
 
 ImageDatabase::ImageDatabase() {
@@ -27,7 +31,10 @@ ImageDatabase::ImageDatabase() {
 
   std::string current_location = __FILE__;
   current_location.erase(current_location.end() - 50, current_location.end());
-  image_folder_ = current_location + cur_date + "/";
+  //create default image location in user's home directory
+  struct passwd* pw = getpwuid(getuid());
+  std::string HOME = pw->pw_dir;
+  image_folder_ = HOME + "/" + cur_date + "/";
 }
 
 ImageDatabase::ImageDatabase(std::string database_config) : ImageDatabase() {
@@ -98,7 +105,44 @@ void ImageDatabase::SetDetector(std::shared_ptr<beam_cv::Detector> detector) {
   this->detector_ = detector;
 }
 
-void ImageDatabase::RetrainVocabulary() {}
+void ImageDatabase::RetrainVocabulary() {
+  std::vector<cv::Mat> features;
+  for (unsigned int i = 0; i < num_images_; i++) {
+    cv::Mat image = this->GetImage(i);
+    std::vector<cv::KeyPoint> kps = detector_->DetectFeatures(image);
+    cv::Mat descriptor_mat = descriptor_->ExtractDescriptors(image, kps);
+    features.push_back(descriptor_mat);
+  }
+  // branching factor and depth levels
+  const int k = 9;
+  const int L = 3;
+  DBoW3::Vocabulary voc(k, L, DBoW3::TF_IDF, DBoW3::L1_NORM);
+  voc.create(features);
+  this->SetVocabulary(voc);
+  // copy old json image_db
+  nlohmann::json image_db_copy = image_db_;
+  // clear image_db
+  image_db_.clear();
+  // clear dbow_db
+  bow_db_->clear();
+  // loop through every image in old image_db and add to cleared database
+  int num_images_copy = num_images_;
+  num_images_ = 0;
+  for (unsigned int i = 0; i < num_images_copy; i++) {
+    // get image and pose
+    std::string idx_str = std::to_string(i);
+    std::string image_path = image_db_copy[idx_str]["path"];
+    cv::Mat img = cv::imread(image_path);
+    std::vector<int> pose_vec = image_db_[idx_str]["pose"];
+    Eigen::Matrix4d pose;
+    pose << pose_vec[0], pose_vec[1], pose_vec[2], pose_vec[3], pose_vec[4],
+        pose_vec[5], pose_vec[6], pose_vec[7], pose_vec[8], pose_vec[9],
+        pose_vec[10], pose_vec[11], pose_vec[12], pose_vec[13], pose_vec[14],
+        pose_vec[15];
+    // add image, pose and path
+    this->AddImage(img, pose, image_path);
+  }
+}
 
 void ImageDatabase::SetVocabulary(DBoW3::Vocabulary voc) {
   this->bow_db_->setVocabulary(voc);
@@ -132,6 +176,7 @@ void ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
         pose(1, 2), pose(1, 3), pose(2, 0), pose(2, 1), pose(2, 2), pose(2, 3),
         pose(3, 0), pose(3, 1), pose(3, 2), pose(3, 3)}},
       {"path", path_to_image}};
+  num_images_++;
 }
 
 void ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose) {
@@ -147,6 +192,25 @@ void ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose) {
         pose(1, 2), pose(1, 3), pose(2, 0), pose(2, 1), pose(2, 2), pose(2, 3),
         pose(3, 0), pose(3, 1), pose(3, 2), pose(3, 3)}},
       {"path", path_to_image}};
+  num_images_++;
+}
+
+cv::Mat ImageDatabase::GetImage(unsigned int index) {
+  std::string idx_str = std::to_string(index);
+  std::string image_path = image_db_[idx_str]["path"];
+  cv::Mat img = cv::imread(image_path);
+  return img;
+}
+
+Eigen::Matrix4d ImageDatabase::GetPose(unsigned int index) {
+  std::string idx_str = std::to_string(index);
+  std::vector<int> pose_vec = image_db_[idx_str]["pose"];
+  Eigen::Matrix4d pose;
+  pose << pose_vec[0], pose_vec[1], pose_vec[2], pose_vec[3], pose_vec[4],
+      pose_vec[5], pose_vec[6], pose_vec[7], pose_vec[8], pose_vec[9],
+      pose_vec[10], pose_vec[11], pose_vec[12], pose_vec[13], pose_vec[14],
+      pose_vec[15];
+  return pose;
 }
 
 } // namespace relocalization
