@@ -6,11 +6,12 @@ This module contains the main coded needed to perform an inspection given a ROS 
 
 This software has been designed with a main program and sub-routine architecture (or call and return type architecture). Therefore, in src you will find main files with sub-routines defined in include/inspection and implementations in src/lib.
 
-Main files:
+Executables:
 
- * AutoInspection.cpp: This will implement fully automated inspection, including automated image labeling.
- * ManualInspectionA.cpp: This is the first of two parts needed to run to perform semi-automated inspection. This will require manual image labeling, however the rest of the process should be fully automated.
- * ManualInspectionB.cpp: This is the second part to the above.
+ * inspection_auto: This will implement fully automated inspection, including automated image labeling.
+ * inspection_manual_A: This is the first of two parts needed to run to perform semi-automated inspection. This will require manual image labeling, however the rest of the process should be fully automated.
+ * inspection_manual_B: This is the second part to the above.
+ * odom_topic_to_poses_file: This is a tool for getting a poses file from an odometry topic in a ROS bag. 
 
 ## Running Inspections
 

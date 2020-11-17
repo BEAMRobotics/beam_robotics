@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+find_package(gflags REQUIRED)
 find_package(rosbag REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(Boost REQUIRED)
@@ -63,4 +64,15 @@ add_executable(${PROJECT_NAME}_map_labeller
 target_link_libraries(${PROJECT_NAME}_map_labeller
 	${PROJECT_NAME}
 	${pcl_ros_LIBRARIES}
+)
+
+# OdomTopicToPosesFile
+add_executable(${PROJECT_NAME}_odom_topic_to_poses_file
+	src/odom_topic_to_poses_file.cpp
+)
+target_link_libraries(${PROJECT_NAME}_odom_topic_to_poses_file
+	${PROJECT_NAME}
+	gflags
+	beam::mapping
+	beam::utils
 )
