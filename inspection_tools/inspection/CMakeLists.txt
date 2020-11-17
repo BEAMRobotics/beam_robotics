@@ -6,12 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-	cv_bridge
+  cv_bridge
   geometry_msgs
   nav_msgs
-	pcl_ros
-	pcl_conversions
-	sensor_msgs
+  pcl_ros
+  pcl_conversions
+  sensor_msgs
   std_msgs
   tf
 )
@@ -31,44 +31,40 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 # Add the core inspection library
 add_subdirectory(src/lib)
 
-# Auto inspection binary
-add_executable(${PROJECT_NAME}_auto
-	src/AutoInspection.cpp
+# extract images binary
+add_executable(${PROJECT_NAME}_extract_images
+	src/ExtractImages.cpp
 )
-target_link_libraries(${PROJECT_NAME}_auto
+target_link_libraries(${PROJECT_NAME}_extract_images
 	${PROJECT_NAME}
+	gflags
 	beam::utils
-	beam::calibration
-)
-
-# ManualA inspection binaries
-add_executable(${PROJECT_NAME}_manual_A
-	src/ManualInspectionA.cpp
-)
-target_link_libraries(${PROJECT_NAME}_manual_A
-	${PROJECT_NAME}
 )
 
 # ManualB inspection binaries
-add_executable(${PROJECT_NAME}_manual_B
-	src/ManualInspectionB.cpp
+add_executable(${PROJECT_NAME}_quantify_defects
+	src/QuantifyDefects.cpp
 )
-target_link_libraries(${PROJECT_NAME}_manual_B
+target_link_libraries(${PROJECT_NAME}_quantify_defects
 	${PROJECT_NAME}
+	gflags
+	beam::utils
 )
 
 # Map Labeller
-add_executable(${PROJECT_NAME}_map_labeller
-	src/MapLabeller_main.cpp
+add_executable(${PROJECT_NAME}_label_map
+	src/LabelMap.cpp
 )
-target_link_libraries(${PROJECT_NAME}_map_labeller
+target_link_libraries(${PROJECT_NAME}_label_map
 	${PROJECT_NAME}
 	${pcl_ros_LIBRARIES}
+	gflags
+	beam::utils
 )
 
 # OdomTopicToPosesFile
 add_executable(${PROJECT_NAME}_odom_topic_to_poses_file
-	src/odom_topic_to_poses_file.cpp
+	src/OdomTopicToPosesFile.cpp
 )
 target_link_libraries(${PROJECT_NAME}_odom_topic_to_poses_file
 	${PROJECT_NAME}

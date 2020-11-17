@@ -114,7 +114,11 @@ class MapLabeler {
   };
 
 public:
-  explicit MapLabeler(std::string config_file_location);
+  explicit MapLabeler(const std::string& images_directory,
+                      const std::string& map, const std::string& poses,
+                      const std::string& intrinsics_directory,
+                      const std::string& extrinsics,
+                      const std::string& config_file_location);
 
   MapLabeler() = default;
 

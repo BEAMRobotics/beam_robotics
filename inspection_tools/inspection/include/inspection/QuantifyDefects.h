@@ -1,20 +1,20 @@
 #pragma once
 
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+
 #include <beam_containers/PointBridge.h>
 #include <beam_defects/Corrosion.h>
 #include <beam_defects/Crack.h>
 #include <beam_defects/Delam.h>
-#include <beam_defects/Spall.h>
 #include <beam_defects/extract_functions.h>
-
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-
-#include <fstream>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
+#include <beam_defects/Spall.h>
 
 namespace inspection {
 
@@ -27,7 +27,9 @@ public:
   /**
    * @brief Default constructor
    */
-  QuantifyDefects(const std::string config_file_location);
+  QuantifyDefects(const std::string& cloud_filename,
+                  const std::string& output_directory,
+                  const std::string& config_file_location);
 
   /**
    * @brief Default destructor

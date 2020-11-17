@@ -22,8 +22,19 @@ ros::Time TimePointToRosTime(const TimePoint& time_point) {
   return ros_time;
 }
 
-MapLabeler::MapLabeler(std::string config_file_location)
-    : json_labeler_filepath_(config_file_location) {
+MapLabeler::MapLabeler(const std::string& images_directory,
+                       const std::string& map, const std::string& poses,
+                       const std::string& intrinsics_directory,
+                       const std::string& extrinsics,
+                       const std::string& config_file_location) {
+  images_folder_ = images_directory;
+  map_path_ = map;
+  poses_path_ = poses;
+  extrinsics_path_ = extrinsics;
+  json_labeler_filepath_ = config_file_location;
+
+  BEAM_INFO("Loading config from: {}", config_file_location);
+
   // Process core json file
   ProcessJSONConfig();
 
@@ -120,11 +131,6 @@ void MapLabeler::ProcessJSONConfig() {
     std::ifstream json_config_stream(json_labeler_filepath_);
     json_config_stream >> json_config_;
 
-    images_folder_ = json_config_.at("images_folder");
-    intrinsics_folder_ = json_config_.at("intrinsics_folder");
-    map_path_ = json_config_.at("map_path");
-    poses_path_ = json_config_.at("poses_path");
-    extrinsics_path_ = json_config_.at("extrinsics_path");
     output_individual_clouds_ = json_config_.at("output_individual_clouds");
     if (!json_config_.at("final_map_name").empty())
       final_map_name_ = json_config_.at("final_map_name");
@@ -198,7 +204,7 @@ void MapLabeler::SaveLabeledClouds() {
     for (const auto& cloud : defect_clouds_[cam]) {
       std::string file_name = cameras_[cam].camera_name_ + "_" +
                               std::to_string(cloud_number) + ".pcd";
-      if(cloud->points.size() > 0) {
+      if (cloud->points.size() > 0) {
         pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
         cloud_number++;
       }

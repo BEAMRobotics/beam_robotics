@@ -1,15 +1,19 @@
-#include "inspection/ImageExtractor.h"
+#include <inspection/ImageExtractor.h>
 
 namespace inspection {
 
-ImageExtractor::ImageExtractor(const std::string& config_file_location) {
+ImageExtractor::ImageExtractor(const std::string& bag_file,
+                               const std::string& poses_file,
+                               const std::string& save_directory,
+                               const std::string& config_file_location) {
+  bag_file_ = bag_file;
+  poses_file_ = poses_file;
+  save_directory_ = save_directory;
+
+  BEAM_INFO("Loading config from: {}", config_file_location);
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
-
-  bag_file_ = J["bage_file"];
-  poses_file_ = J["poses_file"];
-  save_directory_ = J["save_directory"];
 
   for (const auto& topic : J["image_topics"]) {
     image_topics_.push_back(topic.get<std::string>());

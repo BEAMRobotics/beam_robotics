@@ -1,14 +1,20 @@
-#include "inspection/QuantifyDefects.h"
+#include <beam_utils/log.hpp>
+
+#include <inspection/QuantifyDefects.h>
 
 namespace inspection {
-QuantifyDefects::QuantifyDefects(const std::string config_file_location) {
-  // load member variables
+QuantifyDefects::QuantifyDefects(const std::string& cloud_filename,
+                                 const std::string& output_directory,
+                                 const std::string& config_file_location) {
+  cloud_filename_ = cloud_filename;
+  cloud_savedir_ = output_directory;
+
+  // load member variables from json
+  BEAM_INFO("Loading config from: {}", config_file_location);
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
 
-  cloud_filename_ = J["cloud_filename"];
-  cloud_savedir_ = J["cloud_savedir"];
   crack_threshold_ = J["crack_threshold"];
   spall_threshold_ = J["spall_threshold"];
   delam_threshold_ = J["delam_threshold"];

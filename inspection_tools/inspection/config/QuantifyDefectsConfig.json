@@ -1,6 +1,4 @@
 {
-  "cloud_filename": "/home/beam-install/clouds/PointBridge_cloud.pcd",
-  "cloud_savedir": "/home/beam-install/clouds/",
   "crack_threshold": 0.9,
   "spall_threshold": 0.9,
   "delam_threshold": 0.9,
