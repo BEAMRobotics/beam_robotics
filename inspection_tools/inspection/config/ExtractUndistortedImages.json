@@ -1,5 +1,5 @@
 {
-  "image_container_type": "ImageBridge",
+  "image_container_type": "None",
   "camera_params": [
     {
       "image_topic": "/F1/image_raw",
@@ -12,11 +12,6 @@
           "type": "UNDISTORT",
           "crop_height": 1,
           "crop_width": 1
-        },
-        {
-          "type": "LINEAR",
-          "alpha": 7,
-          "beta": 0
         }
       ]
     },
@@ -31,9 +26,6 @@
           "type": "UNDISTORT",
           "crop_height": 1,
           "crop_width": 1
-        },
-        {
-          "type": "HISTOGRAM"
         }
       ]
     }

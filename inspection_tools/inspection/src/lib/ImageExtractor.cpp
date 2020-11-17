@@ -1,5 +1,7 @@
 #include <inspection/ImageExtractor.h>
 
+#include <beam_utils/angles.hpp>
+
 namespace inspection {
 
 ImageExtractor::ImageExtractor(const std::string& bag_file,
@@ -15,70 +17,56 @@ ImageExtractor::ImageExtractor(const std::string& bag_file,
   std::ifstream file(config_file_location);
   file >> J;
 
-  for (const auto& topic : J["image_topics"]) {
-    image_topics_.push_back(topic.get<std::string>());
-  }
-
-  for (const auto& dist : J["distance_between_images"]) {
-    distance_between_images_.push_back(dist.get<double>());
-  }
-
-  for (const auto& rot : J["rotation_between_images"]) {
-    double DEG_TO_RAD = 3.14159265359 / 180;
-    rotation_between_images_.push_back(rot.get<double>() * DEG_TO_RAD);
-  }
-
-  for (const auto& distorted : J["are_images_distorted"]) {
-    are_images_distorted_.push_back(distorted.get<bool>());
-  }
-
-  for (const auto& ir : J["is_ir_camera"]) {
-    is_ir_camera_.push_back(ir.get<bool>());
-  }
-
-  for (const auto& enhancing : J["image_enhancing"]) {
-    std::string enhance_method = enhancing["enhance_method"].get<std::string>();
-    double alpha = enhancing["alpha"].get<double>();
-    double beta = enhancing["beta"].get<double>();
-    enhance_methods_.push_back(enhance_method);
-    alphas_.push_back(alpha);
-    betas_.push_back(beta);
-  }
-
-  if (image_topics_.size() != distance_between_images_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of distances between "
-              "poses. Topics = %d, Distances = %d",
-              (int)image_topics_.size(), (int)distance_between_images_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "distances between images"};
-  }
-
-  if (image_topics_.size() != are_images_distorted_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of booleans "
-              "specifying if images are distorted. Topics = %d, Distorted = %d",
-              (int)image_topics_.size(), (int)are_images_distorted_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "are_images_distorted"};
-  }
-
-  if (image_topics_.size() != is_ir_camera_.size()) {
-    LOG_ERROR(
-        "Number of image topics not equal to number of booleans "
-        "specifying if camera is an infrared camera. Topics = %d, Is IR = %d",
-        (int)image_topics_.size(), (int)is_ir_camera_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "is_ir_camera booleans"};
-  }
-
-  if (image_topics_.size() != enhance_methods_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of image enhancing "
-              "objects. Topics = %d, Enhancing = %d",
-              (int)image_topics_.size(), (int)enhance_methods_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "image enhancing objects."};
-  }
-
   image_container_type_ = J["image_container_type"];
+
+  for (const auto& camera_params : J["camera_params"]) {
+    nlohmann::json topic = camera_params["image_topic"];
+    image_topics_.push_back(topic.get<std::string>());
+
+    nlohmann::json distance = camera_params["distance_between_images_m"];
+    distance_between_images_.push_back(distance.get<double>());
+
+    nlohmann::json rotation = camera_params["distance_between_images_deg"];
+    rotation_between_images_.push_back(beam::Deg2Rad(rotation.get<double>()));
+
+    nlohmann::json distorted = camera_params["are_images_distorted"];
+    are_images_distorted_.push_back(distorted.get<bool>());
+
+    nlohmann::json ir = camera_params["is_ir_camera"];
+    is_ir_camera_.push_back(ir.get<bool>());
+
+    for (const auto& image_transforms_J : camera_params["image_transforms"]) {
+      std::vector<ImageTransform> image_tranforms =
+          GetImageTransforms(image_transforms_J);
+      image_transforms_.push_back(image_tranforms);
+    }
+  }
+}
+
+std::vector<ImageTransform>
+    ImageExtractor::GetImageTransforms(const nlohmann::json& J) {
+  std::vector<ImageTransform> image_transforms;
+  for (const auto& transform : J) {
+    std::string type = transform["type"].get<std::string>();
+    std::vector<double> params;
+    if (type == "LINEAR") {
+      params.push_back(transform["alpha"].get<double>());
+      params.push_back(transform["beta"].get<double>());
+    } else if (type == "UNDISTORT") {
+      params.push_back(transform["crop_height"].get<double>());
+      params.push_back(transform["crop_width"].get<double>());
+    } else if (type == "HISTOGRAM") {
+      // null
+    } else if (type == "CLAHE") {
+      // null
+    } else {
+      BEAM_ERROR("Invalid image_transform type in config file. Options: "
+                 "LINEAR, HISTOGRAM, UNDISTORT");
+      throw std::invalid_argument{"Invalid image_transform type"};
+    }
+    image_transforms.push_back(ImageTransform{.type = type, .params = params});
+  }
+  return image_transforms;
 }
 
 void ImageExtractor::ExtractImages() {
@@ -246,68 +234,95 @@ cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
       if (curImgTimepoint >= time_point) {
         if (add_frame_id) { frame_ids_.push_back(img_msg->header.frame_id); }
         if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
-          cv::Mat image_debayered = ROSDebayer(img_msg);
-          return EnhanceImage(image_debayered, cam_number);
+          cv::Mat image = ROSDebayer(img_msg);
+          return ApplyImageTransforms(image, cam_number);
         } else {
           cv::Mat image =
               cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
                   ->image;
-          return EnhanceImage(image, cam_number);
+          return ApplyImageTransforms(image, cam_number);
         }
       }
     }
   }
 }
 
-cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
-  if (enhance_methods_[cam_number] == "none") {
-    return input_image;
-  } else if (enhance_methods_[cam_number] == "linear") {
-    cv::Mat new_image = cv::Mat::zeros(input_image.size(), input_image.type());
-    double alpha = alphas_[cam_number];
-    double beta = betas_[cam_number];
-    for (int y = 0; y < input_image.rows; y++) {
-      for (int x = 0; x < input_image.cols; x++) {
-        for (int c = 0; c < input_image.channels(); c++) {
-          new_image.at<cv::Vec3b>(y, x)[c] = cv::saturate_cast<uchar>(
-              alpha * input_image.at<cv::Vec3b>(y, x)[c] + beta);
-        }
+cv::Mat ImageExtractor::ApplyImageTransforms(const cv::Mat& image,
+                                             int cam_number) {
+  std::vector<ImageTransform> transforms = image_transforms_[cam_number];
+
+  // avoid useless copying if no transforms are specified
+  if (transforms.size() == 0) { return image; }
+
+  cv::Mat output_image = image.clone();
+  for (ImageTransform transform : transforms) {
+    if (transform.type == "LINEAR") {
+      output_image = ApplyLinearTransform(output_image, transform.params);
+    } else if (transform.type == "HISTOGRAM") {
+      output_image = ApplyHistogramTransform(output_image, transform.params);
+    } else if (transform.type == "CLAHE") {
+      output_image = ApplyClaheTransform(output_image, transform.params);
+    } else if (transform.type == "UNDISTORT") {
+      output_image = ApplyUndistort(output_image, transform.params);
+    } else {
+      BEAM_WARN("Image transform type ({}) not yet implemented. Skipping",
+                transform.type);
+    }
+  }
+  return output_image;
+}
+
+cv::Mat
+    ImageExtractor::ApplyLinearTransform(const cv::Mat& image,
+                                         const std::vector<double>& params) {
+  cv::Mat new_image = cv::Mat::zeros(image.size(), image.type());
+  double alpha = params[0];
+  double beta = params[1];
+  for (int y = 0; y < image.rows; y++) {
+    for (int x = 0; x < image.cols; x++) {
+      for (int c = 0; c < image.channels(); c++) {
+        new_image.at<cv::Vec3b>(y, x)[c] = cv::saturate_cast<uchar>(
+            alpha * image.at<cv::Vec3b>(y, x)[c] + beta);
       }
     }
-    return new_image;
-  } else if (enhance_methods_[cam_number] == "histogram") {
-    cv::Mat ycrcb;
-    cv::cvtColor(input_image, ycrcb, CV_BGR2YCrCb);
-    std::vector<cv::Mat> channels;
-    cv::split(ycrcb, channels);
-    cv::equalizeHist(channels[0], channels[0]);
-    cv::Mat new_image;
-    cv::merge(channels, ycrcb);
-    cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
-    return new_image;
-  } else if (enhance_methods_[cam_number] == "clahe") {
-    cv::Mat lab_image;
-    cv::cvtColor(input_image, lab_image, CV_BGR2Lab);
-    std::vector<cv::Mat> lab_planes(6);
-    cv::split(lab_image, lab_planes);
-    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-    // Explanation of ClipLimit
-    // here:https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
-    clahe->setClipLimit(3);
-    cv::Mat dst;
-    clahe->apply(lab_planes[0], dst);
-    dst.copyTo(lab_planes[0]);
-    cv::merge(lab_planes, lab_image);
-    cv::Mat new_image;
-    cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
-    return new_image;
-  } else {
-    LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
-              "Options include: none, linear, histogram, and clahe");
-    throw std::invalid_argument{
-        "invalid enhance_method parameter in ImageExtractorConfig.json"};
-    return input_image;
   }
+  return new_image;
+}
+
+cv::Mat
+    ImageExtractor::ApplyHistogramTransform(const cv::Mat& image,
+                                            const std::vector<double>& params) {
+  cv::Mat ycrcb;
+  cv::cvtColor(image, ycrcb, CV_BGR2YCrCb);
+  std::vector<cv::Mat> channels;
+  cv::split(ycrcb, channels);
+  cv::equalizeHist(channels[0], channels[0]);
+  cv::Mat new_image;
+  cv::merge(channels, ycrcb);
+  cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
+  return new_image;
+}
+
+cv::Mat ImageExtractor::ApplyUndistort(const cv::Mat& image,
+                                       const std::vector<double>& params) {
+  return image;
+}
+
+cv::Mat ImageExtractor::ApplyClaheTransform(const cv::Mat& image,
+                            const std::vector<double>& params) {
+  cv::Mat lab_image;
+  cv::cvtColor(image, lab_image, CV_BGR2Lab);
+  std::vector<cv::Mat> lab_planes(6);
+  cv::split(lab_image, lab_planes);
+  cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+  clahe->setClipLimit(3);
+  cv::Mat dst;
+  clahe->apply(lab_planes[0], dst);
+  dst.copyTo(lab_planes[0]);
+  cv::merge(lab_planes, lab_image);
+  cv::Mat new_image;
+  cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
+  return new_image;
 }
 
 cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr& image_raw) {

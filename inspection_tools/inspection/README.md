@@ -38,10 +38,10 @@ Set all the parameters in ImageExtractorConfig.json located in the config direct
  * are_images_distorted : bool of wether or not the image have been undistorted
  * image_enhancing : some image processing method have been implemented (see below)
 
-### Image Enhancing:
+### Image Transforms:
 
-There are currently 3 options for enhancing the images at extraction time.
+There are currently 3 options for transforming/enhancing the images at extraction time.
 
- * none : do not edit images (it will still debayer and save as jpeg)
  * linear: linear enhancer g(i,j)=α⋅f(i,j)+β, where α = gain, and β = bias
  * histogram: histogram equalization
+ * undistort: undistorts the images using the intrinsic calibrations
