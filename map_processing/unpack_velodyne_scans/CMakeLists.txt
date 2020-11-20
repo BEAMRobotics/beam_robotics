@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-set(CMAKE_CXX_STANDARD 17)
 project(unpack_velodyne_scans)
+
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(beam REQUIRED utils)
 find_package(Boost REQUIRED)
@@ -49,7 +50,7 @@ target_include_directories(${PROJECT_NAME}
 		${Boost_INCLUDE_DIR}
 )
 target_link_libraries(${PROJECT_NAME}
-  beam::beam
+  beam::utils
   ${catkin_LIBRARIES}
 )
 
@@ -62,17 +63,3 @@ target_link_libraries(${PROJECT_NAME}_main
 	${catkin_LIBRARIES}
 )
 
-## INSTALL ##
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-install(TARGETS ${PROJECT_NAME}_main
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
