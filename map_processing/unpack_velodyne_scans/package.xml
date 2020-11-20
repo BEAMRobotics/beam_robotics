@@ -6,7 +6,7 @@
     unpack velodyne_msgs/VelodyneScan messages into sensor_msgs::PointCloud2
 		messages contained within velodyne scan udp packets.
   </description>
-  <author email="adthoms@uwaterloo.com">Alex Thoms</author>
+  <author email="adthoms@uwaterloo.ca">Alex Thoms</author>
   <maintainer email="adthoms@uwaterloo.ca">Alex Thoms</maintainer>
   <license>BSD</license>
 
