@@ -1,11 +1,22 @@
-#include <beam_utils/log.hpp>
-
 #include <inspection/QuantifyDefects.h>
 
+#include <nlohmann/json.hpp>
+#include <pcl/io/pcd_io.h>
+
+#include <beam_defects/Corrosion.h>
+#include <beam_defects/Crack.h>
+#include <beam_defects/Delam.h>
+#include <beam_defects/Spall.h>
+#include <beam_defects/extract_functions.h>
+#include <beam_utils/log.hpp>
+
 namespace inspection {
+
 QuantifyDefects::QuantifyDefects(const std::string& cloud_filename,
                                  const std::string& output_directory,
                                  const std::string& config_file_location) {
+  point_cloud_ =
+      boost::make_shared<pcl::PointCloud<beam_containers::PointBridge>>();
   cloud_filename_ = cloud_filename;
   cloud_savedir_ = output_directory;
 
@@ -135,4 +146,5 @@ void QuantifyDefects::SaveCorrosionOnlyCloud() {
     j++;
   }
 };
+
 } // end namespace inspection
