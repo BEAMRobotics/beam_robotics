@@ -31,12 +31,17 @@ The order at which to run the executables to go through the whole inspection pip
 
 ## Image Extractor Instructions  
 
-Set all the parameters in ImageExtractorConfig.json located in the config directory. For each image topic, you have to specify the same number of variables for the following parameters:
+Set all the parameters in ImageExtractorConfig.json located in the config directory. Here is a brief description of the parameters:
 
- * distance_between_images : minimum change in distance between extracted images
- * rotation_between_images : minimum change in rotation between extracted images
+ * image_container_type: format that the images will be saved. If set to None, it will output all the images into the same folder with no image details.
+ * intrinsics_directory: path to the folder containing the intrinsics. This should eventually get replaces by a calibration container
+ * image_topic: ros topic to get the images from
+ * intrinsics name: name of the file for the intrinsics which needs to be in intrinsics_directory 
+ * distance_between_images_m : minimum change in distance between extracted images in meters
+ * rotation_between_images_deg : minimum change in rotation between extracted images. This is calculated by taking the axis angle representation of the rotation between the two most recent poses and comparing to the angle value.
  * are_images_distorted : bool of wether or not the image have been undistorted
- * image_enhancing : some image processing method have been implemented (see below)
+ * are_images_compressed: if the input images from the topic are compressed. If so, the unddistort function will need to upsample first. If not undistorting then this isn't used
+ * image_transforms : some image processing method have been implemented (see below)
 
 ### Image Transforms:
 
@@ -44,4 +49,5 @@ There are currently 3 options for transforming/enhancing the images at extractio
 
  * linear: linear enhancer g(i,j)=α⋅f(i,j)+β, where α = gain, and β = bias
  * histogram: histogram equalization
- * undistort: undistorts the images using the intrinsic calibrations
+ * clahe: see // https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
+ * undistort: undistorts the images using the intrinsic calibrations. You can specify the cropping of the image as a percent of width and height. This is useful if you want to remove border pixels which are often black after the undistortion, Note that this will crop based on the size of the input image, not the size of the camera model. So if the input image has already been cropped, this will crop it further. Also, if the images are compressed, they will first be upsampled to the camera model dimensions, then undistorted, then recompressed to the original image size and then cropped (if specified). Note that you cannot use cropped and downsampled/compressed images because we are unable to get back to the original camera model dimensions.
