@@ -2,8 +2,6 @@
 
 #include <inspection/MapLabeler.h>
 
-#include <thread>
-
 #include <boost/filesystem.hpp>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/search/kdtree.h>
@@ -45,10 +43,10 @@ MapLabeler::MapLabeler(const std::string& images_directory,
   }
 
   // Load previous poses file specified in labeler json
-  beam_mapping::Poses poses;
-  poses.LoadFromJSON(poses_path_);
-  final_poses_ = poses.GetPoses();
-  final_timestamps_ = poses.GetTimeStamps();
+  beam_mapping::Poses poses_container;
+  poses_container.LoadFromJSON(poses_path_);
+  final_poses_ = poses_container.GetPoses();
+  final_timestamps_ = poses_container.GetTimeStamps();
 }
 
 void MapLabeler::Run() {
@@ -180,7 +178,7 @@ void MapLabeler::FillTFTree() {
   BEAM_DEBUG("Filling TF tree with {} dynamic transforms (i.e., poses)",
              final_poses_.size());
   geometry_msgs::TransformStamped tf_msg;
-  for (int i = 0; i < final_poses_.size(); i++){
+  for (int i = 0; i < final_poses_.size(); i++) {
     tf_msg = tf2::eigenToTransform(final_poses_[i]);
     tf_msg.header.stamp = final_timestamps_[i];
     tf_msg.header.frame_id = "map";
@@ -247,7 +245,7 @@ DefectCloud::Ptr MapLabeler::TransformMapToImageFrame(ros::Time tf_time,
 
 void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
   std::vector<Eigen::Affine3f> coord_frames;
-  for (ros::Time time : final_timestamps_){
+  for (ros::Time time : final_timestamps_) {
     std::string to_frame = "map";
     geometry_msgs::TransformStamped g_tf_stamped =
         tf_tree_.GetTransformROS(to_frame, frame_id, time);
