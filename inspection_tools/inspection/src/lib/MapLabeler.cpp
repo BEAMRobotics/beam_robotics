@@ -2,9 +2,9 @@
 
 #include <inspection/MapLabeler.h>
 
+#include <thread>
+
 #include <boost/filesystem.hpp>
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/search/kdtree.h>
 #include <tf2_eigen/tf2_eigen.h>
 
 #include <beam_mapping/Poses.h>

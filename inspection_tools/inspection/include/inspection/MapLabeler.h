@@ -1,9 +1,9 @@
 #pragma once
 
-#include <thread>
-
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree.h>
 #include <pcl/point_cloud.h>
+#include <pcl/search/kdtree.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl_ros/impl/transforms.hpp>
 #include <pcl_ros/transforms.h>
