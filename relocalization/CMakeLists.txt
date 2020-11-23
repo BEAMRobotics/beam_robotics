@@ -14,7 +14,8 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(beam REQUIRED calibration containers utils cv mapping)
 
 add_library(${PROJECT_NAME}
-  src/ImageDatabase.cpp
+  src/lib/ImageDatabase.cpp
+  src/lib/ImageToImage.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

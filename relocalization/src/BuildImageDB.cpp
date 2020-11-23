@@ -6,7 +6,6 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/opencv.hpp>
 
-
 ros::Time GetTimeStampFromJson(std::string path);
 
 int main() {
@@ -25,7 +24,7 @@ int main() {
   std::string vocab_loc = J["vocabulary_path"];
   std::shared_ptr<relocalization::ImageDatabase> database =
       std::make_shared<relocalization::ImageDatabase>(vocab_loc, descriptor,
-                                                      detector);
+                                                      detector, "/home/jake/data/imageDB/");
   // create tftree
   std::string tree_loc = J["extrinsics_path"];
   beam_calibration::TfTree tree;
@@ -41,7 +40,8 @@ int main() {
 
   std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>>
       pose_matrices = poses.GetPoses();
-
+  std::string intrinsics_path =
+      "/home/jake/data/Market_Square/intrinsics/F1.json";
   // loop through image folder and add each to database
   std::vector<ros::Time> stamps = poses.GetTimeStamps();
   std::string images_folder = J["images_folder"];
@@ -62,16 +62,11 @@ int main() {
         }
         Eigen::Matrix4d T = pose_matrices[idx].matrix();
         Eigen::Matrix4d pose = T * transform;
-        database->AddImage(image, pose, image_path);
+        database->AddImage(image, pose, intrinsics_path);
       }
     }
   }
-  std::string image_db_path = "/home/jake/image_db.json";
-  std::string dbow_path = "/home/jake/marketsquare.dbow3";
-  database->SaveDatabase(dbow_path, image_db_path);
-  cv::Mat test = cv::imread("/home/jake/data/mkt_square/BGRImage.jpg", cv::IMREAD_COLOR);
-  std::vector<unsigned int> ids = database->QueryDatabase(test, 3);
-  for (auto& id : ids) { std::cout << id << std::endl; }
+  database->SaveDatabase();
 }
 
 ros::Time GetTimeStampFromJson(std::string path) {

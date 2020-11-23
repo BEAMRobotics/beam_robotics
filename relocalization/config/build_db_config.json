@@ -1,7 +1,7 @@
 {
-  "images_folder": "/home/jake/data/mkt_square/imgs/",
-  "extrinsics_path": "/home/jake/data/mkt_square/extrinsics.json",
-  "poses_path": "/home/jake/data/mkt_square/poses.txt",
-  "vocabulary_path": "/home/jake/data/mkt_square/orbvoc.dbow3",
+  "images_folder": "/home/jake/data/ImageDBTest/imgs/",
+  "extrinsics_path": "/home/jake/data/ImageDBTest/extrinsics.json",
+  "poses_path": "/home/jake/data/ImageDBTest/poses.txt",
+  "vocabulary_path": "/home/jake/data/ImageDBTest/orbvoc.dbow3",
   "camera_frame" : "F1_link"
 }

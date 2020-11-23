@@ -1,12 +1,19 @@
 #pragma once
 
 #include <DBoW3/DBoW3.h>
-#include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
+#include <typeinfo>
 
+#include <beam_calibration/CameraModel.h>
+#include <beam_cv/descriptors/BRISKDescriptor.h>
 #include <beam_cv/descriptors/Descriptor.h>
+#include <beam_cv/descriptors/ORBDescriptor.h>
+#include <beam_cv/descriptors/SIFTDescriptor.h>
 #include <beam_cv/detectors/Detector.h>
+#include <beam_cv/detectors/FASTDetector.h>
+#include <beam_cv/detectors/ORBDetector.h>
+#include <beam_cv/detectors/SIFTDetector.h>
 
 namespace relocalization {
 
@@ -25,22 +32,22 @@ public:
   /**
    * @brief Default constructor
    */
-  ImageDatabase();
+  ImageDatabase() = default;
 
   /**
    * @brief Constructor to initialize with already gathered dbow dv and image db
-   * @param database_config path to config file: use only if existing dbow
-   * database and image database have been made
+   * @param database_path path to database folder
    */
-  ImageDatabase(std::string database_config);
+  ImageDatabase(std::string database_path);
 
   /**
    * @brief Constructor to initialize empty database with given vocabulary
-   * @param voc specifiec
+   * @param voc specified
    */
   ImageDatabase(std::string vocab_location,
                 std::shared_ptr<beam_cv::Descriptor> descriptor,
-                std::shared_ptr<beam_cv::Detector> detector);
+                std::shared_ptr<beam_cv::Detector> detector,
+                const std::string& database_path = std::string());
 
   /**
    * @brief Default destructor
@@ -48,18 +55,9 @@ public:
   ~ImageDatabase() = default;
 
   /**
-   * @brief Load a database from 2 file
-   * @param dbow_file_path path to dbow db
-   * @param imagedb_file_path path to imagedb
+   * @brief Save current database to default folder
    */
-  void LoadDatabase(std::string dbow_file_path, std::string imagedb_file_path);
-
-  /**
-   * @brief Save current database to files
-   * @param dbow_file_path path to save dbow db
-   * @param imagedb_file_path path to save imagedb
-   */
-  void SaveDatabase(std::string dbow_file_path, std::string imagedb_file_path);
+  void SaveDatabase();
 
   /**
    * @brief Set the type of keypoint descriptor to use
@@ -74,39 +72,33 @@ public:
   void SetDetector(std::shared_ptr<beam_cv::Detector> detector);
 
   /**
-   * @brief Retrain vocabulary given just the images in image_db_
-   * the dbow_db_ will have to be refilled after retraining
-   */
-  void RetrainVocabulary();
-
-  /**
    * @brief Set vocabulary to new vocab, database will need to be refilled
    * @param voc DBoW vocabulary to set
    */
   void SetVocabulary(DBoW3::Vocabulary voc);
 
   /**
+   * @brief Retrain vocabulary given just the images in image_db_
+   * the dbow_db_ will have to be refilled after retraining
+   */
+  void RetrainVocabulary();
+
+  /**
    * @brief Return list of N image id's best matching query image
    * @param query_image to query database with
    */
-  std::vector<unsigned int> QueryDatabase(cv::Mat query_image, int N);
+  std::vector<unsigned int> QueryDatabase(cv::Mat query_image, int N = 2);
 
   /**
-   * @brief Add an image to the dbow database, add its pose and path to image
-   * database
+   * @brief Add an image to the dbow database, add its pose and id to image db,
+   * its model to model db
    * @param image to add
    * @param pose of image in map
-   * @param path to image
+   * @param path_to_model path to camera model for image
    */
-  void AddImage(cv::Mat image, Eigen::Matrix4d pose, std::string path_to_image);
-
-  /**
-   * @brief Add an image to the dbow database, add its pose to image database,
-   * save image in default location and add that as path to image db
-   * @param image to add
-   * @param pose of image in map
-   */
-  void AddImage(cv::Mat image, Eigen::Matrix4d pose);
+  unsigned int AddImage(cv::Mat image, Eigen::Matrix4d pose,
+                        std::string camera_model_files,
+                        const std::string& image_path = std::string());
 
   /**
    * @brief Get image object given an index
@@ -120,13 +112,41 @@ public:
    */
   Eigen::Matrix4d GetPose(unsigned int index);
 
+  /**
+   * @brief Get pose of image given index
+   * @param index to fetch
+   */
+  std::shared_ptr<beam_calibration::CameraModel>
+      GetCameraModel(unsigned int index);
+
+protected:
+  /**
+   * @brief Get descriptor
+   * @param string of type
+   */
+  std::shared_ptr<beam_cv::Descriptor> DetermineDescriptor(std::string type);
+
+  /**
+   * @brief Get detector based on type
+   * @param string of type
+   */
+  std::shared_ptr<beam_cv::Detector> DetermineDetector(std::string type);
+
+  /**
+   * @brief Get id of camera by path, will init new camera model if it doesnt
+   * exist
+   * @param camera_model_file file to camera model
+   */
+  unsigned int GetCameraID(std::string camera_model_file);
+
 private:
+  unsigned int camera_id_ = 0;
   size_t num_images_ = 0;
   std::shared_ptr<DBoW3::Database> bow_db_;
   json image_db_;
   std::shared_ptr<beam_cv::Descriptor> descriptor_;
   std::shared_ptr<beam_cv::Detector> detector_;
-  std::string image_folder_;
+  std::string database_folder_;
 
   std::map<std::string, DescriptorType> descriptor_types_ = {
       {"ORB", DescriptorType::ORB},
@@ -136,6 +156,19 @@ private:
       {"ORB", DetectorType::ORB},
       {"SIFT", DetectorType::SIFT},
       {"FAST", DetectorType::FAST}};
+  std::map<std::string, std::string> descriptor_repr_ = {
+      {std::string(typeid(beam_cv::ORBDescriptor()).name()), "ORB"},
+      {std::string(typeid(beam_cv::SIFTDescriptor()).name()), "SIFT"},
+      {std::string(typeid(beam_cv::BRISKDescriptor()).name()), "BRISK"}};
+  std::map<std::string, std::string> detector_repr_ = {
+      {std::string(typeid(beam_cv::ORBDetector()).name()), "ORB"},
+      {std::string(typeid(beam_cv::SIFTDetector()).name()), "SIFT"},
+      {std::string(typeid(beam_cv::FASTDetector()).name()), "FAST"}};
+  // map to store camera model depending on the path to its config file
+  std::unordered_map<std::string,
+                     std::shared_ptr<beam_calibration::CameraModel>>
+      cam_model_path_map_;
+  std::unordered_map<std::string, int> cam_model_id_map_;
 };
 
 } // namespace relocalization
