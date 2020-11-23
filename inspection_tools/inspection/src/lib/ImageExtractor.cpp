@@ -277,6 +277,16 @@ cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,
   for (rosbag::View::iterator iter = view.begin(); iter != view.end(); iter++) {
     sensor_msgs::ImageConstPtr img_msg =
         iter->instantiate<sensor_msgs::Image>();
+
+    // check that topic type is correct:
+    if (img_msg == NULL) {
+      BEAM_ERROR("Unable to instantiate image message. You are probably "
+                 "feeding a topic with the incorrect message type. Message "
+                 "type must be sensor_msgs::Image. Topic: {}",
+                 image_topics_[cam_number]);
+      throw std::runtime_error{"Unable to instantiate ROS message."};
+    }
+
     if (img_msg->header.stamp < image_time) { continue; }
     image_time = img_msg->header.stamp;
     last_image_time_ = img_msg->header.stamp;
