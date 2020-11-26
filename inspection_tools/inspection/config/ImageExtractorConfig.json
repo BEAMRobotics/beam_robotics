@@ -1,28 +1,65 @@
 {
-  "bage_file": "/home/nick/bag_files/ig_scans/2019_04_11_Market_Square_Parking_Garage/ig_scan_2019-04-11-19-47-57.bag",
-  "poses_file": "/home/nick/results/inspection/2019_04_11_Market_Square_Parking_Garage/ig_scan_2019-04-11-19-47-57/2019_4_19_12_47_21_opt_traj.txt",
-  "save_directory": "/home/nick/results/inspection/2019_04_11_Market_Square_Parking_Garage/ig_scan_2019-04-11-19-47-57/images",
-  "image_topics": ["/F1/image_raw", "/F2/image_raw", "/ximea_cam/image_raw"],
-  "distance_between_images": [1, 1, 1],
-  "rotation_between_images": [30, 30, 30],
-  "are_images_distorted": [true, true, true],
-  "is_ir_camera": [false, false, false],
   "image_container_type": "ImageBridge",
-  "image_enhancing": [
+  "intrinsics_directory": "/home/nick/config/inspection/",
+  "camera_params": [
     {
-      "enhance_method": "linear",
-      "alpha": 7,
-      "beta": 0
+      "image_topic": "/F1/image_raw",
+      "intrinsics_name": "F1.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 30,
+      "are_images_distorted": true,
+      "are_images_compressed": false,
+      "is_ir_camera": false,
+      "image_transforms": [
+        {
+          "type": "UNDISTORT",
+          "crop_height": 1,
+          "crop_width": 1
+        },
+        {
+          "type": "LINEAR",
+          "alpha": 7,
+          "beta": 0
+        }
+      ]
     },
     {
-      "enhance_method": "linear",
-      "alpha": 7,
-      "beta": 0
+      "image_topic": "/F2/image_raw",
+      "intrinsics_name": "F2.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 30,
+      "are_images_distorted": true,
+      "are_images_compressed": false,
+      "is_ir_camera": false,
+      "image_transforms": [
+        {
+          "type": "UNDISTORT",
+          "crop_height": 1,
+          "crop_width": 1
+        },
+        {
+          "type": "HISTOGRAM"
+        }
+      ]
     },
     {
-      "enhance_method": "none",
-      "alpha": 1.0,
-      "beta": 0
+      "image_topic": "/F3/image_raw",
+      "intrinsics_name": "F3.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 30,
+      "are_images_distorted": true,
+      "are_images_compressed": false,
+      "is_ir_camera": false,
+      "image_transforms": [
+        {
+          "type": "UNDISTORT",
+          "crop_height": 1,
+          "crop_width": 1
+        },
+        {
+          "type": "CLAHE"
+        }
+      ]
     }
   ]
 }
