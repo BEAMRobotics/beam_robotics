@@ -8,16 +8,17 @@ namespace unpack_velodyne_scans {
 class UnpackVelodyneScans {
  public:
   explicit UnpackVelodyneScans(const std::string& bag_file_path,
-                               const std::string& calibration_file);
+                               const std::string& calibration_file,
+                               const std::string& output_postfix);
   ~UnpackVelodyneScans() = default;
-  void Unpack();
+  void Run();
 
  private:
   std::string bag_file_path_;
   std::string calibration_file_;
-  std::string calibration_path_;
+  std::string output_postfix_;
 
-  // Default Velodyne Parameters Required for RawData Initialization
+  // Default Velodyne Parameters Required for Initialization
   double min_range_ = 0.9;
   double max_range_ = 130;
   double view_direction_ = 0;
@@ -25,6 +26,7 @@ class UnpackVelodyneScans {
   std::string target_frame_ = "";
   std::string fixed_frame_ = "";
 
+  // Required Velodyne Classes for Raw data processing
   boost::shared_ptr<velodyne_rawdata::RawData> data_;
   boost::shared_ptr<velodyne_rawdata::DataContainerBase> container_ptr_;
 };

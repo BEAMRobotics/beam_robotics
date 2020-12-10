@@ -3,9 +3,10 @@ project(unpack_velodyne_scans)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(beam REQUIRED utils)
 find_package(Boost REQUIRED)
+find_package(gflags REQUIRED)
 find_package(velodyne_pointcloud REQUIRED)
+find_package(beam REQUIRED utils)
 
 find_package(catkin REQUIRED
   COMPONENTS
@@ -16,38 +17,14 @@ find_package(catkin REQUIRED
     velodyne_pointcloud
 )
 
-catkin_package(
-  INCLUDE_DIRS
-    include
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    roscpp
-    rosbag
-    std_msgs
-    sensor_msgs
-  DEPENDS
-		BOOST
-)
-
-## Build ##
-include_directories(
-  include
-	${catkin_INCLUDE_DIRS}
-	${Boost_INCLUDE_DIR}
-	${velodyne_pointcloud_INCLUDE_DIR}
-)
-
 # Unpack library
 add_library(${PROJECT_NAME}
 	src/UnpackVelodyneScans.cpp
 )
-
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     include
     ${catkin_INCLUDE_DIRS}
-		${Boost_INCLUDE_DIR}
 )
 target_link_libraries(${PROJECT_NAME}
   beam::utils
@@ -62,4 +39,3 @@ target_link_libraries(${PROJECT_NAME}_main
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
-

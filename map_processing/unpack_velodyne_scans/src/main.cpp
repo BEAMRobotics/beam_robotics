@@ -1,25 +1,22 @@
 #include <unpack_velodyne_scans/UnpackVelodyneScans.h>
-#include <iostream>
+
+#include <gflags/gflags.h>
+#include <beam_utils/gflags.h>
+
+DEFINE_string(bag_file_path, "", "Full path to bag file (Required).");
+DEFINE_validator(bag_file_path, &beam::gflags::ValidateBagFileMustExist);
+DEFINE_string(calibration_file, "VLP16_hires_db.yaml", 
+							"velodyne calibration file (Optional).");
+DEFINE_string(output_postfix, "_unpacked",
+              "topic postfix for unpacked velodyne scans (Optional).");
 
 int main(int argc, char* argv[]) {
-	if (argc != 3) {
-    std::cerr << "----------------------------------------------------------\n"
-			<< "**USAGE SUMMARY**\n"
-			<< "Enter the full file path to bag file as well as the velodyne"
-			<< "calibration file as follows: \n"
-			<< "USAGE: " << argv[0] << " /path/to/bag/file.bag"
-			<< "velodyne_calibration.yaml \n"
-			<< "Note: Beam currently uses VLP16_hires_db.yaml \n"
-    	<< "----------------------------------------------------------\n";
-    return -1;
-	} else {
-		std::string bag_file_path;
-		std::string calibration_file;
-		bag_file_path = argv[1];
-		calibration_file = argv[2];
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    unpack_velodyne_scans::UnpackVelodyneScans unpack_velodyne_scans(
-		bag_file_path, calibration_file);
-  }
+  unpack_velodyne_scans::UnpackVelodyneScans unpack_velodyne_scans(
+      FLAGS_bag_file_path, FLAGS_calibration_file,
+      FLAGS_output_postfix);
+  unpack_velodyne_scans.Run();
+
   return 0;
 }

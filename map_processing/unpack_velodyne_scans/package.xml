@@ -13,6 +13,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>libbeam</build_depend>
   <build_depend>velodyne_pointcloud</build_depend>
+  <exec_depend>velodyne_pointcloud</exec_depend>
   <depend>roscpp</depend>
   <depend>rosbag</depend>
   <depend>std_msgs</depend>
