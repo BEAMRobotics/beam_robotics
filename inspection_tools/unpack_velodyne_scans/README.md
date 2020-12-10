@@ -9,6 +9,6 @@ This package will take a bag file <foo.bag> containing velodyne_msgs/VelodyneSca
 Run the main exectuble as follows:
 
 `cd catkin_ws/build/unpack_velodyne_scans`
-`./unpack_velodyne_scans_main --bag_file_path=/path/to/bag/file.bag --calibration_file=velodyne_calibration.yaml --output_postfix="_postfix"`
+`./unpack_velodyne_scans_main --bag_file_path=/path/to/bag/file.bag`
 
-For information on program input, run: `./unpack_velodyne_scans_main --help`
+For information on required and optional program input, run: `./unpack_velodyne_scans_main --help`
