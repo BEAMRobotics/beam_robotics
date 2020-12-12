@@ -20,19 +20,17 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
   ros::Time::init();
 
   BEAM_INFO("Loading velodyne calibration file for unpacking...");
-  std::string calibration_path_;
-  std::string calibration_full_path_;
-  calibration_path_ = ros::package::getPath("velodyne_pointcloud") + "/params/";
-  calibration_full_path_ += calibration_path_ + calibration_file_;
+  std::string calibration_path;
+  std::string calibration_full_path;
+  calibration_path = ros::package::getPath("velodyne_pointcloud") + "/params/";
+  calibration_full_path += calibration_path + calibration_file_;
 
-  try {
-    int setup =
-        data_->setupOffline(calibration_full_path_, max_range_, min_range_);
-    if (setup) throw(setup);
-  } catch (int exception) {
-    BEAM_CRITICAL("Unsure calibration file is inlcuded in " +
-                  calibration_path_ + ". Exiting Program");
-    return;
+  int setup =
+      data_->setupOffline(calibration_full_path, max_range_, min_range_);
+  if (setup == -1) {
+    BEAM_CRITICAL("Ensure calibration file is inlcuded in " + calibration_path +
+                  ". Exiting Program");
+    throw std::invalid_argument{""};
   }
 
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
@@ -54,9 +52,9 @@ void UnpackVelodyneScans::Run() {
 
   rosbag::View view(bag_in, ros::TIME_MIN, ros::TIME_MAX, true);
   rosbag::Bag bag_out;
-  std::string str = bag_file_path_;
-  str.replace(str.end() - 4, str.end(), output_postfix_ + ".bag");
-  bag_out.open(str, rosbag::bagmode::Write);
+  bag_file_path_.replace(bag_file_path_.end() - 4, bag_file_path_.end(),
+                         output_postfix_ + ".bag");
+  bag_out.open(bag_file_path_, rosbag::bagmode::Write);
 
   int total_messages = view.size();
   int message_counter = 0;
@@ -84,11 +82,10 @@ void UnpackVelodyneScans::Run() {
                                 output_message);
   }
 
+  BEAM_INFO("Unpacking completed. Results have been written to: {}",
+            bag_out.getFileName());
   bag_in.close();
   bag_out.close();
-  std::string msg = bag_out.getFileName();
-  BEAM_INFO("Unpacking completed. Results have been written to: {}",
-            msg);
 }
 
 }  // namespace unpack_velodyne_scans
