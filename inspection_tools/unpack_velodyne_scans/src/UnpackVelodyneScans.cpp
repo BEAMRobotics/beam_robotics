@@ -36,7 +36,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
   data_->setParameters(min_range_, max_range_, view_direction_, view_width_);
   container_ptr_ = boost::make_shared<velodyne_pointcloud::PointcloudXYZIR>(
-      max_range_, min_range_, target_frame_, fixed_frame_,
+      max_range_, min_range_, "", "",
       data_->scansPerPacket());
 }
 

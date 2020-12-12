@@ -23,8 +23,6 @@ class UnpackVelodyneScans {
   double max_range_ = 130;
   double view_direction_ = 0;
   double view_width_ = 2 * M_PI;
-  std::string target_frame_ = "";
-  std::string fixed_frame_ = "";
 
   // Required Velodyne Classes for Raw data processing
   boost::shared_ptr<velodyne_rawdata::RawData> data_;
