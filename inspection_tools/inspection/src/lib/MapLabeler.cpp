@@ -1,15 +1,14 @@
 #define PCL_NO_PRECOMPILE
 
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/search/kdtree.h>
+#include <inspection/MapLabeler.h>
 
-#include <beam_containers/Utilities.h>
-#include <beam_utils/time.hpp>
-#include <boost/filesystem.hpp>
-#include <tf2_eigen/tf2_eigen.h>
 #include <thread>
 
-#include "inspection/MapLabeler.h"
+#include <boost/filesystem.hpp>
+#include <tf2_eigen/tf2_eigen.h>
+
+#include <beam_mapping/Poses.h>
+#include <beam_utils/time.hpp>
 
 using namespace std::literals::chrono_literals;
 
@@ -22,8 +21,19 @@ ros::Time TimePointToRosTime(const TimePoint& time_point) {
   return ros_time;
 }
 
-MapLabeler::MapLabeler(std::string config_file_location)
-    : json_labeler_filepath_(config_file_location) {
+MapLabeler::MapLabeler(const std::string& images_directory,
+                       const std::string& map, const std::string& poses,
+                       const std::string& intrinsics_directory,
+                       const std::string& extrinsics,
+                       const std::string& config_file_location) {
+  images_folder_ = images_directory;
+  map_path_ = map;
+  poses_path_ = poses;
+  extrinsics_path_ = extrinsics;
+  json_labeler_filepath_ = config_file_location;
+
+  BEAM_INFO("Loading config from: {}", config_file_location);
+
   // Process core json file
   ProcessJSONConfig();
 
@@ -33,7 +43,10 @@ MapLabeler::MapLabeler(std::string config_file_location)
   }
 
   // Load previous poses file specified in labeler json
-  final_poses_ = beam_containers::ReadPoseFile(poses_path_);
+  beam_mapping::Poses poses_container;
+  poses_container.LoadFromJSON(poses_path_);
+  final_poses_ = poses_container.GetPoses();
+  final_timestamps_ = poses_container.GetTimeStamps();
 }
 
 void MapLabeler::Run() {
@@ -120,11 +133,6 @@ void MapLabeler::ProcessJSONConfig() {
     std::ifstream json_config_stream(json_labeler_filepath_);
     json_config_stream >> json_config_;
 
-    images_folder_ = json_config_.at("images_folder");
-    intrinsics_folder_ = json_config_.at("intrinsics_folder");
-    map_path_ = json_config_.at("map_path");
-    poses_path_ = json_config_.at("poses_path");
-    extrinsics_path_ = json_config_.at("extrinsics_path");
     output_individual_clouds_ = json_config_.at("output_individual_clouds");
     if (!json_config_.at("final_map_name").empty())
       final_map_name_ = json_config_.at("final_map_name");
@@ -156,8 +164,8 @@ void MapLabeler::ProcessJSONConfig() {
 }
 
 void MapLabeler::FillTFTree() {
-  ros::Time start_time = TimePointToRosTime(final_poses_.front().first);
-  ros::Time end_time = TimePointToRosTime(final_poses_.back().first);
+  ros::Time start_time = final_timestamps_.front();
+  ros::Time end_time = final_timestamps_.back();
   tf_tree_.start_time = start_time;
   ros::Duration dur = end_time - start_time;
 
@@ -170,9 +178,9 @@ void MapLabeler::FillTFTree() {
   BEAM_DEBUG("Filling TF tree with {} dynamic transforms (i.e., poses)",
              final_poses_.size());
   geometry_msgs::TransformStamped tf_msg;
-  for (const auto& pose : final_poses_) {
-    tf_msg = tf2::eigenToTransform(pose.second);
-    tf_msg.header.stamp = TimePointToRosTime(pose.first);
+  for (int i = 0; i < final_poses_.size(); i++) {
+    tf_msg = tf2::eigenToTransform(final_poses_[i]);
+    tf_msg.header.stamp = final_timestamps_[i];
     tf_msg.header.frame_id = "map";
     tf_msg.child_frame_id = "hvlp_link";
     tf_tree_.AddTransform(tf_msg);
@@ -198,7 +206,7 @@ void MapLabeler::SaveLabeledClouds() {
     for (const auto& cloud : defect_clouds_[cam]) {
       std::string file_name = cameras_[cam].camera_name_ + "_" +
                               std::to_string(cloud_number) + ".pcd";
-      if(cloud->points.size() > 0) {
+      if (cloud->points.size() > 0) {
         pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
         cloud_number++;
       }
@@ -237,9 +245,7 @@ DefectCloud::Ptr MapLabeler::TransformMapToImageFrame(ros::Time tf_time,
 
 void MapLabeler::PlotFrames(std::string frame_id, PCLViewer viewer) {
   std::vector<Eigen::Affine3f> coord_frames;
-
-  for (const auto& pose : final_poses_) {
-    ros::Time time = TimePointToRosTime(pose.first);
+  for (ros::Time time : final_timestamps_) {
     std::string to_frame = "map";
     geometry_msgs::TransformStamped g_tf_stamped =
         tf_tree_.GetTransformROS(to_frame, frame_id, time);
@@ -261,8 +267,7 @@ void MapLabeler::FillCameraPoses() {
     if (camera.camera_pose_ids_.size() > 0) {
       // if config file specifies specific poses then only add those
       for (const auto& pose_id : camera.camera_pose_ids_) {
-        auto pose = final_poses_[pose_id - 1];
-        ros::Time time = TimePointToRosTime(pose.first);
+        ros::Time time = final_timestamps_[pose_id - 1];
         geometry_msgs::TransformStamped g_tf_stamped =
             tf_tree_.GetTransformROS(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);
@@ -271,8 +276,7 @@ void MapLabeler::FillCameraPoses() {
       }
     } else {
       // if no poses are specified, add every pose
-      for (const auto& pose : final_poses_) {
-        ros::Time time = TimePointToRosTime(pose.first);
+      for (ros::Time time : final_timestamps_) {
         geometry_msgs::TransformStamped g_tf_stamped =
             tf_tree_.GetTransformROS(to_frame, cam_frame, time);
         Eigen::Affine3d eig = tf2::transformToEigen(g_tf_stamped);

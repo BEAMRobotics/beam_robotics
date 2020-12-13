@@ -4,10 +4,9 @@ add_library(${PROJECT_NAME}
   GenerateReport.cpp
   ImageExtractor.cpp
   ImageLabeler.cpp
-  LoadHandLabels.cpp
   MapLabeler.cpp
   QuantifyDefects.cpp
-  SaveImages.cpp
+  InspectionUtils.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
