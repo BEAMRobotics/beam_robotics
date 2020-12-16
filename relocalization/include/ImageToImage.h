@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <GlobalMatcher.h>
 #include <ImageDatabase.h>
 
 #include <beam_cv/descriptors/Descriptor.h>
@@ -15,12 +16,12 @@ namespace relocalization {
  * @brief Representation of a global map feature matcher using Image to Image
  * matching
  */
-class ImageToImage {
+class ImageToImage : public GlobalMatcher {
 public:
   /**
    * @brief Default constructor
    */
-  ImageToImage();
+  ImageToImage() = default;
 
   /**
    * @brief Initialize with a image database
@@ -33,14 +34,14 @@ public:
   /**
    * @brief Default destructor
    */
-  ~ImageToImage()= default;
+  ~ImageToImage() override = default;
 
   /**
    * @brief Virtual method to return 2d-3d point correspondences for query image
    * @param query_image to query against current map
    */
   std::vector<std::tuple<Eigen::Vector2i, Eigen::Vector3d>>
-      Query(cv::Mat query_image);
+      Query(cv::Mat query_image, Eigen::Matrix4d& pose_estimate) override;
 
   /**
    * @brief Sets the descriptor used in the tracker
@@ -61,7 +62,7 @@ public:
   void SetMatcher(std::shared_ptr<beam_cv::Matcher> matcher);
 
 private:
-  int N = 2;
+  int N = 5;
   // feature descriptor, detector and matcher
   std::shared_ptr<beam_cv::Detector> detector_;
   std::shared_ptr<beam_cv::Descriptor> descriptor_;

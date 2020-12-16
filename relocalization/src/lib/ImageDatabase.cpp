@@ -9,20 +9,18 @@
 
 #include <boost/filesystem.hpp>
 
-#include <beam_calibration/TfTree.h>
 #include <beam_cv/Utils.h>
-#include <beam_cv/descriptors/BRISKDescriptor.h>
-#include <beam_cv/descriptors/ORBDescriptor.h>
-#include <beam_cv/descriptors/SIFTDescriptor.h>
-#include <beam_cv/detectors/FASTDetector.h>
-#include <beam_cv/detectors/ORBDetector.h>
-#include <beam_cv/detectors/SIFTDetector.h>
-#include <beam_mapping/Poses.h>
 
 namespace relocalization {
 
-ImageDatabase::ImageDatabase(std::string database_path) {
+ImageDatabase::ImageDatabase(const std::string& database_path,
+                             const std::string& image_folder) {
   database_folder_ = database_path;
+  if (image_folder.empty()) {
+    image_folder_ = database_folder_ + "images/";
+  } else {
+    image_folder_ = image_folder;
+  }
   // load DBoW3 database into bow db object
   std::string DBoW3_file_path = database_path + "bow_db.dbow3";
   BEAM_INFO("Loading DBOW3 database file: {}", DBoW3_file_path);
@@ -51,7 +49,8 @@ ImageDatabase::ImageDatabase(std::string database_path) {
 ImageDatabase::ImageDatabase(std::string vocab_location,
                              std::shared_ptr<beam_cv::Descriptor> descriptor,
                              std::shared_ptr<beam_cv::Detector> detector,
-                             const std::string& database_path) {
+                             const std::string& database_path,
+                             const std::string& image_folder) {
   if (database_path.empty()) {
     // build database folder location
     auto time = std::chrono::system_clock::now();
@@ -66,9 +65,13 @@ ImageDatabase::ImageDatabase(std::string vocab_location,
     // set db location to param
     database_folder_ = database_path;
   }
-  std::string image_folder = database_folder_ + "images/";
   boost::filesystem::create_directory(database_folder_);
-  boost::filesystem::create_directory(image_folder);
+  if (image_folder.empty()) {
+    image_folder_ = database_folder_ + "images/";
+  } else {
+    image_folder_ = image_folder;
+  }
+  boost::filesystem::create_directory(image_folder_);
   // load parameters
   DBoW3::Vocabulary vocab(vocab_location);
   this->bow_db_ = std::make_shared<DBoW3::Database>(vocab);
@@ -119,7 +122,7 @@ void ImageDatabase::SetVocabulary(DBoW3::Vocabulary voc) {
   for (unsigned int i = 0; i < num_images_copy; i++) {
     // get image and pose
     std::string image_file = image_db_copy["images"][i]["image"];
-    std::string image_path = database_folder_ + "images/" + image_file;
+    std::string image_path = image_folder_ + image_file;
     cv::Mat img = cv::imread(image_path);
     std::vector<int> pose_vec = image_db_copy["images"][i]["pose"];
     Eigen::Matrix4d pose;
@@ -130,8 +133,8 @@ void ImageDatabase::SetVocabulary(DBoW3::Vocabulary voc) {
     // get path to cam model
     unsigned int cam_id = image_db_copy["images"][i]["camera_model"];
     std::string path_to_cam = image_db_copy["cameras"][cam_id];
-    // add image, pose and path
-    this->AddImage(img, pose, path_to_cam);
+    // add image, pose and path, without rewriting the image
+    this->AddImage(img, pose, path_to_cam, image_file, false);
   }
 }
 
@@ -168,7 +171,8 @@ std::vector<unsigned int> ImageDatabase::QueryDatabase(cv::Mat query_image,
 
 unsigned int ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
                                      std::string camera_model_file,
-                                     const std::string& image_path) {
+                                     const std::string& image_path,
+                                     bool write) {
   std::vector<cv::KeyPoint> kps = detector_->DetectFeatures(image);
   cv::Mat features = descriptor_->ExtractDescriptors(image, kps);
   unsigned int idx = this->bow_db_->add(features);
@@ -180,11 +184,13 @@ unsigned int ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
     image_file = "image_" + idx_string + ".png";
   } else {
     boost::filesystem::path p(image_path);
-    image_file = p.stem().string();
+    image_file = p.stem().string() + p.extension().string();
   }
-  // write image to images folder
-  std::string path_to_image = database_folder_ + "images/" + image_file;
-  cv::imwrite(path_to_image, image);
+  if (write) {
+    // write image to images folder
+    std::string path_to_image = image_folder_ + image_file;
+    cv::imwrite(path_to_image, image);
+  }
   // add image to image_db
   image_db_["images"][idx] = {
       {"pose",
@@ -199,7 +205,7 @@ unsigned int ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
 
 cv::Mat ImageDatabase::GetImage(unsigned int index) {
   std::string image_file = image_db_["images"][index]["image"];
-  std::string image_path = database_folder_ + "images/" + image_file;
+  std::string image_path = image_folder_ + "/" + image_file;
   cv::Mat img = cv::imread(image_path);
   return img;
 }

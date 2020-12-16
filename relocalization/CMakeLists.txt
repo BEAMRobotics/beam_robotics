@@ -51,3 +51,10 @@ add_executable(${PROJECT_NAME}_build_db
 target_link_libraries(${PROJECT_NAME}_build_db
   ${PROJECT_NAME}
 )
+
+add_executable(${PROJECT_NAME}_cmu_eval
+	src/CMUDatasetEval.cpp
+)
+target_link_libraries(${PROJECT_NAME}_cmu_eval
+  ${PROJECT_NAME}
+)

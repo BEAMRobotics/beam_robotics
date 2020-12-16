@@ -12,7 +12,7 @@ public:
   /**
    * @brief Default constructor
    */
-  GlobalMatcher();
+  GlobalMatcher() = default;
 
   /**
    * @brief Default destructor
@@ -23,8 +23,8 @@ public:
    * @brief Virtual method to return 2d-3d point correspondences for query image
    * @param query_image to query against current map
    */
-  virtual std::vector<std::tuple<Eigen::Vector2d, Eigen::Vector3d>>
-      Query(cv::Mat query_image) = 0;
+  virtual std::vector<std::tuple<Eigen::Vector2i, Eigen::Vector3d>>
+      Query(cv::Mat query_image, Eigen::Matrix4d& pose_estimate) = 0;
 };
 
 } // namespace relocalization

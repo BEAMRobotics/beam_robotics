@@ -1,19 +1,14 @@
 #pragma once
 
+#include <typeinfo>
+
 #include <DBoW3/DBoW3.h>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
-#include <typeinfo>
 
 #include <beam_calibration/CameraModel.h>
-#include <beam_cv/descriptors/BRISKDescriptor.h>
-#include <beam_cv/descriptors/Descriptor.h>
-#include <beam_cv/descriptors/ORBDescriptor.h>
-#include <beam_cv/descriptors/SIFTDescriptor.h>
-#include <beam_cv/detectors/Detector.h>
-#include <beam_cv/detectors/FASTDetector.h>
-#include <beam_cv/detectors/ORBDetector.h>
-#include <beam_cv/detectors/SIFTDetector.h>
+#include <beam_cv/descriptors/Descriptors.h>
+#include <beam_cv/detectors/Detectors.h>
 
 namespace relocalization {
 
@@ -38,7 +33,8 @@ public:
    * @brief Constructor to initialize with already gathered dbow dv and image db
    * @param database_path path to database folder
    */
-  ImageDatabase(std::string database_path);
+  ImageDatabase(const std::string& database_path,
+                const std::string& image_folder = std::string());
 
   /**
    * @brief Constructor to initialize empty database with given vocabulary
@@ -47,7 +43,8 @@ public:
   ImageDatabase(std::string vocab_location,
                 std::shared_ptr<beam_cv::Descriptor> descriptor,
                 std::shared_ptr<beam_cv::Detector> detector,
-                const std::string& database_path = std::string());
+                const std::string& database_path = std::string(),
+                const std::string& image_folder = std::string());
 
   /**
    * @brief Default destructor
@@ -98,7 +95,8 @@ public:
    */
   unsigned int AddImage(cv::Mat image, Eigen::Matrix4d pose,
                         std::string camera_model_files,
-                        const std::string& image_path = std::string());
+                        const std::string& image_path = std::string(),
+                        bool write = true);
 
   /**
    * @brief Get image object given an index
@@ -142,12 +140,17 @@ protected:
 private:
   unsigned int camera_id_ = 0;
   size_t num_images_ = 0;
+  // objects storing bow db and images/poses
   std::shared_ptr<DBoW3::Database> bow_db_;
   json image_db_;
+  // detector and descritpor to use
   std::shared_ptr<beam_cv::Descriptor> descriptor_;
   std::shared_ptr<beam_cv::Detector> detector_;
+  // stores path to database
   std::string database_folder_;
-
+  // stores path to image folder if not named images or is outside of database
+  std::string image_folder_;
+  // maps to use for descriptor and detector verification from json files
   std::map<std::string, DescriptorType> descriptor_types_ = {
       {"ORB", DescriptorType::ORB},
       {"SIFT", DescriptorType::SIFT},
