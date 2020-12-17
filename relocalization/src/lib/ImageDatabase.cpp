@@ -25,6 +25,7 @@ ImageDatabase::ImageDatabase(const std::string& database_path,
   std::string DBoW3_file_path = database_path + "bow_db.dbow3";
   BEAM_INFO("Loading DBOW3 database file: {}", DBoW3_file_path);
   this->bow_db_ = std::make_shared<DBoW3::Database>(DBoW3_file_path);
+  this->num_images_ = this->bow_db_->size();
   // load image db into image db json object
   std::string imagedb_file_path = database_path + "image_db.json";
   BEAM_INFO("Loading image database file: {}", imagedb_file_path);
@@ -118,13 +119,15 @@ void ImageDatabase::SetVocabulary(DBoW3::Vocabulary voc) {
   cam_model_id_map_.clear();
   // loop through every image in old image_db and add to cleared database
   int num_images_copy = num_images_;
+  camera_id_ = 0;
   num_images_ = 0;
   for (unsigned int i = 0; i < num_images_copy; i++) {
     // get image and pose
     std::string image_file = image_db_copy["images"][i]["image"];
     std::string image_path = image_folder_ + image_file;
     cv::Mat img = cv::imread(image_path);
-    std::vector<int> pose_vec = image_db_copy["images"][i]["pose"];
+    std::vector<double> pose_vec = image_db_copy["images"][i]["pose"];
+
     Eigen::Matrix4d pose;
     pose << pose_vec[0], pose_vec[1], pose_vec[2], pose_vec[3], pose_vec[4],
         pose_vec[5], pose_vec[6], pose_vec[7], pose_vec[8], pose_vec[9],
