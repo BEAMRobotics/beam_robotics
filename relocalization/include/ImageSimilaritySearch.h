@@ -27,6 +27,7 @@ public:
     int num_features;
     bool search_query_imgs_recursively;
     bool search_db_imgs_recursively;
+    bool retrain_vocabulary;
   };
 
   /**

@@ -19,6 +19,9 @@ DEFINE_bool(
 
 DEFINE_string(vocabulary_path, "", "Path to dbows vocabulary tree (REQUIRED)");
 DEFINE_validator(vocabulary_path, &beam::gflags::ValidateFileMustExist);
+DEFINE_bool(retrain_vocabulary, true,
+            "Setting to true will retrain the vocabulary with the input "
+            "database images.");
 
 DEFINE_string(camera_model_config_path, "",
               "Path to camera model config file. This is a .conf for ladybug "
@@ -61,7 +64,8 @@ int main(int argc, char* argv[]) {
       .num_similar_imgs = FLAGS_num_similar_imgs,
       .num_features = FLAGS_num_features,
       .search_query_imgs_recursively = FLAGS_search_query_imgs_recursively,
-      .search_db_imgs_recursively = FLAGS_search_db_imgs_recursively};
+      .search_db_imgs_recursively = FLAGS_search_db_imgs_recursively,
+      .retrain_vocabulary = FLAGS_retrain_vocabulary};
 
   relocalization::ImageSimilaritySearch search(inputs);
   search.Run();

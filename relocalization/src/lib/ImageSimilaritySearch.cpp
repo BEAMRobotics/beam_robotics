@@ -22,7 +22,7 @@ void ImageSimilaritySearch::Run() {
   std::vector<std::string> db_image_files =
       beam::GetFiles(inputs_.db_imgs_directory, inputs_.file_extension,
                      inputs_.search_db_imgs_recursively);
-  BEAM_INFO("Found {} query images in directory {}", db_image_files.size(),
+  BEAM_INFO("Found {} database images in directory {}", db_image_files.size(),
             inputs_.db_imgs_directory);
 
   // add each image to the database
@@ -38,11 +38,26 @@ void ImageSimilaritySearch::Run() {
     cv::cvtColor(image, image, CV_BGR2GRAY);
     std::string save_path = db_directory + "Image_" + std::to_string(counter) +
                             inputs_.file_extension;
+
+    // for superpoint, we want to re-init detectors/descriptors each tiem
+    if (inputs_.feature_type_ == "SUPERPOINT") {
+      int grid_size = image.rows / 5;
+      detector = std::make_shared<beam_cv::SuperPointDetector>(
+          model_, num_features_, 0.3, 0, 3, grid_size, false);
+      descriptor = std::make_shared<beam_cv::SuperPointDescriptor>(model_);
+    }
+
     db.AddImage(image, identity_pose, inputs_.camera_model_config_path,
                 save_path, true);
     counter++;
   }
   BEAM_INFO("Done adding images to database.");
+
+  if (inputs_.retrain_vocabulary) {
+    BEAM_INFO("Retraining vocabulary with database images...");
+    db.RetrainVocabulary();
+    BEAM_INFO("Done retraining vocabulary.");
+  }
 
   // get query images
   std::vector<std::string> query_image_files =
@@ -100,11 +115,11 @@ void ImageSimilaritySearch::GetFeatureDetectorDescriptor(
           "Input model_path cannot be empty for feature_type: SUPERPOINT.");
       throw std::invalid_argument{"Input feature_model_path cannot be empty."};
     }
-    std::shared_ptr<beam_cv::SuperPointModel> model =
+    model_ =
         std::make_shared<beam_cv::SuperPointModel>(inputs_.feature_model_path);
     detector = std::make_shared<beam_cv::SuperPointDetector>(
-        model, inputs_.num_features);
-    descriptor = std::make_shared<beam_cv::SuperPointDescriptor>(model);
+        model_, inputs_.num_features, 0.3, 0, 3, 300, false);
+    descriptor = std::make_shared<beam_cv::SuperPointDescriptor>(model_);
   } else {
     BEAM_ERROR("Invalid feature type. Input: {}, Options: SIFT, ORB, "
                "FAST-BRISK, SUPERPOINT",
