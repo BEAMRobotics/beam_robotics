@@ -49,81 +49,81 @@ int GetNumberLines(std::string file) {
   return number_of_lines;
 }
 
-void EvaluateQueryImages() {
-  // declare variables
-  char delim = ' ';
-  std::ifstream infile;
-  std::ofstream outfile;
-  std::string line;
-  std::string query_txt_file = cmu_path + "/slice" + slice_num +
-                               "/test-images-slice" + slice_num + ".txt";
-  std::string output_txt_file = cmu_path + "/slice" + slice_num +
-                                "/test-images-slice" + slice_num + "output.txt";
-  std::string query_images_folder = cmu_path + "/slice" + slice_num + "/query";
-  int lines = GetNumberLines(query_txt_file);
-  int cur_line = 0;
-  infile.open(query_txt_file);
-  outfile.open(output_txt_file);
-  // extract poses
-  while (!infile.eof()) {
-    if (cur_line % 10 == 0) {
-      BEAM_INFO("Processing image #{} out of {}", cur_line, lines);
-    }
-    cur_line++;
-    std::getline(infile, line, '\n');
-    if (line.size() == 0) { break; }
-    std::vector<std::string> out;
-    tokenize(line, delim, out);
-    std::string image_file = out[0];
-    std::string image_path = query_images_folder + "/" + image_file;
-    cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
-    std::shared_ptr<beam_calibration::CameraModel> cam_model;
-    std::string cam_model_str = image_file.substr(10, 2);
-    if (cam_model_str == "c0") {
-      cam_model = c0;
-    } else {
-      cam_model = c1;
-    }
-    std::string no_match = image_file + " 0 0 0 0 0 0 0\n";
-    auto start = high_resolution_clock::now();
-    std::vector<std::tuple<Eigen::Vector2i, Eigen::Vector3d>> correspondences =
-        matcher.Query(image);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << "Matcher duration: " << duration.count() << " ms" << endl;
-    // write zeros if no image match found
-    if (correspondences.size() == 0) {
-      outfile << no_match;
-      continue;
-    }
-    std::vector<Eigen::Vector2i> pixels;
-    std::vector<Eigen::Vector3d> points;
-    for (auto& corr : correspondences) {
-      pixels.push_back(std::get<0>(corr));
-      points.push_back(std::get<1>(corr));
-    }
-    start = high_resolution_clock::now();
-    Eigen::Matrix4d P = beam_cv::AbsolutePoseEstimator::RANSACEstimator(
-        cam_model, pixels, points, 100, 10.0, time(0));
-    stop = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(stop - start);
-    cout << "P3P duration: " << duration.count() << " ms" << endl;
-    Eigen::Matrix3d R = P.block<3, 3>(0, 0);
-    Eigen::Vector3d t = P.block<3, 1>(0, 3);
-    Eigen::Quaterniond Rq(R);
-    std::string quat_string =
-        std::to_string(Rq.w()) + " " + std::to_string(Rq.x()) + " " +
-        std::to_string(Rq.y()) + " " + std::to_string(Rq.z());
-    std::string trans_string = std::to_string(t[0]) + " " +
-                               std::to_string(t[1]) + " " +
-                               std::to_string(t[2]);
-    std::string line_to_write =
-        image_file + " " + quat_string + " " + trans_string + "\n";
-    outfile << line_to_write;
-  }
-  infile.close();
-  outfile.close();
-}
+// void EvaluateQueryImages() {
+//   // declare variables
+//   char delim = ' ';
+//   std::ifstream infile;
+//   std::ofstream outfile;
+//   std::string line;
+//   std::string query_txt_file = cmu_path + "/slice" + slice_num +
+//                                "/test-images-slice" + slice_num + ".txt";
+//   std::string output_txt_file = cmu_path + "/slice" + slice_num +
+//                                 "/test-images-slice" + slice_num + "output.txt";
+//   std::string query_images_folder = cmu_path + "/slice" + slice_num + "/query";
+//   int lines = GetNumberLines(query_txt_file);
+//   int cur_line = 0;
+//   infile.open(query_txt_file);
+//   outfile.open(output_txt_file);
+//   // extract poses
+//   while (!infile.eof()) {
+//     if (cur_line % 10 == 0) {
+//       BEAM_INFO("Processing image #{} out of {}", cur_line, lines);
+//     }
+//     cur_line++;
+//     std::getline(infile, line, '\n');
+//     if (line.size() == 0) { break; }
+//     std::vector<std::string> out;
+//     tokenize(line, delim, out);
+//     std::string image_file = out[0];
+//     std::string image_path = query_images_folder + "/" + image_file;
+//     cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
+//     std::shared_ptr<beam_calibration::CameraModel> cam_model;
+//     std::string cam_model_str = image_file.substr(10, 2);
+//     if (cam_model_str == "c0") {
+//       cam_model = c0;
+//     } else {
+//       cam_model = c1;
+//     }
+//     std::string no_match = image_file + " 0 0 0 0 0 0 0\n";
+//     auto start = high_resolution_clock::now();
+//     std::vector<std::tuple<Eigen::Vector2i, Eigen::Vector3d>> correspondences =
+//         matcher.Query(image);
+//     auto stop = high_resolution_clock::now();
+//     auto duration = duration_cast<microseconds>(stop - start);
+//     cout << "Matcher duration: " << duration.count() << " ms" << endl;
+//     // write zeros if no image match found
+//     if (correspondences.size() == 0) {
+//       outfile << no_match;
+//       continue;
+//     }
+//     std::vector<Eigen::Vector2i> pixels;
+//     std::vector<Eigen::Vector3d> points;
+//     for (auto& corr : correspondences) {
+//       pixels.push_back(std::get<0>(corr));
+//       points.push_back(std::get<1>(corr));
+//     }
+//     start = high_resolution_clock::now();
+//     Eigen::Matrix4d P = beam_cv::AbsolutePoseEstimator::RANSACEstimator(
+//         cam_model, pixels, points, 100, 10.0, time(0));
+//     stop = high_resolution_clock::now();
+//     duration = duration_cast<microseconds>(stop - start);
+//     cout << "P3P duration: " << duration.count() << " ms" << endl;
+//     Eigen::Matrix3d R = P.block<3, 3>(0, 0);
+//     Eigen::Vector3d t = P.block<3, 1>(0, 3);
+//     Eigen::Quaterniond Rq(R);
+//     std::string quat_string =
+//         std::to_string(Rq.w()) + " " + std::to_string(Rq.x()) + " " +
+//         std::to_string(Rq.y()) + " " + std::to_string(Rq.z());
+//     std::string trans_string = std::to_string(t[0]) + " " +
+//                                std::to_string(t[1]) + " " +
+//                                std::to_string(t[2]);
+//     std::string line_to_write =
+//         image_file + " " + quat_string + " " + trans_string + "\n";
+//     outfile << line_to_write;
+//   }
+//   infile.close();
+//   outfile.close();
+// }
 
 void LoadCameraModels() {
   std::ifstream intrinsics_txt;
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
   std::shared_ptr<relocalization::ImageDatabase> id;
   cmu_path = std::string(argv[1]);
   slice_num = std::string(argv[2]);
-  std::string vocab_path = "/home/jake/data/orbvoc.dbow3";
+  std::string vocab_path = "/home/jake/data/vocabularies/orbvoc.dbow3";
 
   LoadCameraModels();
 
@@ -219,6 +219,6 @@ int main(int argc, char* argv[]) {
   } else {
     id = BuildDB(slice_path, vocab_path);
   }
-  matcher = relocalization::ImageToImage(id, det, desc, mat);
-  EvaluateQueryImages();
+  //matcher = relocalization::ImageToImage(id, det, desc, mat);
+  //EvaluateQueryImages();
 }
