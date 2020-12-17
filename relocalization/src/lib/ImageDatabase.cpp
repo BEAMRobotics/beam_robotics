@@ -90,6 +90,11 @@ void ImageDatabase::SaveDatabase() {
   image_db_file_out << std::setw(4) << image_db_ << std::endl;
 }
 
+void ImageDatabase::SaveVocabulary() {
+  std::string file_path = database_folder_ + "/vocab.dbow3";
+  this->bow_db_->getVocabulary()->save(file_path, true);
+}
+
 void ImageDatabase::SetDescriptor(
     std::shared_ptr<beam_cv::Descriptor> descriptor) {
   this->descriptor_ = descriptor;

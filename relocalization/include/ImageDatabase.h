@@ -56,6 +56,8 @@ public:
    */
   void SaveDatabase();
 
+  void SaveVocabulary();
+
   /**
    * @brief Set the type of keypoint descriptor to use
    * @param type of descriptor
