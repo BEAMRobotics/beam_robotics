@@ -13,15 +13,20 @@ find_package(DBoW3 REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(beam REQUIRED calibration containers utils cv mapping)
 
+SET(Torch_DIR /home/nick/software/pytorch/torch/lib/tmp_install/share/cmake/Torch )
+FIND_PACKAGE(Torch REQUIRED)
+
 add_library(${PROJECT_NAME}
   src/lib/ImageDatabase.cpp
   src/lib/ImageToImage.cpp
+  src/lib/ImageSimilaritySearch.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     include
 )
+
 target_link_libraries(${PROJECT_NAME}
   beam::cv
   beam::calibration
@@ -34,16 +39,25 @@ target_link_libraries(${PROJECT_NAME}
   DBoW3
   nlohmann_json::nlohmann_json
   ${rosbag_LIBRARIES}
+  ${TORCH_LIBRARIES}
 )
 
 
-add_executable(${PROJECT_NAME}_debug
-	src/debug.cpp
+#add_executable(${PROJECT_NAME}_debug
+#	src/debug.cpp
+#)
+#target_link_libraries(${PROJECT_NAME}_debug
+#  ${PROJECT_NAME}
+#)
+
+add_executable(${PROJECT_NAME}_image_similarity_search
+	src/find_similar_images.cpp
 )
-target_link_libraries(${PROJECT_NAME}_debug
+target_link_libraries(${PROJECT_NAME}_image_similarity_search
   ${PROJECT_NAME}
+  gflags
+	beam::utils
 )
-
 
 add_executable(${PROJECT_NAME}_build_db
 	src/BuildImageDB.cpp
@@ -52,9 +66,9 @@ target_link_libraries(${PROJECT_NAME}_build_db
   ${PROJECT_NAME}
 )
 
-add_executable(${PROJECT_NAME}_cmu_eval
-	src/CMUDatasetEval.cpp
-)
-target_link_libraries(${PROJECT_NAME}_cmu_eval
-  ${PROJECT_NAME}
-)
+#add_executable(${PROJECT_NAME}_cmu_eval
+#	src/CMUDatasetEval.cpp
+#)
+#target_link_libraries(${PROJECT_NAME}_cmu_eval
+#  ${PROJECT_NAME}
+#)
