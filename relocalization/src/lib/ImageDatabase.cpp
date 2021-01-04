@@ -198,6 +198,17 @@ unsigned int ImageDatabase::AddImage(cv::Mat image, Eigen::Matrix4d pose,
     // write image to images folder
     std::string path_to_image = image_folder_ + image_file;
     cv::imwrite(path_to_image, image);
+
+    if (store_images_with_keypoints_) {
+      // write image with keypoints to images folder
+      boost::filesystem::path p(image_file);
+      std::string path_to_image_kpts =
+          image_folder_ + p.stem().string() + "_kpts" + p.extension().string();
+      cv::Mat image_w_keypoints;
+      cv::drawKeypoints(image, kps, image_w_keypoints, cv::Scalar::all(-1),
+                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+      cv::imwrite(path_to_image_kpts, image_w_keypoints);
+    }
   }
   // add image to image_db
   image_db_["images"][idx] = {

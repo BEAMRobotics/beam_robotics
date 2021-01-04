@@ -11,12 +11,14 @@ ImageSimilaritySearch::ImageSimilaritySearch(
 
 void ImageSimilaritySearch::Run() {
   // create detector
-  std::shared_ptr<beam_cv::Detector> detector;
-  std::shared_ptr<beam_cv::Descriptor> descriptor;
-  GetFeatureDetectorDescriptor(descriptor, detector);
+  GetFeatureDetectorDescriptor();
 
   // create database
-  ImageDatabase db(inputs_.vocabulary_path, descriptor, detector);
+  std::string database_save_path = "/tmp/ImageSimilaritySearch/";
+  boost::filesystem::create_directory(
+      boost::filesystem::path(database_save_path));
+  ImageDatabase db(inputs_.vocabulary_path, descriptor_, detector_,
+                   database_save_path);
 
   // get all database images
   std::vector<std::string> db_image_files =
@@ -29,26 +31,25 @@ void ImageSimilaritySearch::Run() {
   BEAM_INFO("Adding images to database...");
   Eigen::Matrix4d identity_pose;
   identity_pose.setIdentity();
-  std::string db_directory = "/tmp/ImageSimilaritySearch/";
-  boost::filesystem::create_directory(boost::filesystem::path(db_directory));
+  bool first_image = true;
   int counter = 0;
   for (std::string filename : db_image_files) {
     // read and convert image
     cv::Mat image = imread(filename, cv::IMREAD_COLOR);
     cv::cvtColor(image, image, CV_BGR2GRAY);
-    std::string save_path = db_directory + "Image_" + std::to_string(counter) +
-                            inputs_.file_extension;
 
-    // for superpoint, we want to re-init detectors/descriptors each tiem
-    if (inputs_.feature_type_ == "SUPERPOINT") {
-      int grid_size = image.rows / 5;
-      detector = std::make_shared<beam_cv::SuperPointDetector>(
-          model_, num_features_, 0.3, 0, 3, grid_size, false);
-      descriptor = std::make_shared<beam_cv::SuperPointDescriptor>(model_);
+    // reset superpoint model with image dimensions
+    if (inputs_.feature_type == "SUPERPOINT" && first_image) {
+      first_image = false;
+      superpoint_params_.grid_size = image.rows / 5;
+      detector_ = std::make_shared<beam_cv::SuperPointDetector>(
+        model_, superpoint_params_);
+      db.SetDetector(detector_);  
     }
 
+    // add image
     db.AddImage(image, identity_pose, inputs_.camera_model_config_path,
-                save_path, true);
+                std::string(), true);
     counter++;
   }
   BEAM_INFO("Done adding images to database.");
@@ -56,7 +57,9 @@ void ImageSimilaritySearch::Run() {
   if (inputs_.retrain_vocabulary) {
     BEAM_INFO("Retraining vocabulary with database images...");
     db.RetrainVocabulary();
-    BEAM_INFO("Done retraining vocabulary.");
+    BEAM_INFO("Done retraining vocabulary. Saving to: {}",
+              database_save_path + "vocab.dbow3");
+    db.SaveVocabulary();
   }
 
   // get query images
@@ -76,6 +79,8 @@ void ImageSimilaritySearch::Run() {
   }
 }
 
+// void TestFunction(cv::Mat img, )
+
 void ImageSimilaritySearch::SaveImages(ImageDatabase& database,
                                        const std::vector<unsigned int>& images,
                                        const std::string& query_file_path) {
@@ -84,31 +89,59 @@ void ImageSimilaritySearch::SaveImages(ImageDatabase& database,
   save_dir.erase(save_dir.end() - query_path.extension().string().size(),
                  save_dir.end());
   boost::filesystem::create_directory(boost::filesystem::path(save_dir));
+  BEAM_INFO("Storing {} similar images to {}", images.size(), save_dir + "/");
+
+  ///////////////////////////////////////////////////////////////////////////////
+  cv::Mat query_image = imread(query_file_path, cv::IMREAD_COLOR);
+  cv::cvtColor(query_image, query_image, CV_BGR2GRAY);
+  std::vector<cv::KeyPoint> kps_query = detector_->DetectFeatures(query_image);
+  cv::Mat descriptors_query_tmp =
+      descriptor_->ExtractDescriptors(query_image, kps_query);
+  cv::Mat query_image_w_keypoints;
+  cv::drawKeypoints(query_image, kps_query, query_image_w_keypoints,
+                    cv::Scalar::all(-1),
+                    cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+  std::string path_to_image = save_dir + "/IMG_QUERY.jpg";
+  cv::imwrite(path_to_image, query_image_w_keypoints);
+  /////////////////////////////////////////////////////////////////////////////////
 
   int counter = 0;
   for (unsigned int n : images) {
     counter++;
+    cv::Mat queried_image = database.GetImage(n);
+
+    ///////////////////////////////////////////////////////////////////////////////
+    std::vector<cv::KeyPoint> kps_queried =
+        detector_->DetectFeatures(queried_image);
+    cv::Mat descriptors_queried_tmp =
+        descriptor_->ExtractDescriptors(queried_image, kps_queried);
+    cv::Mat queried_image_w_keypoints;
+    cv::drawKeypoints(queried_image, kps_queried, queried_image_w_keypoints,
+                      cv::Scalar::all(-1),
+                      cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    std::string path_to_image = save_dir + "/IMG_" + std::to_string(counter) +
+                                "_" + std::to_string(n) + "_keypoints" +
+                                inputs_.file_extension;
+    cv::imwrite(path_to_image, queried_image_w_keypoints);
+    /////////////////////////////////////////////////////////////////////////////////
+
     std::string new_filename = save_dir + "/IMG_" + std::to_string(counter) +
                                "_" + std::to_string(n) + inputs_.file_extension;
-    cv::Mat query_image = database.GetImage(n);
-    cv::imwrite(new_filename, query_image);
+    cv::imwrite(new_filename, queried_image);
   }
 }
 
-// TODO: Move this to beam_cv
-void ImageSimilaritySearch::GetFeatureDetectorDescriptor(
-    std::shared_ptr<beam_cv::Descriptor>& descriptor,
-    std::shared_ptr<beam_cv::Detector>& detector) {
+void ImageSimilaritySearch::GetFeatureDetectorDescriptor() {
   if (inputs_.feature_type == "SIFT") {
-    detector = std::make_shared<beam_cv::SIFTDetector>(inputs_.num_features);
-    descriptor =
+    detector_ = std::make_shared<beam_cv::SIFTDetector>(inputs_.num_features);
+    descriptor_ =
         std::make_shared<beam_cv::SIFTDescriptor>(inputs_.num_features);
   } else if (inputs_.feature_type == "ORB") {
-    detector = std::make_shared<beam_cv::ORBDetector>(inputs_.num_features);
-    descriptor = std::make_shared<beam_cv::ORBDescriptor>();
+    detector_ = std::make_shared<beam_cv::ORBDetector>(inputs_.num_features);
+    descriptor_ = std::make_shared<beam_cv::ORBDescriptor>();
   } else if (inputs_.feature_type == "FAST-BRISK") {
-    detector = std::make_shared<beam_cv::FASTDetector>(inputs_.num_features);
-    descriptor = std::make_shared<beam_cv::BRISKDescriptor>();
+    detector_ = std::make_shared<beam_cv::FASTDetector>(inputs_.num_features);
+    descriptor_ = std::make_shared<beam_cv::BRISKDescriptor>();
   } else if (inputs_.feature_type == "SUPERPOINT") {
     if (inputs_.feature_model_path.empty()) {
       BEAM_ERROR(
@@ -117,9 +150,10 @@ void ImageSimilaritySearch::GetFeatureDetectorDescriptor(
     }
     model_ =
         std::make_shared<beam_cv::SuperPointModel>(inputs_.feature_model_path);
-    detector = std::make_shared<beam_cv::SuperPointDetector>(
-        model_, inputs_.num_features, 0.3, 0, 3, 300, false);
-    descriptor = std::make_shared<beam_cv::SuperPointDescriptor>(model_);
+    superpoint_params_.max_features = inputs_.num_features;
+    detector_ = std::make_shared<beam_cv::SuperPointDetector>(
+        model_, superpoint_params_);
+    descriptor_ = std::make_shared<beam_cv::SuperPointDescriptor>(model_);
   } else {
     BEAM_ERROR("Invalid feature type. Input: {}, Options: SIFT, ORB, "
                "FAST-BRISK, SUPERPOINT",

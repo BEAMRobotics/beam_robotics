@@ -19,7 +19,7 @@ DEFINE_bool(
 
 DEFINE_string(vocabulary_path, "", "Path to dbows vocabulary tree (REQUIRED)");
 DEFINE_validator(vocabulary_path, &beam::gflags::ValidateFileMustExist);
-DEFINE_bool(retrain_vocabulary, true,
+DEFINE_bool(retrain_vocabulary, false,
             "Setting to true will retrain the vocabulary with the input "
             "database images.");
 

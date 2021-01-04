@@ -140,6 +140,7 @@ protected:
   unsigned int GetCameraID(std::string camera_model_file);
 
 private:
+  bool store_images_with_keypoints_{true};
   unsigned int camera_id_ = 0;
   size_t num_images_ = 0;
   // objects storing bow db and images/poses

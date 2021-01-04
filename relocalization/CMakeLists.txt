@@ -12,9 +12,7 @@ find_package(PCL REQUIRED)
 find_package(DBoW3 REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(beam REQUIRED calibration containers utils cv mapping)
-
-SET(Torch_DIR /home/nick/software/pytorch/torch/lib/tmp_install/share/cmake/Torch )
-FIND_PACKAGE(Torch REQUIRED)
+find_package(Torch REQUIRED)
 
 add_library(${PROJECT_NAME}
   src/lib/ImageDatabase.cpp

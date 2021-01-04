@@ -43,15 +43,25 @@ public:
   void Run();
 
 private:
-  void GetFeatureDetectorDescriptor(
-      std::shared_ptr<beam_cv::Descriptor>& descriptor,
-      std::shared_ptr<beam_cv::Detector>& detector);
+  void GetFeatureDetectorDescriptor();
 
   void SaveImages(ImageDatabase& database,
                   const std::vector<unsigned int>& images,
                   const std::string& query_file_path);
 
   Inputs inputs_;
+  std::shared_ptr<beam_cv::Detector> detector_;
+  std::shared_ptr<beam_cv::Descriptor> descriptor_;
+
+  // superpoint specific params
+  beam_cv::SuperPointDetector::Params superpoint_params_{.max_features = 300,
+                                                         .conf_threshold = 0.1,
+                                                         .border = 10,
+                                                         .nms_dist_threshold =
+                                                             10,
+                                                         .grid_size = 0,
+                                                         .use_cuda = false};
+  std::shared_ptr<beam_cv::SuperPointModel> model_;
 };
 
 } // namespace relocalization
