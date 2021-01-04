@@ -50,6 +50,7 @@ private:
                   const std::string& query_file_path);
 
   Inputs inputs_;
+  bool draw_keypoints_{true};
   std::shared_ptr<beam_cv::Detector> detector_;
   std::shared_ptr<beam_cv::Descriptor> descriptor_;
 

@@ -43,8 +43,8 @@ void ImageSimilaritySearch::Run() {
       first_image = false;
       superpoint_params_.grid_size = image.rows / 5;
       detector_ = std::make_shared<beam_cv::SuperPointDetector>(
-        model_, superpoint_params_);
-      db.SetDetector(detector_);  
+          model_, superpoint_params_);
+      db.SetDetector(detector_);
     }
 
     // add image
@@ -79,8 +79,6 @@ void ImageSimilaritySearch::Run() {
   }
 }
 
-// void TestFunction(cv::Mat img, )
-
 void ImageSimilaritySearch::SaveImages(ImageDatabase& database,
                                        const std::vector<unsigned int>& images,
                                        const std::string& query_file_path) {
@@ -91,43 +89,41 @@ void ImageSimilaritySearch::SaveImages(ImageDatabase& database,
   boost::filesystem::create_directory(boost::filesystem::path(save_dir));
   BEAM_INFO("Storing {} similar images to {}", images.size(), save_dir + "/");
 
-  ///////////////////////////////////////////////////////////////////////////////
+  // Save query image
   cv::Mat query_image = imread(query_file_path, cv::IMREAD_COLOR);
   cv::cvtColor(query_image, query_image, CV_BGR2GRAY);
   std::vector<cv::KeyPoint> kps_query = detector_->DetectFeatures(query_image);
   cv::Mat descriptors_query_tmp =
       descriptor_->ExtractDescriptors(query_image, kps_query);
-  cv::Mat query_image_w_keypoints;
-  cv::drawKeypoints(query_image, kps_query, query_image_w_keypoints,
-                    cv::Scalar::all(-1),
-                    cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+  if (draw_keypoints_) {
+    cv::drawKeypoints(query_image, kps_query, query_image, cv::Scalar::all(-1),
+                      cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+  }
   std::string path_to_image = save_dir + "/IMG_QUERY.jpg";
-  cv::imwrite(path_to_image, query_image_w_keypoints);
-  /////////////////////////////////////////////////////////////////////////////////
+  cv::imwrite(path_to_image, query_image);
 
   int counter = 0;
   for (unsigned int n : images) {
     counter++;
+    // save queried images
     cv::Mat queried_image = database.GetImage(n);
-
-    ///////////////////////////////////////////////////////////////////////////////
     std::vector<cv::KeyPoint> kps_queried =
         detector_->DetectFeatures(queried_image);
     cv::Mat descriptors_queried_tmp =
         descriptor_->ExtractDescriptors(queried_image, kps_queried);
-    cv::Mat queried_image_w_keypoints;
-    cv::drawKeypoints(queried_image, kps_queried, queried_image_w_keypoints,
-                      cv::Scalar::all(-1),
-                      cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    std::string path_to_image = save_dir + "/IMG_" + std::to_string(counter) +
-                                "_" + std::to_string(n) + "_keypoints" +
-                                inputs_.file_extension;
-    cv::imwrite(path_to_image, queried_image_w_keypoints);
-    /////////////////////////////////////////////////////////////////////////////////
 
-    std::string new_filename = save_dir + "/IMG_" + std::to_string(counter) +
-                               "_" + std::to_string(n) + inputs_.file_extension;
-    cv::imwrite(new_filename, queried_image);
+    std::string img_path = save_dir + "/IMG_" + std::to_string(counter) + "_" +
+                           std::to_string(n) + inputs_.file_extension;
+    cv::imwrite(img_path, queried_image);
+    if (draw_keypoints_) {
+      cv::drawKeypoints(queried_image, kps_queried, queried_image,
+                        cv::Scalar::all(-1),
+                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+      std::string img_path_w_keypoints =
+          save_dir + "/IMG_" + std::to_string(counter) + "_" +
+          std::to_string(n) + "_keypoints" + inputs_.file_extension;
+      cv::imwrite(img_path_w_keypoints, queried_image);
+    }
   }
 }
 
