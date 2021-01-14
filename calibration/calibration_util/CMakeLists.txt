@@ -38,7 +38,7 @@ endif(NOT EIGEN3_FOUND)
 add_definitions(${EIGEN_DEFINITIONS})
 find_package(Ceres REQUIRED)
 add_definitions(-DUSE_CERES)
-find_package(Gflags REQUIRED)
+find_package(gflags REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include

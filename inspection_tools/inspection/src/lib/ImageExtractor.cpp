@@ -1,321 +1,447 @@
-#include "inspection/ImageExtractor.h"
+#include <inspection/ImageExtractor.h>
+
+#include <boost/filesystem.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <rosbag/view.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include <beam_containers/ImageBridge.h>
+#include <beam_mapping/Poses.h>
+#include <beam_utils/angles.hpp>
+#include <beam_utils/log.hpp>
+#include <beam_utils/math.hpp>
+#include <beam_utils/time.hpp>
 
 namespace inspection {
 
-ImageExtractor::ImageExtractor(const std::string& config_file_location) {
+typedef Eigen::aligned_allocator<Eigen::Affine3d> AffineAlign;
+
+ImageExtractor::ImageExtractor(const std::string& bag_file,
+                               const std::string& poses_file,
+                               const std::string& save_directory,
+                               const std::string& config_file_location) {
+  bag_file_ = bag_file;
+  poses_file_ = poses_file;
+  save_directory_ = save_directory;
+
+  BEAM_INFO("Loading config from: {}", config_file_location);
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
 
-  bag_file_ = J["bage_file"];
-  poses_file_ = J["poses_file"];
-  save_directory_ = J["save_directory"];
-
-  for (const auto& topic : J["image_topics"]) {
-    image_topics_.push_back(topic.get<std::string>());
-  }
-
-  for (const auto& dist : J["distance_between_images"]) {
-    distance_between_images_.push_back(dist.get<double>());
-  }
-
-  for (const auto& rot : J["rotation_between_images"]) {
-    double DEG_TO_RAD = 3.14159265359 / 180;
-    rotation_between_images_.push_back(rot.get<double>() * DEG_TO_RAD);
-  }
-
-  for (const auto& distorted : J["are_images_distorted"]) {
-    are_images_distorted_.push_back(distorted.get<bool>());
-  }
-
-  for (const auto& ir : J["is_ir_camera"]) {
-    is_ir_camera_.push_back(ir.get<bool>());
-  }
-
-  for (const auto& enhancing : J["image_enhancing"]) {
-    std::string enhance_method = enhancing["enhance_method"].get<std::string>();
-    double alpha = enhancing["alpha"].get<double>();
-    double beta = enhancing["beta"].get<double>();
-    enhance_methods_.push_back(enhance_method);
-    alphas_.push_back(alpha);
-    betas_.push_back(beta);
-  }
-
-  if (image_topics_.size() != distance_between_images_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of distances between "
-              "poses. Topics = %d, Distances = %d",
-              (int)image_topics_.size(), (int)distance_between_images_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "distances between images"};
-  }
-
-  if (image_topics_.size() != are_images_distorted_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of booleans "
-              "specifying if images are distorted. Topics = %d, Distorted = %d",
-              (int)image_topics_.size(), (int)are_images_distorted_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "are_images_distorted"};
-  }
-
-  if (image_topics_.size() != is_ir_camera_.size()) {
-    LOG_ERROR(
-        "Number of image topics not equal to number of booleans "
-        "specifying if camera is an infrared camera. Topics = %d, Is IR = %d",
-        (int)image_topics_.size(), (int)is_ir_camera_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "is_ir_camera booleans"};
-  }
-
-  if (image_topics_.size() != enhance_methods_.size()) {
-    LOG_ERROR("Number of image topics not equal to number of image enhancing "
-              "objects. Topics = %d, Enhancing = %d",
-              (int)image_topics_.size(), (int)enhance_methods_.size());
-    throw std::invalid_argument{"Number of image topics not equal to number of "
-                                "image enhancing objects."};
-  }
-
   image_container_type_ = J["image_container_type"];
+  std::string intrinsics_directory = J["intrinsics_directory"];
+
+  // initialize undistort vector
+  for (const auto& camera_params : J["camera_params"]) {
+    undistort_images_.push_back(nullptr);
+  }
+
+  for (const auto& camera_params : J["camera_params"]) {
+    nlohmann::json topic = camera_params["image_topic"];
+    image_topics_.push_back(topic.get<std::string>());
+
+    nlohmann::json intrinsics = camera_params["intrinsics_name"];
+    intrinsics_.push_back(intrinsics_directory + intrinsics.get<std::string>());
+
+    nlohmann::json distance = camera_params["distance_between_images_m"];
+    distance_between_images_.push_back(distance.get<double>());
+
+    nlohmann::json rotation = camera_params["rotation_between_images_deg"];
+    rotation_between_images_.push_back(beam::Deg2Rad(rotation.get<double>()));
+
+    nlohmann::json distorted = camera_params["are_images_distorted"];
+    are_input_images_distorted_.push_back(distorted.get<bool>());
+
+    nlohmann::json compressed = camera_params["are_images_compressed"];
+    are_images_compressed_.push_back(compressed.get<bool>());
+
+    nlohmann::json ir = camera_params["is_ir_camera"];
+    is_ir_camera_.push_back(ir.get<bool>());
+
+    std::vector<ImageTransform> image_transforms =
+        GetImageTransforms(camera_params["image_transforms"]);
+    image_transforms_.push_back(image_transforms);
+  }
+  are_output_images_distorted_ = are_input_images_distorted_;
+}
+
+std::vector<ImageTransform>
+    ImageExtractor::GetImageTransforms(const nlohmann::json& J) {
+  std::vector<ImageTransform> image_transforms;
+  for (const auto& transform : J) {
+    std::string type = transform["type"].get<std::string>();
+    std::vector<double> params;
+    if (type == "LINEAR") {
+      params.push_back(transform["alpha"].get<double>());
+      params.push_back(transform["beta"].get<double>());
+    } else if (type == "UNDISTORT") {
+      params.push_back(transform["crop_height"].get<double>());
+      params.push_back(transform["crop_width"].get<double>());
+    } else if (type == "HISTOGRAM") {
+      // null
+    } else if (type == "CLAHE") {
+      // null
+    } else {
+      BEAM_ERROR("Invalid image_transform type in config file. Options: "
+                 "LINEAR, HISTOGRAM, UNDISTORT");
+      throw std::invalid_argument{"Invalid image_transform type"};
+    }
+    image_transforms.push_back(ImageTransform{.type = type, .params = params});
+  }
+  return image_transforms;
 }
 
 void ImageExtractor::ExtractImages() {
+  // open bag
+  try {
+    bag_.open(bag_file_, rosbag::bagmode::Read);
+  } catch (rosbag::BagException& ex) {
+    BEAM_ERROR("Bag exception : %s", ex.what());
+    throw std::invalid_argument{ex.what()};
+    return;
+  }
+
   GetTimeStamps();
   OutputImages();
 }
 
 void ImageExtractor::GetTimeStamps() {
-  poses_ = beam_containers::ReadPoseFile(poses_file_);
+  // load all poses
+  beam_mapping::Poses p;
+  p.LoadFromJSON(poses_file_);
+  std::vector<Eigen::Affine3d, AffineAlign> poses = p.GetPoses();
+  std::vector<ros::Time> pose_time_stamps = p.GetTimeStamps();
+  image_time_stamps_ =
+      std::vector<std::vector<ros::Time>>(image_topics_.size());
 
-  Eigen::Affine3d TA_last, TA_check;
-  time_stamps_.clear();
+  // iterate over all cameras
+  for (uint8_t cam_iter = 0; cam_iter < image_topics_.size(); cam_iter++) {
+    // get start and end of image topic
+    rosbag::View view(bag_, rosbag::TopicQuery(image_topics_[cam_iter]),
+                      ros::TIME_MIN, ros::TIME_MAX, true);
+    if (view.size() == 0) {
+      BEAM_ERROR("No image messages read for image topic {}. Check your topics "
+                 "in config file.",
+                 image_topics_[cam_iter]);
+      continue;
+    }
 
-  // iterate over all k cameras
-  for (uint8_t k = 0; k < image_topics_.size(); k++) {
-    std::vector<beam::TimePoint> time_stamps_k;
-    TA_last = poses_[0].second;
-    time_stamps_k.push_back(poses_[0].first);
-    std::pair<double, double> pose_change_ki;
-    int time_stamp_count = 0;
+    // get start time
+    rosbag::View::iterator iter_start = view.begin();
+    sensor_msgs::ImageConstPtr img_msg_begin =
+        iter_start->instantiate<sensor_msgs::Image>();
+    ros::Time topic_start_time = img_msg_begin->header.stamp;
 
-    // iterate over all i poses for camera k
-    for (uint16_t i = 1; i < poses_.size(); i++) {
-      TA_check = poses_[i].second;
-      pose_change_ki = CalculatePoseChange(TA_last, TA_check);
-      if (pose_change_ki.first >= distance_between_images_[k] ||
-          pose_change_ki.second >= rotation_between_images_[k]) {
-        time_stamp_count++;
-        time_stamps_k.push_back(poses_[i].first);
-        TA_last = TA_check;
+    // iterate through bag and get last message time
+    rosbag::View::iterator last_iter;
+    for (auto iter = view.begin(); iter != view.end(); iter++) {
+      last_iter = iter;
+    }
+    sensor_msgs::ImageConstPtr img_msg_end =
+        last_iter->instantiate<sensor_msgs::Image>();
+    ros::Time topic_end_time = img_msg_end->header.stamp;
+
+    // iterate over all poses for this camera
+    std::vector<ros::Time> time_stamps;
+    Eigen::Affine3d TA_moving_fixed_last = poses[0];
+    for (uint16_t pose_iter = 1; pose_iter < poses.size(); pose_iter++) {
+      // first check that pose time is not outside current bag time
+      if (pose_time_stamps[pose_iter] < topic_start_time ||
+          pose_time_stamps[pose_iter] > topic_end_time) {
+        continue;
+      }
+      // next, check sufficient motion has passed
+      Eigen::Affine3d TA_moving_fixed_curr = poses[pose_iter];
+      Eigen::Affine3d TA_curr_last =
+          TA_moving_fixed_curr.inverse() * TA_moving_fixed_last;
+      if (PassedMinMotion(TA_curr_last, cam_iter)) {
+        time_stamps.push_back(pose_time_stamps[pose_iter]);
+        TA_moving_fixed_last = TA_moving_fixed_curr;
       }
     }
-    time_stamps_.push_back(time_stamps_k);
+    image_time_stamps_[cam_iter] = time_stamps;
+    BEAM_INFO("Saving {} images from camera topic: {}", time_stamps.size(),
+              image_topics_[cam_iter]);
   }
 }
 
-std::pair<double, double>
-    ImageExtractor::CalculatePoseChange(const Eigen::Affine3d& p1,
-                                        const Eigen::Affine3d& p2) {
-  double translation = sqrt((p1.matrix()(0, 3) - p2.matrix()(0, 3)) *
-                                (p1.matrix()(0, 3) - p2.matrix()(0, 3)) +
-                            (p1.matrix()(1, 3) - p2.matrix()(1, 3)) *
-                                (p1.matrix()(1, 3) - p2.matrix()(1, 3)) +
-                            (p1.matrix()(2, 3) - p2.matrix()(2, 3)) *
-                                (p1.matrix()(2, 3) - p2.matrix()(2, 3)));
+bool ImageExtractor::PassedMinMotion(const Eigen::Affine3d& TA_curr_last,
+                                     int cam_number) {
+  Eigen::Vector3d error_t = TA_curr_last.translation();
+  error_t[0] = std::abs(error_t[0]);
+  error_t[1] = std::abs(error_t[1]);
+  error_t[2] = std::abs(error_t[2]);
+  if (error_t[0] > distance_between_images_[cam_number] ||
+      error_t[1] > distance_between_images_[cam_number] ||
+      error_t[2] > distance_between_images_[cam_number]) {
+    return true;
+  }
 
-  beam::Vec3 eps1, eps2, diffSq;
-  eps1 = beam::RToLieAlgebra(p1.rotation());
-  eps2 = beam::RToLieAlgebra(p2.rotation());
-  diffSq(0, 0) = (eps2(0, 0) - eps1(0, 0)) * (eps2(0, 0) - eps1(0, 0));
-  diffSq(1, 0) = (eps2(1, 0) - eps1(1, 0)) * (eps2(1, 0) - eps1(1, 0));
-  diffSq(2, 0) = (eps2(2, 0) - eps1(2, 0)) * (eps2(2, 0) - eps1(2, 0));
-  double rotation = sqrt(diffSq.maxCoeff());
+  double error_r = Eigen::AngleAxis<double>(TA_curr_last.rotation()).angle();
+  if (error_r > rotation_between_images_[cam_number]) { return true; }
 
-  return std::make_pair(translation, rotation);
+  return false;
 }
 
 void ImageExtractor::OutputImages() {
-  boost::filesystem::create_directories(save_directory_);
-  std::string camera_dir, image_container_dir;
-  beam::TimePoint image_time_point;
-  rosbag::Bag bag;
-  cv::Mat image_ki;
-
   /**
    * @todo add_image_container_abstract
    * @body update this once we have created an abstract class for the image
    * containers
    */
-  // beam_containers::ImageBridge image_container();
-  if (image_container_type_ == "ImageBridge") {
-    // initialize abstract class with ImageBridge derived class when it has been
-    // implemented in libbeam. See issue #33 in libbeam and issue #16
-    // in beam_robotics
-  } else {
-    LOG_ERROR(
-        "Invalid image container type. Options are: ImageBridge. Check that "
-        "your image_container_type parameter in ImageExtractorConfig.json and "
-        "check that the image container header is included in "
-        "ImageExtractor.h");
-    throw std::invalid_argument{
-        "Invalid image container type. Options are: ImageBridge. Check that "
-        "your image_container_type parameter in ImageExtractorConfig.json and "
-        "check that the image container header is included in "
-        "ImageExtractor.h"};
-  }
+  boost::filesystem::create_directories(save_directory_);
 
-  try {
-    bag.open(bag_file_, rosbag::bagmode::Read);
-  } catch (rosbag::BagException& ex) {
-    LOG_ERROR("Bag exception : %s", ex.what());
-    throw std::invalid_argument{ex.what()};
-    return;
-  }
-
-  // iterate over all k cameras
-  for (uint8_t k = 0; k < image_topics_.size(); k++) {
-    camera_dir = save_directory_ + "/camera" + std::to_string(k);
-    camera_list_.push_back("camera" + std::to_string(k));
-    image_object_list_.clear();
+  // iterate over all cameras
+  for (uint8_t cam_count = 0; cam_count < image_topics_.size(); cam_count++) {
+    BEAM_INFO("Saving images for Camera {}.", cam_count);
+    std::string camera_dir =
+        save_directory_ + "/camera" + std::to_string(cam_count);
     boost::filesystem::create_directories(camera_dir);
-    int img_counter = 0;
+    camera_list_.push_back("camera" + std::to_string(cam_count));
+    image_object_list_.clear();
 
-    // iterate over all i poses for camera k
-    for (uint32_t i = 1; i < time_stamps_[k].size(); i++) {
-      img_counter++;
-      beam_containers::ImageBridge image_ki_container;
-      image_container_dir =
-          camera_dir + "/" + image_container_type_ + std::to_string(i);
-      boost::filesystem::create_directories(image_container_dir);
-      image_time_point = time_stamps_[k][i];
-      if (img_counter == 1) {
-        image_ki = GetImageFromBag(image_time_point, bag, k, true);
+    // iterate over all poses for this camera
+    for (uint32_t image_count = 0;
+         image_count < image_time_stamps_[cam_count].size(); image_count++) {
+      ros::Time image_time = image_time_stamps_[cam_count][image_count];
+      cv::Mat image =
+          GetImageFromBag(image_time, cam_count, (image_count == 0));
+
+      if (image_container_type_ == "ImageBridge") {
+        beam_containers::ImageBridge image_container;
+        std::string image_container_dir = camera_dir + "/" +
+                                          image_container_type_ +
+                                          std::to_string(image_count);
+        boost::filesystem::create_directories(image_container_dir);
+        if (is_ir_camera_[cam_count]) {
+          image_container.SetIRImage(image);
+          image_container.SetIRIsDistorted(
+              are_output_images_distorted_[cam_count]);
+          image_container.SetIRFrameId(frame_ids_[cam_count]);
+        } else {
+          image_container.SetBGRImage(image);
+          image_container.SetBGRIsDistorted(
+              are_output_images_distorted_[cam_count]);
+          image_container.SetBGRFrameId(frame_ids_[cam_count]);
+        }
+
+        beam::TimePoint image_timepoint = beam::RosTimeToChrono(image_time);
+        image_container.SetTimePoint(image_timepoint);
+        image_container.SetImageSeq(image_count);
+        image_container.SetBagName(bag_file_);
+        image_container.Write(image_container_dir);
+        image_object_list_.push_back(image_container_type_ +
+                                     std::to_string(image_count));
+      } else if (image_container_type_ == "None") {
+        std::string output_file =
+            camera_dir + "/Image" + std::to_string(image_count) + ".jpg";
+        cv::imwrite(output_file, image);
+        image_object_list_.push_back(output_file);
       } else {
-        image_ki = GetImageFromBag(image_time_point, bag, k, false);
+        BEAM_ERROR("Invalid image container type. Options are: ImageBridge. "
+                   "Check that your image_container_type parameter in "
+                   "ImageExtractorConfig.json and check that the image "
+                   "container header is included in ImageExtractor.h");
+        throw std::invalid_argument{
+            "Invalid image container type. Options are: ImageBridge. Check "
+            "that your image_container_type parameter in "
+            "ImageExtractorConfig.json and check that the image container "
+            "header is included in ImageExtractor.h"};
       }
-      if (is_ir_camera_[k]) {
-        image_ki_container.SetIRImage(image_ki);
-        image_ki_container.SetIRIsDistorted(are_images_distorted_[k]);
-        image_ki_container.SetIRFrameId(frame_ids_[k]);
-      } else {
-        image_ki_container.SetBGRImage(image_ki);
-        image_ki_container.SetBGRIsDistorted(are_images_distorted_[k]);
-        image_ki_container.SetBGRFrameId(frame_ids_[k]);
-      }
-      image_ki_container.SetTimePoint(image_time_point);
-      image_ki_container.SetImageSeq(img_counter);
-      image_ki_container.SetBagName(bag_file_);
-      image_ki_container.Write(image_container_dir);
-      image_object_list_.push_back(image_container_type_ +
-                                   std::to_string(img_counter));
     }
-    OutputJSONList(camera_dir + "/ImagesList.json", image_object_list_);
+
+    if (image_object_list_.size() > 0) {
+      OutputJSONList(camera_dir + "/ImagesList.json", image_object_list_);
+    }
   }
-  OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
+
+  if (camera_list_.size() > 0) {
+    OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
+  }
 }
 
-cv::Mat ImageExtractor::GetImageFromBag(const beam::TimePoint& time_point,
-                                        rosbag::Bag& ros_bag,
-                                        const int& cam_number,
-                                        bool add_frame_id) {
-  ros::Time search_time_start, search_time_end;
-  double time_window = 10;
-  std::string image_topic = image_topics_[cam_number];
-  ros::Duration time_window_half(time_window / 2);
-  search_time_start = beam::ChronoToRosTime(time_point) - time_window_half;
-  search_time_end = beam::ChronoToRosTime(time_point) + time_window_half;
-  rosbag::View view(ros_bag, rosbag::TopicQuery(image_topic), search_time_start,
-                    search_time_end, true);
+cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,
+                                        bool first_image) {
+  if (first_image) { last_image_time_ = ros::TIME_MIN; }
 
+  rosbag::View view(bag_, rosbag::TopicQuery(image_topics_[cam_number]),
+                    last_image_time_, ros::TIME_MAX, true);
   if (view.size() == 0) {
-    LOG_ERROR("No image messages read. Check your topics in config file.");
+    BEAM_ERROR("No image messages read. Check your topics in config file.");
     throw std::invalid_argument{
         "No image messages read. Check your topics in config file."};
-    cv::Mat image;
-    return image;
   }
 
   // iterate through bag:
-  for (auto iter = view.begin(); iter != view.end(); iter++) {
-    if (iter->getTopic() == image_topic) {
-      sensor_msgs::ImageConstPtr img_msg =
-          iter->instantiate<sensor_msgs::Image>();
-      beam::TimePoint curImgTimepoint = beam::RosTimeToChrono(img_msg->header);
-      if (curImgTimepoint >= time_point) {
-        if (add_frame_id) { frame_ids_.push_back(img_msg->header.frame_id); }
-        if (img_msg->encoding != sensor_msgs::image_encodings::BGR8) {
-          cv::Mat image_debayered = ROSDebayer(img_msg);
-          return EnhanceImage(image_debayered, cam_number);
-        } else {
-          cv::Mat image =
-              cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
-                  ->image;
-          return EnhanceImage(image, cam_number);
-        }
-      }
+  for (rosbag::View::iterator iter = view.begin(); iter != view.end(); iter++) {
+    sensor_msgs::ImageConstPtr img_msg =
+        iter->instantiate<sensor_msgs::Image>();
+
+    // check that topic type is correct:
+    if (img_msg == NULL) {
+      BEAM_ERROR("Unable to instantiate image message. You are probably "
+                 "feeding a topic with the incorrect message type. Message "
+                 "type must be sensor_msgs::Image. Topic: {}",
+                 image_topics_[cam_number]);
+      throw std::runtime_error{"Unable to instantiate ROS message."};
+    }
+
+    if (img_msg->header.stamp < image_time) { continue; }
+    image_time = img_msg->header.stamp;
+    last_image_time_ = img_msg->header.stamp;
+    if (first_image) { frame_ids_.push_back(img_msg->header.frame_id); }
+    if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
+      cv::Mat image =
+          cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
+              ->image;
+      return ApplyImageTransforms(image, cam_number);
+    } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
+      cv::Mat image_RGB =
+          cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::RGB8)
+              ->image;
+      cv::Mat image_BGR;
+      cv::cvtColor(image_RGB, image_BGR, CV_RGB2BGR);
+      return ApplyImageTransforms(image_BGR, cam_number);
+    } else {
+      cv::Mat image = ROSConvertColor(img_msg);
+      return ApplyImageTransforms(image, cam_number);
     }
   }
 }
 
-cv::Mat ImageExtractor::EnhanceImage(cv::Mat& input_image, int cam_number) {
-  if (enhance_methods_[cam_number] == "none") {
-    return input_image;
-  } else if (enhance_methods_[cam_number] == "linear") {
-    cv::Mat new_image = cv::Mat::zeros(input_image.size(), input_image.type());
-    double alpha = alphas_[cam_number];
-    double beta = betas_[cam_number];
-    for (int y = 0; y < input_image.rows; y++) {
-      for (int x = 0; x < input_image.cols; x++) {
-        for (int c = 0; c < input_image.channels(); c++) {
-          new_image.at<cv::Vec3b>(y, x)[c] = cv::saturate_cast<uchar>(
-              alpha * input_image.at<cv::Vec3b>(y, x)[c] + beta);
-        }
-      }
+cv::Mat ImageExtractor::ApplyImageTransforms(const cv::Mat& image,
+                                             int cam_number) {
+  std::vector<ImageTransform> transforms = image_transforms_[cam_number];
+
+  // avoid useless copying if no transforms are specified
+  if (transforms.size() == 0) { return image; }
+
+  cv::Mat output_image = image.clone();
+  for (ImageTransform transform : transforms) {
+    if (transform.type == "LINEAR") {
+      output_image = ApplyLinearTransform(output_image, transform.params);
+    } else if (transform.type == "HISTOGRAM") {
+      output_image = ApplyHistogramTransform(output_image, transform.params);
+    } else if (transform.type == "CLAHE") {
+      output_image = ApplyClaheTransform(output_image, transform.params);
+    } else if (transform.type == "UNDISTORT") {
+      output_image =
+          ApplyUndistortTransform(output_image, transform.params, cam_number);
+    } else {
+      BEAM_WARN("Image transform type ({}) not yet implemented. Skipping",
+                transform.type);
     }
-    return new_image;
-  } else if (enhance_methods_[cam_number] == "histogram") {
-    cv::Mat ycrcb;
-    cv::cvtColor(input_image, ycrcb, CV_BGR2YCrCb);
-    std::vector<cv::Mat> channels;
-    cv::split(ycrcb, channels);
-    cv::equalizeHist(channels[0], channels[0]);
-    cv::Mat new_image;
-    cv::merge(channels, ycrcb);
-    cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
-    return new_image;
-  } else if (enhance_methods_[cam_number] == "clahe") {
-    cv::Mat lab_image;
-    cv::cvtColor(input_image, lab_image, CV_BGR2Lab);
-    std::vector<cv::Mat> lab_planes(6);
-    cv::split(lab_image, lab_planes);
-    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-    // Explanation of ClipLimit
-    // here:https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
-    clahe->setClipLimit(3);
-    cv::Mat dst;
-    clahe->apply(lab_planes[0], dst);
-    dst.copyTo(lab_planes[0]);
-    cv::merge(lab_planes, lab_image);
-    cv::Mat new_image;
-    cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
-    return new_image;
-  } else {
-    LOG_ERROR("invalid enhance_method parameter in ImageExtractorConfig.json"
-              "Options include: none, linear, histogram, and clahe");
-    throw std::invalid_argument{
-        "invalid enhance_method parameter in ImageExtractorConfig.json"};
-    return input_image;
   }
+  return output_image;
 }
 
-cv::Mat ImageExtractor::ROSDebayer(sensor_msgs::ImageConstPtr& image_raw) {
+cv::Mat
+    ImageExtractor::ApplyLinearTransform(const cv::Mat& image,
+                                         const std::vector<double>& params) {
+  cv::Mat new_image = cv::Mat::zeros(image.size(), image.type());
+  double alpha = params[0];
+  double beta = params[1];
+  for (int y = 0; y < image.rows; y++) {
+    for (int x = 0; x < image.cols; x++) {
+      for (int c = 0; c < image.channels(); c++) {
+        new_image.at<cv::Vec3b>(y, x)[c] = cv::saturate_cast<uchar>(
+            alpha * image.at<cv::Vec3b>(y, x)[c] + beta);
+      }
+    }
+  }
+  return new_image;
+}
+
+cv::Mat
+    ImageExtractor::ApplyHistogramTransform(const cv::Mat& image,
+                                            const std::vector<double>& params) {
+  cv::Mat ycrcb;
+  cv::cvtColor(image, ycrcb, CV_BGR2YCrCb);
+  std::vector<cv::Mat> channels;
+  cv::split(ycrcb, channels);
+  cv::equalizeHist(channels[0], channels[0]);
+  cv::Mat new_image;
+  cv::merge(channels, ycrcb);
+  cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
+  return new_image;
+}
+
+cv::Mat ImageExtractor::ApplyUndistortTransform(
+    const cv::Mat& image, const std::vector<double>& params, int cam_number) {
+  // create undistortion object if not created already
+  if (undistort_images_[cam_number] == nullptr) {
+    are_output_images_distorted_[cam_number] = false;
+    std::shared_ptr<beam_calibration::CameraModel> camera_model =
+        beam_calibration::CameraModel::Create(intrinsics_[cam_number]);
+    Eigen::Vector2i src_image_dims;
+    Eigen::Vector2i dst_image_dims;
+    if (are_images_compressed_[cam_number]) {
+      src_image_dims[0] = camera_model->GetHeight();
+      src_image_dims[1] = camera_model->GetWidth();
+      dst_image_dims[0] =
+          static_cast<int>(camera_model->GetHeight() * params[0]);
+      dst_image_dims[1] =
+          static_cast<int>(camera_model->GetWidth() * params[1]);
+    } else {
+      src_image_dims[0] = image.rows;
+      src_image_dims[1] = image.cols;
+      dst_image_dims[0] = static_cast<int>(image.rows * params[0]);
+      dst_image_dims[1] = static_cast<int>(image.cols * params[1]);
+    }
+
+    beam_calibration::UndistortImages undistort(camera_model, src_image_dims,
+                                                dst_image_dims);
+    undistort_images_[cam_number] =
+        std::make_shared<beam_calibration::UndistortImages>(undistort);
+  }
+
+  if (are_images_compressed_[cam_number]) {
+    cv::Mat image_upsampled =
+        undistort_images_[cam_number]->UpsampleImage(image);
+    cv::Mat image_undistorted =
+        undistort_images_[cam_number]->ConvertImage<cv::Vec3b>(image_upsampled);
+    return undistort_images_[cam_number]->DownsampleImage(
+        image_undistorted, Eigen::Vector2i(image.rows, image.cols));
+  }
+
+  return undistort_images_[cam_number]->ConvertImage<cv::Vec3b>(image);
+}
+
+cv::Mat ImageExtractor::ApplyClaheTransform(const cv::Mat& image,
+                                            const std::vector<double>& params) {
+  cv::Mat lab_image;
+  cv::cvtColor(image, lab_image, CV_BGR2Lab);
+  std::vector<cv::Mat> lab_planes(6);
+  cv::split(lab_image, lab_planes);
+  cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+  clahe->setClipLimit(3);
+  cv::Mat dst;
+  clahe->apply(lab_planes[0], dst);
+  dst.copyTo(lab_planes[0]);
+  cv::merge(lab_planes, lab_image);
+  cv::Mat new_image;
+  cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
+  return new_image;
+}
+
+cv::Mat ImageExtractor::ROSConvertColor(
+    const sensor_msgs::ImageConstPtr& image_raw) {
   cv::Mat image_color;
   int code = 0, raw_type = CV_8UC1;
   std::string raw_encoding = image_raw->encoding;
   if (raw_encoding == sensor_msgs::image_encodings::BAYER_RGGB8) {
     code = cv::COLOR_BayerBG2BGR;
+  } else if (raw_encoding == sensor_msgs::image_encodings::BAYER_BGGR8) {
+    code = cv::COLOR_BayerRG2BGR;
+  } else if (raw_encoding == sensor_msgs::image_encodings::BAYER_GBRG8) {
+    code = cv::COLOR_BayerGR2BGR;
+  } else if (raw_encoding == sensor_msgs::image_encodings::BAYER_GRBG8) {
+    code = cv::COLOR_BayerGR2BGR;
   } else if (raw_encoding == sensor_msgs::image_encodings::MONO8) {
-    code = cv::COLOR_GRAY2BGR;
+    code = cv::COLOR_BayerGB2BGR;
   } else {
-    LOG_ERROR("ROS msg encoding not supported.");
+    BEAM_ERROR("ROS msg encoding ({}) not supported.", raw_encoding);
     throw std::runtime_error{"ROS msg encoding not supported."};
     return image_color;
   }

@@ -1,14 +1,31 @@
-#include "inspection/QuantifyDefects.h"
+#include <inspection/QuantifyDefects.h>
+
+#include <nlohmann/json.hpp>
+#include <pcl/io/pcd_io.h>
+
+#include <beam_defects/Corrosion.h>
+#include <beam_defects/Crack.h>
+#include <beam_defects/Delam.h>
+#include <beam_defects/Spall.h>
+#include <beam_defects/extract_functions.h>
+#include <beam_utils/log.hpp>
 
 namespace inspection {
-QuantifyDefects::QuantifyDefects(const std::string config_file_location) {
-  // load member variables
+
+QuantifyDefects::QuantifyDefects(const std::string& cloud_filename,
+                                 const std::string& output_directory,
+                                 const std::string& config_file_location) {
+  point_cloud_ =
+      boost::make_shared<pcl::PointCloud<beam_containers::PointBridge>>();
+  cloud_filename_ = cloud_filename;
+  cloud_savedir_ = output_directory;
+
+  // load member variables from json
+  BEAM_INFO("Loading config from: {}", config_file_location);
   nlohmann::json J;
   std::ifstream file(config_file_location);
   file >> J;
 
-  cloud_filename_ = J["cloud_filename"];
-  cloud_savedir_ = J["cloud_savedir"];
   crack_threshold_ = J["crack_threshold"];
   spall_threshold_ = J["spall_threshold"];
   delam_threshold_ = J["delam_threshold"];
@@ -129,4 +146,5 @@ void QuantifyDefects::SaveCorrosionOnlyCloud() {
     j++;
   }
 };
+
 } // end namespace inspection

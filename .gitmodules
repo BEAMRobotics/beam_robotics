@@ -7,36 +7,12 @@
 [submodule "mapping/loam_velodyne"]
 	path = mapping/loam_velodyne
 	url = git@github.com:BEAMRobotics/loam_velodyne.git
-[submodule "mapping/ig_graph_slam"]
-	path = mapping/ig_graph_slam
-	url = git@github.com:nickcharron/ig_graph_slam.git
-[submodule "ros_drivers/ethz_piksi_ros"]
-	path = ros_drivers/ethz_piksi_ros
-	url = git@github.com:BEAMRobotics/ethz_piksi_ros.git
-[submodule "ros_drivers/flir_camera_driver"]
-	path = ros_drivers/flir_camera_driver
-	url = git@github.com:BEAMRobotics/flir_camera_driver.git
-[submodule "ros_drivers/velodyne"]
-	path = ros_drivers/velodyne
-	url = git@github.com:BEAMRobotics/velodyne.git
-[submodule "ros_drivers/ximea_ros_cam"]
-	path = ros_drivers/ximea_ros_cam
-	url = git@github.com:BEAMRobotics/ximea_ros_cam.git
-[submodule "ros_drivers/um7_driver"]
-	path = ros_drivers/um7_driver
-	url = git@github.com:BEAMRobotics/um7_driver.git
-[submodule "inspection_tools/cnn_defect_segmentation"]
-	path = inspection_tools/cnn_defect_segmentation
-	url = git@github.com:BEAMRobotics/cnn_defect_segmentation.git
-[submodule "ros_drivers/novatel_span_driver"]
-	path = ros_drivers/novatel_span_driver
-	url = git@github.com:BEAMRobotics/novatel_span_driver.git
 [submodule "mapping/novatel_span_driver"]
 	path = mapping/novatel_span_driver
 	url = git@github.com:BEAMRobotics/novatel_span_driver.git
-[submodule "mapping/ig_online_mapping"]
-	path = mapping/ig_online_mapping
-	url = git@github.com:BEAMRobotics/ig_online_mapping.git
-[submodule "mapping/ig_collect_scans"]
-	path = mapping/ig_collect_scans
-	url = git@github.com:BEAMRobotics/ig_collect_scans.git
+[submodule "inspection_tools/cnn_defect_segmentation"]
+	path = inspection_tools/cnn_defect_segmentation
+	url = git@github.com:BEAMRobotics/cnn_defect_segmentation.git
+[submodule "dependencies/velodyne"]
+	path = dependencies/velodyne
+	url = git@github.com:BEAMRobotics/velodyne.git

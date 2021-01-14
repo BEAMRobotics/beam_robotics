@@ -1,23 +1,23 @@
 #pragma once
 
-#include <beam_calibration/CameraModel.h>
-#include <beam_calibration/TfTree.h>
-#include <beam_colorize/Colorizer.h>
-#include <beam_containers/ImageBridge.h>
-#include <beam_containers/PointBridge.h>
-#include <beam_containers/Utilities.h>
-#include <beam_utils/log.hpp>
-#include <beam_utils/time.hpp>
-
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree.h>
 #include <pcl/point_cloud.h>
+#include <pcl/search/kdtree.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl_ros/impl/transforms.hpp>
 #include <pcl_ros/transforms.h>
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
 
-#include "inspection/CloudCombiner.h"
+#include <beam_calibration/CameraModel.h>
+#include <beam_calibration/TfTree.h>
+#include <beam_colorize/Colorizer.h>
+#include <beam_containers/ImageBridge.h>
+#include <beam_containers/PointBridge.h>
+#include <beam_utils/log.hpp>
+#include <beam_utils/time.hpp>
+#include <inspection/CloudCombiner.h>
 
 namespace inspection {
 
@@ -29,6 +29,7 @@ using json = nlohmann::json;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
+using AffineAlign = Eigen::aligned_allocator<Eigen::Affine3d>;
 
 /**
  * @brief class for labeling/coloring a SLAM map given beam image containers
@@ -59,7 +60,7 @@ class MapLabeler {
       using namespace beam_colorize;
       using namespace boost::filesystem;
 
-      cam_model_ = CameraModel::LoadJSON(cam_intrinsics_path_);
+      cam_model_ = CameraModel::Create(cam_intrinsics_path_);
 
       // Next we create/fill in a string vector which will store the path to
       // each image folder for our camera (this is used for instantiating image
@@ -114,7 +115,11 @@ class MapLabeler {
   };
 
 public:
-  explicit MapLabeler(std::string config_file_location);
+  explicit MapLabeler(const std::string& images_directory,
+                      const std::string& map, const std::string& poses,
+                      const std::string& intrinsics_directory,
+                      const std::string& extrinsics,
+                      const std::string& config_file_location);
 
   MapLabeler() = default;
 
@@ -202,7 +207,8 @@ private:
   std::string cloud_combiner_type_ = "Override";
   bool output_individual_clouds_ = false;
 
-  std::vector<std::pair<TimePoint, Eigen::Affine3d>> final_poses_;
+  std::vector<Eigen::Affine3d, AffineAlign> final_poses_;
+  std::vector<ros::Time> final_timestamps_;
   DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
 
   std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
