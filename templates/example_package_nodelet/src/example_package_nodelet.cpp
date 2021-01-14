@@ -169,7 +169,5 @@ void ExamplePackageNodelet::timeCb() {
 
 }  // namespace example_package
 
-PLUGINLIB_DECLARE_CLASS(example_package,
-                        ExamplePackageNodelet,
-                        example_package::ExamplePackageNodelet,
-                        nodelet::Nodelet);
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(example_package::ExamplePackageNodelet, nodelet::Nodelet);
