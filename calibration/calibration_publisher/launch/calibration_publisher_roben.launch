@@ -2,9 +2,7 @@
 <launch>
 <!-- If extrinsics_file_path is empty, it will use the robot_name to lookup the extrinsics 
   calibration json file so it has to be consistent with the folder names-->
-<!-- To specify the file path from the terminal, enter: 
-roslaunch calibration_publisher calibration_publisher extrinsics_file_path:=/path/to/file.json -->
-  <arg name="robot_name" default=""/>
+  <arg name="robot_name" default="roben"/>
   <arg name="extrinsics_file_path" default=""/>
 
   <node name="calibration_publisher_main" pkg="calibration_publisher" type="calibration_publisher_main">
