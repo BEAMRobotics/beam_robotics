@@ -2,7 +2,7 @@
 
 ## Overview
 
-This package will take a bag file <foo.bag> containing velodyne_msgs/VelodyneScan messages as input, process these messages to produce sensor_msgs/PointCloud2 messages per udp packet contained within each velodyne_msgs/VelodyneScan message, and then write these sensor_msgs/PointCloud2 messages to a new bag file <foo_unpacked.bag>. <foo.bag> and <foo_unpacked.bag> may then be merged as one bag using <merge_bags.py> within ../beam_robotics/scripts/tools
+This package will take a bag file <foo.bag> containing velodyne_msgs/VelodyneScan messages as input, process these messages to produce sensor_msgs/PointCloud2 messages per udp packet contained within each velodyne_msgs/VelodyneScan message, and then write these sensor_msgs/PointCloud2 messages to a new bag file <foo_unpacked.bag> along with all other topics contained within <foo.bag>. This tool maintains the indexed times of all messages and ensures sensor_msgs/PointCloud2 messages are indexed correctly.
 
 ## Usage
 

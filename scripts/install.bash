@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
+
 # This script installs and compiles the entire beam robotics software stack
 # Running this script with some parts already installed should be fine
-
-
 
 # Specify location of installation scripts
 INSTALL_SCRIPTS=$"$HOME/software/beam_install_scripts"
@@ -15,7 +14,7 @@ if [ -d $INSTALL_SCRIPTS ]; then
 else
     echo "Cloning Beam install scripts into:"
     echo $INSTALL_SCRIPTS
-    echo "Make sure they are not install somewhere else."
+    echo "Make sure they are not installed somewhere else."
     if [ ! -d "$HOME/software" ]; then
       mkdir -p "$HOME/software"
     fi
@@ -28,10 +27,7 @@ export REPO_DIR=$(dirname "$SCRIPT_DIR")
 
 # get UBUNTU_CODENAME, ROS_DISTRO, CATKIN_DIR
 source $INSTALL_SCRIPTS/identify_environment.bash
-
 : ${SYMLINKS_REPO_DIR:=$REPO_DIR}
-
-
 
 main()
 {
@@ -45,7 +41,6 @@ install_routine()
         menu
     fi
 
-
     # source catkin setup script
     source $INSTALL_SCRIPTS/catkin_setup.bash
 
@@ -53,7 +48,6 @@ install_routine()
     catkin_clean
 
     # submodule_init
-
     bash $INSTALL_SCRIPTS/ros_install.bash
     create_catkin_ws
 
@@ -73,11 +67,14 @@ install_routine()
     install_pcl
     install_geographiclib
     install_gtsam
-    # install_libwave
     install_gflags
     install_catch2
     install_json
     install_ladybug_sdk
+
+    # Optional Installs:
+    # install_gflags_from_source
+    # install_libwave
 
     if [[ $1 = 'robot' ]]; then
         echo 'Installing drivers for robot'
@@ -121,7 +118,6 @@ menu()
         esac
     done
 }
-
 
 submodule_init()
 {
