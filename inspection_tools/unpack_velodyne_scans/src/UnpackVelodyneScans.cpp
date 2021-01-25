@@ -7,6 +7,7 @@
 #include <velodyne_pointcloud/pointcloudXYZIR.h>
 
 #include <beam_utils/log.hpp>
+#include <boost/foreach.hpp>
 
 namespace unpack_velodyne_scans {
 
@@ -36,50 +37,40 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
   data_->setParameters(min_range_, max_range_, view_direction_, view_width_);
   container_ptr_ = boost::make_shared<velodyne_pointcloud::PointcloudXYZIR>(
-      max_range_, min_range_, "", "",
-      data_->scansPerPacket());
+      max_range_, min_range_, "", "", data_->scansPerPacket());
 }
 
 void UnpackVelodyneScans::Run() {
   rosbag::Bag bag_in;
-  try {
-    bag_in.open(bag_file_path_, rosbag::bagmode::Read);
-    BEAM_INFO("Opening bag file {}", bag_file_path_);
-  } catch (rosbag::BagException& ex) {
-    BEAM_CRITICAL("Bag exception: {}. Exiting Program.", ex.what());
-    return;
-  }
-
-  rosbag::View view(bag_in, ros::TIME_MIN, ros::TIME_MAX, true);
   rosbag::Bag bag_out;
+  bag_in.open(bag_file_path_, rosbag::bagmode::Read);
   bag_file_path_.replace(bag_file_path_.end() - 4, bag_file_path_.end(),
                          output_postfix_ + ".bag");
   bag_out.open(bag_file_path_, rosbag::bagmode::Write);
 
-  int total_messages = view.size();
-  int message_counter = 0;
-  std::string output_message = "Processing bag for velodyne unpacking...";
-  for (auto iter = view.begin(); iter != view.end(); iter++) {
-    message_counter++;
-    auto vel_scan_msg = iter->instantiate<velodyne_msgs::VelodyneScan>();
-    std::string out_topic = iter->getTopic();
-    out_topic += output_postfix_;
+  rosbag::View view(bag_in);
+  BEAM_INFO("Unpacking...");
+  BOOST_FOREACH (rosbag::MessageInstance const msg, view) {
+    bag_out.write(msg.getTopic(), msg.getTime(), msg);
 
+    auto vel_scan_msg = msg.instantiate<velodyne_msgs::VelodyneScan>();
     if (vel_scan_msg == NULL) {
       continue;
     }
 
+    std::string out_topic = msg.getTopic();
+    out_topic += output_postfix_;
     for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
       container_ptr_->setup(vel_scan_msg);
       data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
                     vel_scan_msg->header.stamp);
       container_ptr_->modify_pkt_time(vel_scan_msg->packets[i]);
       sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
-      bag_out.write(out_topic, cloud_packet.header.stamp, cloud_packet);
+      ros::Time packet_indexed_time =
+          msg.getTime() +
+          (cloud_packet.header.stamp - vel_scan_msg->header.stamp);
+      bag_out.write(out_topic, packet_indexed_time, cloud_packet);
     }
-
-    beam::OutputPercentComplete(message_counter, total_messages,
-                                output_message);
   }
 
   BEAM_INFO("Unpacking completed. Results have been written to: {}",
