@@ -7,21 +7,20 @@ from fnmatch import fnmatchcase
 from rosbag import Bag
 
 def main():
-
     parser = argparse.ArgumentParser(description='Merge one or more bag files with the possibilities of filtering topics.')
     parser.add_argument('outputbag',
                         help='output bag file with topics merged')
     parser.add_argument('inputbag', nargs='+',
                         help='input bag files')
+    parser.add_argument('-stamp', '--stamp', action="store_true", default=False,
+                        help='flag for merging bags according to header time stamps. If a message has no header time stamp, the message is not recorded')                        
     parser.add_argument('-v', '--verbose', action="store_true", default=False,
                         help='verbose output')
     parser.add_argument('-t', '--topics', default="*",
                         help='string interpreted as a list of topics (wildcards \'*\' and \'?\' allowed) to include in the merged bag file')
 
     args = parser.parse_args()
-
     topics = args.topics.split(' ')
-
     total_included_count = 0
     total_skipped_count = 0
 
@@ -43,7 +42,11 @@ def main():
                             matchedtopics.append(topic)
                             if (args.verbose):
                                 print("Including matched topic '%s'" % topic)
-                        o.write(topic, msg, t)
+                        if (args.stamp):  
+                            if topic == "/tf_static" or topic == "/tf" and msg.transforms:
+                                o.write(topic, msg, msg.transforms[0].header.stamp)
+                            elif (msg._has_header):                         
+                                o.write(topic, msg, msg.header.stamp)
                         included_count += 1
                     else:
                         skipped_count += 1
