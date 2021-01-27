@@ -8,7 +8,7 @@
 #include <tf2_eigen/tf2_eigen.h>
 
 #include <beam_mapping/Poses.h>
-#include <beam_utils/time.hpp>
+#include <beam_utils/time.h>
 
 using namespace std::literals::chrono_literals;
 

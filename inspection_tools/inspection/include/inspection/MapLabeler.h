@@ -15,8 +15,8 @@
 #include <beam_colorize/Colorizer.h>
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
-#include <beam_utils/log.hpp>
-#include <beam_utils/time.hpp>
+#include <beam_utils/log.h>
+#include <beam_utils/time.h>
 #include <inspection/CloudCombiner.h>
 
 namespace inspection {

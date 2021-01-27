@@ -8,7 +8,7 @@
 #include <beam_defects/Delam.h>
 #include <beam_defects/Spall.h>
 #include <beam_defects/extract_functions.h>
-#include <beam_utils/log.hpp>
+#include <beam_utils/log.h>
 
 namespace inspection {
 

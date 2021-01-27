@@ -7,10 +7,10 @@
 
 #include <beam_containers/ImageBridge.h>
 #include <beam_mapping/Poses.h>
-#include <beam_utils/angles.hpp>
-#include <beam_utils/log.hpp>
-#include <beam_utils/math.hpp>
-#include <beam_utils/time.hpp>
+#include <beam_utils/angles.h>
+#include <beam_utils/log.h>
+#include <beam_utils/math.h>
+#include <beam_utils/time.h>
 
 namespace inspection {
 

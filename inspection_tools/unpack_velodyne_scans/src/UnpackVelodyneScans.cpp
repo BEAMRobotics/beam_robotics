@@ -6,7 +6,7 @@
 #include <rosbag/view.h>
 #include <velodyne_pointcloud/pointcloudXYZIR.h>
 
-#include <beam_utils/log.hpp>
+#include <beam_utils/log.h>
 #include <boost/foreach.hpp>
 
 namespace unpack_velodyne_scans {

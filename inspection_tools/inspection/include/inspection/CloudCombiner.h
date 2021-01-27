@@ -1,8 +1,8 @@
 #pragma once
 
 #include <beam_containers/PointBridge.h>
-#include <beam_utils/math.hpp>
-#include <beam_utils/time.hpp>
+#include <beam_utils/math.h>
+#include <beam_utils/time.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
