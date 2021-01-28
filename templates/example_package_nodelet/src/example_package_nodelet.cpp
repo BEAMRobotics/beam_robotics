@@ -32,11 +32,13 @@
  * ############################################################################
 */
 
-#include "example_package/example_package_nodelet.hpp"
+#include <example_package/example_package_nodelet.h>
+
+#include <stdlib.h>
+#include <string>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
@@ -46,8 +48,6 @@
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 
-#include <stdlib.h>
-#include <string>
 
 namespace example_package {
 
@@ -56,7 +56,7 @@ ExamplePackageNodelet::ExamplePackageNodelet() {}
 void ExamplePackageNodelet::onInit() {
     this->nh_ = getNodeHandle();
     this->private_nh_ = getPrivateNodeHandle();
-    this->loadParams();
+    this->LoadParams();
     this->example_publisher_ = nh_.advertise<std_msgs::String>("chatter", 1000);
 
     // Set nodelet's internal logger
@@ -67,7 +67,7 @@ void ExamplePackageNodelet::onInit() {
                             boost::bind(&ExamplePackageNodelet::timeCb, this));
 }
 
-void ExamplePackageNodelet::loadParams() {
+void ExamplePackageNodelet::LoadParams() {
     if (nh_.getParam("example_package/publish_period",
                      this->publishing_period_)) {
         ROS_INFO("Loaded publish_period: %f", this->publishing_period_);

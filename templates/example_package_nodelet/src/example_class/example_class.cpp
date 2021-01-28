@@ -32,16 +32,19 @@
  * ############################################################################
 */
 
-#include "example_package/example_class/example_class.hpp"
-
-#include <boost/log/trivial.hpp>
+#include <example_package/example_class/example_class.h>
 
 #include <iostream>
 #include <string>
 
+#include <boost/log/trivial.hpp>
+
+#include <beam_utils/log.h>
+
 // Constructor starts off the object with cycler set to 1.
 ExampleClass::ExampleClass() {
     this->private_cycler = 1;
+    BEAM_INFO("Constructed Example Class.");
 }
 
 // INTENDED FUNCTIONALITY

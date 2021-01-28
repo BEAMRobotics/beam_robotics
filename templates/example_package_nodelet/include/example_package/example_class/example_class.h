@@ -32,64 +32,24 @@
  * ############################################################################
 */
 
-#ifndef EXAMPLE_PACKAGE_EXAMPLEPACKAGENODELET_H
-#define EXAMPLE_PACKAGE_EXAMPLEPACKAGENODELET_H
+#pragma once
 
-#include <ros/ros.h>
-#include <ros/package.h>
-#include <std_msgs/String.h>
-#include <nodelet/nodelet.h>
-#include <pluginlib/class_list_macros.h>
-
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-
-#include <string>
-#include <iostream>
-
-#include "example_package/example_class/example_class.hpp"
-
-namespace example_package {
-
-class ExamplePackageNodelet : public nodelet::Nodelet {
+class ExampleClass {
  public:
-    // Nodelet Constructor
-    // MUST NEVER FAIL
-    ExamplePackageNodelet();
+    ExampleClass();
+
+    // Example function that doesn't work properly for whatever reason.
+    // Is supposed to only return either 1 or 2, but it actually
+    // returns 1, 2, or 3!
+    int Foo();
+
+    // Example function that expects an input value of either 1 or 2
+    //
+    // Returns 0 for success and 1 for failure
+    int Bar(int input);
 
  private:
-    // Initialization Function
-    // Can fail?
-    virtual void onInit();
-
-    void loadParams();
-
-    // Set logging sink to be used by boost::log.
-    //      Only used for code internal to the nodelet (non-ROS code)
-    void SetInternalLogger();
-
-    // Timer callback to enforce publishing rate
-    void timeCb();
-
-    // Nodehandles, both public and private
-    ros::NodeHandle nh_, private_nh_;
-
-    // Publisher
-    ros::Publisher example_publisher_;
-
-    // Timer for establishing publishing rate
-    ros::Timer timer_;
-
-    // Publishing Period
-    double publishing_period_;
-
-    // Log directory relative to the users $HOME directory
-    std::string log_directory_;
-
-    // INTERNAL OBJECT OF Cpp Class (Bulk of work should be done in here)
-    ExampleClass foobar;
+    // A private cycling variable that should repeat 1, 2, 1, 2, ... in an
+    // endless cycle
+    int private_cycler;
 };
-
-}  // namespace example_package
-#endif  // EXAMPLE_PACKAGE_EXAMPLEPACKAGENODELET_H

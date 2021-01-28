@@ -12,6 +12,9 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 ## is used, also find other catkin packages
 set(catkin_deps roscpp roslib nodelet)
 find_package(catkin REQUIRED ${catkin_deps})
+find_package(nodelet REQUIRED)
+find_package(roscpp REQUIRED)
+find_package(beam REQUIRED utils)
 
 ## Find Boost log components used for autonomoose diagnostics
 find_package(Boost COMPONENTS REQUIRED log_setup log)
@@ -42,6 +45,8 @@ include_directories(
     include
     ${catkin_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIR} # NOTE: No 'S' for Boost's include directory
+    ${nodelet_INCLUDE_DIRS}
+    ${roscpp_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library for underlying (non-ROS) implementation (in this case: example_class)
@@ -54,6 +59,7 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
+    beam::utils
 )
 
 ## Declare a C++ library for the nodelet
@@ -68,6 +74,8 @@ target_link_libraries(${PROJECT_NAME}_nodelet
     ${catkin_LIBRARIES}
     ${PROJECT_NAME}
     ${Boost_LIBRARIES}
+    ${nodelet_LIBRARIES}
+    ${roscpp_LIBRARIES}
 )
 
 ## Declare a C++ executable
@@ -82,6 +90,8 @@ add_executable(${PROJECT_NAME}_node
 ########    nodelet library
 target_link_libraries(${PROJECT_NAME}_node
     ${catkin_LIBRARIES}
+    ${nodelet_LIBRARIES}
+    ${roscpp_LIBRARIES}
 )
 
 #############
