@@ -55,7 +55,7 @@ int ExampleClass::Foo() {
     int return_value = this->private_cycler;
     this->private_cycler++;
 
-    if (this->private_cycler > 3) {  // <- BUG: should be >= 3, or > 2
+    if (this->private_cycler > 2) {  
         this->private_cycler = 1;
     }
 
