@@ -23,6 +23,8 @@ For information on required and optional program input, run: `./unpack_velodyne_
 
 This script can be used to add or remove a constant time offset from a specific topic. It will then resave the bag to a new name
 
+**NOTE** As of now, this will only work for image messages. We should extend this later to all types of messages, or if that's not possible then just a few common messages.
+
 ### Usage
 
 

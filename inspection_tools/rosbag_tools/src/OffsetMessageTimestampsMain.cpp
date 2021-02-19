@@ -47,7 +47,8 @@ int main(int argc, char* argv[]) {
       ros::Time outtime = msg.getTime() + d;
       auto image_msg = msg.instantiate<sensor_msgs::Image>();
       if (image_msg == NULL) {
-        BEAM_WARN("Cannot instantiate image message.");
+        BEAM_WARN("Cannot instantiate image message. This class is only "
+                  "designed to convert image messages at this time.");
         continue;
       }
       image_msg->header.stamp = outtime;
