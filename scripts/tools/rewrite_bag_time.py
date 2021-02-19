@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+
 import sys
 import rosbag
 import argparse
+
+from rosbag import Bag
 
 def main(args):
 

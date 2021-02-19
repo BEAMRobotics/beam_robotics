@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(unpack_velodyne_scans)
+project(rosbag_tools)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -31,11 +31,18 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
-# main executable
-add_executable(${PROJECT_NAME}_main
-  src/main.cpp
+# executables
+add_executable(unpack_velodyne_scans_main
+  src/UnpackVelodyneScansMain.cpp
 )
-target_link_libraries(${PROJECT_NAME}_main
+target_link_libraries(unpack_velodyne_scans_main
+  ${PROJECT_NAME}
+	${catkin_LIBRARIES}
+)
+add_executable(offset_message_timestamps_main
+  src/OffsetMessageTimestampsMain.cpp
+)
+target_link_libraries(offset_message_timestamps_main
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
