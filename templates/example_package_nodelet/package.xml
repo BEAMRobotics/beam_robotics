@@ -11,6 +11,7 @@
     <depend>roscpp</depend>
     <depend>roslib</depend>
     <depend>nodelet</depend>
+    <depend>libbeam</depend>
     <!-- The export tag contains other, unspecified, tags -->
     <export>
         <nodelet plugin="${prefix}/nodelets.xml"/>
