@@ -1,17 +1,15 @@
 #!/usr/bin/env python
-import sys
-import os
-from os.path import join
-
 import cv2
+import os
+import sys
 import rosbag
-from cv_bridge import CvBridge
 
+from cv_bridge import CvBridge
+from os.path import join
 
 def print_usage():
     print("Usage: bag2imgs.py <ros bag> <ros topic> <output path> <images to skip (optional)>")
     print("Example: bag2imgs.py record.bag /robot/camera robot_images/ 1")
-
 
 if __name__ == "__main__":
     # Check CLI args

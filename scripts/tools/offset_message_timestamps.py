@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-
-import sys
-import rosbag
 import argparse
+import rosbag
 import rospy
+import sys
 
 from rosbag import Bag
 
