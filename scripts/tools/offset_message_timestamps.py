@@ -8,7 +8,6 @@ from rosbag import Bag
 
 def offset_message_timestamps(bag_in, topics, offset, postfix):
 
-    print('Offsetting...'),
     bag_out = rosbag.Bag(bag_in[:-4] + '_' + postfix + '.bag', 'w')
     time_offset = rospy.Duration.from_sec(offset)
 
@@ -20,11 +19,12 @@ def offset_message_timestamps(bag_in, topics, offset, postfix):
                     transform.header.stamp += time_offset
             elif msg._has_header:
                 msg.header.stamp += time_offset
+            else:
+                raise RuntimeError('%s does not contain a header' % topic)
 
             bag_out.write(topic + '_' + postfix, msg, t + time_offset)
 
     bag_out.close()
-    print('complete')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
