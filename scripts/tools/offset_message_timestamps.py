@@ -28,12 +28,14 @@ def offset_message_timestamps(bag_in, topics, offset, postfix):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Add or remove a constant time offset to specified topics within a bagfile. A new bag file is written containing all of the original topics in the input bag, with the addition of offset topics demarcated with a postfix.')
+        description='Add or remove a constant time offset to specified topics within a bagfile. A'
+                    'new bag file is written containing all of the original topics in the input '
+                    'bag, with the addition of offset topics demarcated with a postfix.')
     parser.add_argument('--bag_in', required=True, nargs=1, help='input bag file')
     parser.add_argument('--topics', required=True, nargs='+', help='topics to offset message timestamps')
     parser.add_argument('--offset', required=True, nargs=1, type=float, help='time offset in seconds')
     parser.add_argument('--postfix', required=False, nargs=1, default='offset', 
-        help='postfix to demarcate output bag file and time-offset topics')
+                        help='postfix to demarcate output bag file and time-offset topics')
     args = parser.parse_args()
     try:
         offset_message_timestamps(args.bag_in[0], args.topics, args.offset[0], args.postfix)
