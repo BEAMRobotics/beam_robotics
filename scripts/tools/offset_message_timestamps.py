@@ -6,31 +6,38 @@ import sys
 
 from rosbag import Bag
 
-def main(args):
+def offset_message_timestamps(bag_in, topics, offset, postfix):
 
-    parser = argparse.ArgumentParser(
-        description='This script can be used to add or remove a constant time offset from a specific topic. It will then resave the bag to a new name')
-    parser.add_argument('--bagfile', nargs=1, help='input bag file')
-    parser.add_argument('--output', nargs=1,  help='output bag file')
-    parser.add_argument('--topic', nargs=1,  help='topic to offset timestamps')
-    parser.add_argument('--offset', nargs=1,  type=float, help='time offset in seconds')
-    args = parser.parse_args()
+    print('Offsetting...'),
+    bag_out = rosbag.Bag(bag_in[:-4] + '_' + postfix + '.bag', 'w')
+    time_offset = rospy.Duration.from_sec(offset)
 
-    bagfile = args.bagfile[0]
-    output = args.output[0]
-    topic = args.topic[0]
-    offset = args.offset[0]
+    for topic, msg, t in rosbag.Bag(bag_in).read_messages():
+        bag_out.write(topic, msg, t)
+        if topic in topics:
+            if topic == "/tf":
+                for transform in msg.transforms:
+                    transform.header.stamp += time_offset
+            elif msg._has_header:
+                msg.header.stamp += time_offset
 
-    rostime_offset = rospy.rostime.Duration.from_sec(offset)
+            bag_out.write(topic + '_' + postfix, msg, t + time_offset)
 
-    with rosbag.Bag(output, 'w') as outbag:
-        for msg_topic, msg, t in rosbag.Bag(bagfile).read_messages():
-            if msg_topic == topic:
-                new_msg = msg
-                new_msg.header.stamp = msg.header.stamp + rostime_offset
-                outbag.write(msg_topic, new_msg, new_msg.header.stamp)
-            elif msg_topic != '/diagnostics':
-                outbag.write(msg_topic, msg, t)
+    bag_out.close()
+    print('complete')
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(
+        description='Add or remove a constant time offset to specified topics within a bagfile. A new bag file is written containing all of the original topics in the input bag, with the addition of offset topics demarcated with a postfix.')
+    parser.add_argument('--bag_in', required=True, nargs=1, help='input bag file')
+    parser.add_argument('--topics', required=True, nargs='+', help='topics to offset message timestamps')
+    parser.add_argument('--offset', required=True, nargs=1, type=float, help='time offset in seconds')
+    parser.add_argument('--postfix', required=False, nargs=1, default='offset', 
+        help='postfix to demarcate output bag file and time-offset topics')
+    args = parser.parse_args()
+    try:
+        offset_message_timestamps(args.bag_in[0], args.topics, args.offset[0], args.postfix)
+    except Exception, e:
+        import traceback
+        traceback.print_exc()
+
