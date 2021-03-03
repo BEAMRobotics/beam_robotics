@@ -21,7 +21,7 @@ def offset_message_timestamps(bag_in, bag_out, topics, offset):
             msg.header.stamp = msg.header.stamp + time_offset
             bag_out.write(topic, msg, t + time_offset)
             continue
-        
+
         topic_found, index = search(topics, topic)
         if topic_found:
             msg.header.stamp = msg.header.stamp + time_offset
@@ -29,7 +29,7 @@ def offset_message_timestamps(bag_in, bag_out, topics, offset):
         else:
             bag_out.write(topic, msg, t)
 
-    # iterate back through the bag now that we know the start and end times and update 
+    # iterate back thgit srough the bag now that we know the start and end times and update 
     bag_start_time = rospy.Time.from_sec(bag_out.get_start_time()) 
     bag_end_time = rospy.Time.from_sec(bag_out.get_end_time()) 
     for topic, msg, t in rosbag.Bag(bag_in).read_messages():
