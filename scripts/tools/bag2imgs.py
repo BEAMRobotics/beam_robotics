@@ -1,37 +1,41 @@
 #!/usr/bin/env python
-import sys
+import cv2
 import os
+import sys
+import rosbag
+
+from cv_bridge import CvBridge
 from os.path import join
 
-import cv2
-import rosbag
-from cv_bridge import CvBridge
-
-
 def print_usage():
-    print("Usage: bag2imgs.py <ros bag> <ros topic> <output path>")
-    print("Example: bag2imgs.py record.bag /robot/camera robot_images/")
-
+    print("Usage: bag2imgs.py <ros bag> <ros topic> <output path> <images to skip (optional)>")
+    print("Example: bag2imgs.py record.bag /robot/camera robot_images/ 1")
 
 if __name__ == "__main__":
     # Check CLI args
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 4 and len(sys.argv) != 5:
         print_usage()
         exit(-1)
 
     # Parse CLI args
-    bag = rosbag.Bag(sys.argv[1], 'r')
+    bag_file = sys.argv[1]
     topic = sys.argv[2]
     output_path = sys.argv[3]
+    if len(sys.argv) == 5:
+        skip = int(sys.argv[4])
+    else:
+        skip = 1
 
     # Create output directory
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     # Check if topic is in bag
+    bag = rosbag.Bag(bag_file, 'r')
     info = bag.get_type_and_topic_info()
     if topic not in info.topics:
-        raise RuntimeError("Opps! topic not in bag!")
+        err_msg = "%s is not contained within %s. Exiting Program." % (topic, bag_file)
+        raise RuntimeError(err_msg)
 
     # Check image message type
     msg_type = info.topics[topic].msg_type
@@ -44,12 +48,12 @@ if __name__ == "__main__":
     br = CvBridge()
     index = 0
     for topic, msg, t in bag.read_messages(topics=[topic]):
-	if index%1 == 0: # change setting to only take every x images         
+	if index%skip == 0: # only take every x image         
 		# Convert image message to np.array
         	if msg_type == "sensor_msgs/CompressedImage":
-            		image = br.compressed_imgmsg_to_cv2(msg)
+            	    image = br.compressed_imgmsg_to_cv2(msg)
         	else:
-            		image = br.imgmsg_to_cv2(msg)
+            	    image = br.imgmsg_to_cv2(msg)
 
         	# Write image to file
         	image_fname = join(output_path, "image_%d.jpg" % index)

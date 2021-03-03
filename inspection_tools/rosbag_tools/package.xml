@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>unpack_velodyne_scans</name>
+  <name>rosbag_tools</name>
   <version>1.0.0</version>
   <description>
-    unpack velodyne_msgs/VelodyneScan messages into sensor_msgs::PointCloud2
-		messages contained within velodyne scan udp packets.
+    This package contains some c++ tools for performing tasks on rosbags
   </description>
   <author email="adthoms@uwaterloo.ca">Alex Thoms</author>
   <maintainer email="adthoms@uwaterloo.ca">Alex Thoms</maintainer>
