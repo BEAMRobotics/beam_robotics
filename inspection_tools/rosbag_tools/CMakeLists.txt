@@ -39,10 +39,3 @@ target_link_libraries(unpack_velodyne_scans_main
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
-add_executable(offset_message_timestamps_main
-  src/OffsetMessageTimestampsMain.cpp
-)
-target_link_libraries(offset_message_timestamps_main
-  ${PROJECT_NAME}
-	${catkin_LIBRARIES}
-)
