@@ -34,8 +34,10 @@ def downsample_rosbag(bag_in_name, bag_out_name, topics, skips, start_offset, en
         else:
             if t < new_bag_start_time:
                 bag_out.write(topic, msg, new_bag_start_time)
-            if t > new_bag_start_time:
+            elif t > new_bag_end_time:
                 bag_out.write(topic, msg, new_bag_end_time)
+            else:
+                bag_out.write(topic, msg, t)    
             continue
 
         topic_found, index = search(topics, topic)
