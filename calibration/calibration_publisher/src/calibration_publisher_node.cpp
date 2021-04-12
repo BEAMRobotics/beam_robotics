@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
   // check file exists
   if(!boost::filesystem::exists(calibration_filepath)){
-    ROS_ERROR("Extrinsics file path does not exist: %s", calibration_filepath);
+    ROS_ERROR("Extrinsics file path does not exist: %s", calibration_filepath.c_str());
     throw std::invalid_argument{"Extrinsics file path does not exist."};
   }
 
