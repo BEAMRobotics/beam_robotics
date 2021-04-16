@@ -1,10 +1,13 @@
---------------------------------------------------------------------------------
-                          CALIBRATION LOG
---------------------------------------------------------------------------------
-Description: Use this doc to document all calibrations that are done on ig.
-Please input when they were done, the file name and how they were calculated
-(description). If you know what was changed since the previous calibration,
-please also add this.
+-------------------------------------------------------------------------------
+                                CALIBRATION LOG
+-------------------------------------------------------------------------------
+Description: Use this doc to document all calibrations that are performed on our
+robots. Please input when they were done, the file name and how they were 
+calculated (description). If you know what was changed since the previous 
+calibration, please also add this.
+
+
+inspector_gadget
 
 Date Completed:   File Name:                                Description:
 ---------------   ----------                                ------------
@@ -25,4 +28,13 @@ Date Completed:   File Name:                                Description:
 2018-12-19        X1.yaml                                   Intrinsics of ximea after lense was tuned - Kalibr
                   F1.yaml                                   First intrinsics calibration of blackfly - Kalibr
                   F2.yaml                                   First intrinsics calibration of blackfly - Kalibr
-                  
+   
+kaarta_stencil_pro
+
+Date Completed:   File Name:                                Description:
+---------------   ----------                                ------------
+2021-04-16        camera0.json                              calibrations provided by the Centrum2 dataset supplied by KAARTA
+                  camera1.json                              " ... "
+                  camera2.json                              " ... "
+                  camera3.json                              " ... "
+                  camera4.json                              " ... "                                                      
