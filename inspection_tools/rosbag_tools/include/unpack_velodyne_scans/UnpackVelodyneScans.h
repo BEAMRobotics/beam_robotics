@@ -25,8 +25,8 @@ class UnpackVelodyneScans {
   double view_width_ = 2 * M_PI;
 
   // Required Velodyne Classes for Raw data processing
-  boost::shared_ptr<velodyne_rawdata::RawData> data_;
-  boost::shared_ptr<velodyne_rawdata::DataContainerBase> container_ptr_;
+  std::shared_ptr<velodyne_rawdata::RawData> data_;
+  std::shared_ptr<velodyne_rawdata::DataContainerBase> container_ptr_;
 };
 
 }  // namespace unpack_velodyne_scans

@@ -68,7 +68,7 @@ void MapLabeler::Run() {
       BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
                 cam + 1, num_cams, img_index + 1, num_images, timer.elapsed());
 
-      PointCloudXYZRGB::Ptr cloud_rgb = boost::make_shared<PointCloudXYZRGB>();
+      PointCloudXYZRGB::Ptr cloud_rgb = std::make_shared<PointCloudXYZRGB>();
       pcl::copyPointCloud(*colored_cloud, *cloud_rgb);
 
       rgb_clouds_.push_back(cloud_rgb);
@@ -110,7 +110,7 @@ void MapLabeler::DrawFinalMap() {
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB>
       rgb_field;
 
-  PointCloudXYZRGB::Ptr rgb_pc = boost::make_shared<PointCloudXYZRGB>();
+  PointCloudXYZRGB::Ptr rgb_pc = std::make_shared<PointCloudXYZRGB>();
   pcl::copyPointCloud(*cloud_combiner_.GetCombinedCloud(), *rgb_pc);
 
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
@@ -230,7 +230,7 @@ DefectCloud::Ptr MapLabeler::TransformMapToImageFrame(ros::Time tf_time,
   geometry_msgs::TransformStamped transform_msg =
       tf_tree_.GetTransformROS(to_frame, from_frame, tf_time);
 
-  auto transformed_cloud = boost::make_shared<DefectCloud>();
+  auto transformed_cloud = std::make_shared<DefectCloud>();
 
   tf::Transform tf_;
   tf::transformMsgToTF(transform_msg.transform, tf_);
@@ -296,7 +296,7 @@ DefectCloud::Ptr
   // Get map in camera frame
   DefectCloud::Ptr map_cloud =
       TransformMapToImageFrame(ros_img_time, camera->cam_model_->GetFrameID());
-  auto xyz_cloud = boost::make_shared<PointCloudXYZ>();
+  auto xyz_cloud = std::make_shared<PointCloudXYZ>();
   pcl::copyPointCloud(*map_cloud, *xyz_cloud);
 
   // Set up the camera colorizer with the point cloud which is being labeled
@@ -304,7 +304,7 @@ DefectCloud::Ptr
 
   camera->colorizer_->SetPointCloud(xyz_cloud);
 
-  DefectCloud::Ptr return_cloud = boost::make_shared<DefectCloud>();
+  DefectCloud::Ptr return_cloud = std::make_shared<DefectCloud>();
 
   // Color point cloud with BGR images
   if (img_container.IsBGRImageSet()) {

@@ -24,7 +24,7 @@ find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3)
 
-find_package(PCL 1.8 REQUIRED common registration point_types io)
+find_package(PCL 1.11.1 REQUIRED common registration point_types io)
 add_definitions(${PCL_DEFINITIONS})
 
 if(NOT EIGEN3_FOUND)
