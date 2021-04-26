@@ -17,7 +17,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
     : bag_file_path_(bag_file_path),
       calibration_file_(calibration_file),
       output_postfix_(output_postfix),
-      data_(boost::make_shared<velodyne_rawdata::RawData>()) {
+      data_(std::make_shared<velodyne_rawdata::RawData>()) {
   ros::Time::init();
 
   BEAM_INFO("Loading velodyne calibration file for unpacking...");
@@ -36,7 +36,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
 
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
   data_->setParameters(min_range_, max_range_, view_direction_, view_width_);
-  container_ptr_ = boost::make_shared<velodyne_pointcloud::PointcloudXYZIR>(
+  container_ptr_ = std::make_shared<velodyne_pointcloud::PointcloudXYZIR>(
       max_range_, min_range_, "", "", data_->scansPerPacket());
 }
 

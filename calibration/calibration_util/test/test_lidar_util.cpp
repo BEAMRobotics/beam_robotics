@@ -63,7 +63,7 @@ TEST(TestLidarUtil, Test_filterPointCloud) {
   sensor_msgs::PointCloud2 sens_message;
   pcl_conversions::fromPCL(pcl_pc2, sens_message);
   const sensor_msgs::PointCloud2ConstPtr &input =
-      boost::make_shared<sensor_msgs::PointCloud2>(sens_message);
+      std::make_shared<sensor_msgs::PointCloud2>(sens_message);
   Eigen::Matrix4f eye = Eigen::Matrix4f::Identity();
   // Filter points
   pcl::PointCloud<pcl::PointXYZ>::Ptr filtered =

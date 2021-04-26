@@ -16,7 +16,7 @@ QuantifyDefects::QuantifyDefects(const std::string& cloud_filename,
                                  const std::string& output_directory,
                                  const std::string& config_file_location) {
   point_cloud_ =
-      boost::make_shared<pcl::PointCloud<beam_containers::PointBridge>>();
+      std::make_shared<pcl::PointCloud<beam_containers::PointBridge>>();
   cloud_filename_ = cloud_filename;
   cloud_savedir_ = output_directory;
 
@@ -84,7 +84,7 @@ void QuantifyDefects::OutputCorrosionInfo() {
 }
 
 void QuantifyDefects::SaveCrackOnlyCloud() {
-  auto cloud_filtered = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   *cloud_filtered =
       beam_defects::IsolateCrackPoints(point_cloud_, crack_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
@@ -100,7 +100,7 @@ void QuantifyDefects::SaveCrackOnlyCloud() {
 };
 
 void QuantifyDefects::SaveSpallOnlyCloud() {
-  auto cloud_filtered = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   *cloud_filtered =
       beam_defects::IsolateSpallPoints(point_cloud_, spall_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
@@ -116,7 +116,7 @@ void QuantifyDefects::SaveSpallOnlyCloud() {
 };
 
 void QuantifyDefects::SaveDelamOnlyCloud() {
-  auto cloud_filtered = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   *cloud_filtered =
       beam_defects::IsolateDelamPoints(point_cloud_, delam_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
@@ -132,7 +132,7 @@ void QuantifyDefects::SaveDelamOnlyCloud() {
 };
 
 void QuantifyDefects::SaveCorrosionOnlyCloud() {
-  auto cloud_filtered = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   *cloud_filtered =
       beam_defects::IsolateCorrosionPoints(point_cloud_, corrosion_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =

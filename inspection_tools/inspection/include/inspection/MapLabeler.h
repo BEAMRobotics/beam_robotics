@@ -160,7 +160,7 @@ public:
   void DrawFinalMap();
 
   pcl::visualization::PCLVisualizer::Ptr viewer =
-      boost::make_shared<pcl::visualization::PCLVisualizer>();
+      std::make_shared<pcl::visualization::PCLVisualizer>();
 
 private:
   /**
@@ -209,7 +209,7 @@ private:
 
   std::vector<Eigen::Affine3d, AffineAlign> final_poses_;
   std::vector<ros::Time> final_timestamps_;
-  DefectCloud::Ptr defect_pointcloud_ = boost::make_shared<DefectCloud>();
+  DefectCloud::Ptr defect_pointcloud_ = std::make_shared<DefectCloud>();
 
   std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
 

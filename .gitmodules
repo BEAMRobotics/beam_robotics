@@ -4,9 +4,6 @@
 [submodule "calibration/camera_lidar_calib"]
 	path = calibration/camera_lidar_calib
 	url = git@github.com:BEAMRobotics/camera_lidar_calib.git
-[submodule "mapping/loam_velodyne"]
-	path = mapping/loam_velodyne
-	url = git@github.com:BEAMRobotics/loam_velodyne.git
 [submodule "mapping/novatel_span_driver"]
 	path = mapping/novatel_span_driver
 	url = git@github.com:BEAMRobotics/novatel_span_driver.git

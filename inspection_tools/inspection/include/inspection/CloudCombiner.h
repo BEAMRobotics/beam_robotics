@@ -39,7 +39,7 @@ public:
   DefectCloud::Ptr GetCombinedCloud() { return combined_cloud_; }
 
 protected:
-  DefectCloud::Ptr combined_cloud_ = boost::make_shared<DefectCloud>();
+  DefectCloud::Ptr combined_cloud_ = std::make_shared<DefectCloud>();
 };
 
 } // namespace inspection
