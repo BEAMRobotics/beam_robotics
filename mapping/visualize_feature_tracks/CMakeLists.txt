@@ -11,11 +11,21 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 set(catkin_deps roscpp roslib nodelet)
-find_package(catkin REQUIRED ${catkin_deps})
+find_package(catkin REQUIRED ${catkin_deps} message_generation)
 find_package(nodelet REQUIRED)
 find_package(roscpp REQUIRED)
-find_package(beam REQUIRED utils)
+find_package(beam REQUIRED utils cv containers)
 find_package(cv_bridge REQUIRED)
+
+add_message_files(
+  DIRECTORY
+    msg
+  FILES
+    LandmarkMeasurementMsg.msg
+    CameraMeasurementMsg.msg    
+)
+
+generate_messages()
 
 ## Find Boost log components used for autonomoose diagnostics
 find_package(Boost COMPONENTS REQUIRED log_setup log)
@@ -61,6 +71,8 @@ target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     beam::utils
+    beam::cv
+    beam::containers
 )
 
 ## Declare a C++ library for the nodelet

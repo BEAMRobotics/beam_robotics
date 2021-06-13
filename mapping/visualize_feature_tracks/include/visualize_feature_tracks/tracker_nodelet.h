@@ -5,15 +5,11 @@
 
 #include <ros/ros.h>
 #include <ros/package.h>
-#include <std_msgs/String.h>
 #include <sensor_msgs/Image.h>
 #include <nodelet/nodelet.h>
-#include <pluginlib/class_list_macros.h>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
 
 #include <visualize_feature_tracks/feature_tracker.h>
+#include <visualize_feature_tracks/LandmarkMeasurementMsg.h>
 
 namespace visualize_feature_tracks {
 

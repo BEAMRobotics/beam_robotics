@@ -3,15 +3,17 @@
 #include <iostream>
 #include <string>
 
-#include <boost/log/trivial.hpp>
-
 #include <beam_utils/log.h>
 
 namespace visualize_feature_tracks {
 
-FeatureTracker::FeatureTracker() {
+FeatureTracker::FeatureTracker() {}
+
+std::vector<beam_containers::LandmarkMeasurement> FeatureTracker::AddImage(
+    const cv::Mat& image) {
+  std::vector<beam_containers::LandmarkMeasurement> tracks;
+
+  return tracks;
 }
 
-} // namespace visualize_feature_tracks
-
-
+}  // namespace visualize_feature_tracks
