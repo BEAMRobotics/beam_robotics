@@ -1,0 +1,9 @@
+<library path="lib/libvisualize_feature_tracks_nodelet">
+    <class name="visualize_feature_tracks/tracker_nodelet"
+           type="visualize_feature_tracks::TrackerNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+           Route Publisher Nodelet.
+        </description>
+    </class>
+</library>

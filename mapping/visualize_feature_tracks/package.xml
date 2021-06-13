@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>visualize_feature_tracks</name>
+    <version>0.0.1</version>
+    <description>Subscribed to an image stream extracts and tracks features, and publishes features to an image stream. This has been designed as two nodelets so that you can turn off the feature tracker, and view track from some other source (e.g., slam) </description>
+    <maintainer email="nicholas.c.charron@gmail.com">Nick Charron</maintainer>
+    <license>BSD</license>
+    <author>nicholas.c.charron@gmail.com</author>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <depend>roscpp</depend>
+    <depend>roslib</depend>
+    <depend>nodelet</depend>
+    <depend>libbeam</depend>
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+        <nodelet plugin="${prefix}/nodelets.xml"/>
+    </export>
+</package>
