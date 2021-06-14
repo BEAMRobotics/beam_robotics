@@ -11,21 +11,11 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 set(catkin_deps roscpp roslib nodelet)
-find_package(catkin REQUIRED ${catkin_deps} message_generation)
+find_package(catkin REQUIRED ${catkin_deps})
 find_package(nodelet REQUIRED)
 find_package(roscpp REQUIRED)
-find_package(beam REQUIRED utils cv containers)
 find_package(cv_bridge REQUIRED)
-
-add_message_files(
-  DIRECTORY
-    msg
-  FILES
-    LandmarkMeasurementMsg.msg
-    CameraMeasurementMsg.msg    
-)
-
-generate_messages()
+find_package(beam REQUIRED utils cv)
 
 ## Find Boost log components used for autonomoose diagnostics
 find_package(Boost COMPONENTS REQUIRED log_setup log)
@@ -58,6 +48,7 @@ include_directories(
     ${Boost_INCLUDE_DIR} # NOTE: No 'S' for Boost's include directory
     ${nodelet_INCLUDE_DIRS}
     ${roscpp_INCLUDE_DIRS}
+    ${cv_bridge_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library for underlying (non-ROS) implementation (in this case: example_class)
@@ -72,36 +63,36 @@ target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
     beam::utils
     beam::cv
-    beam::containers
 )
 
 ## Declare a C++ library for the nodelet
-add_library(${PROJECT_NAME}_tracker_nodelet
-    src/tracker_nodelet.cpp
+add_library(${PROJECT_NAME}_nodelet
+    src/nodelet.cpp
 )
 
 ## Set links for the nodelet library
 #### Link the nodelet library target against the non-ROS implementation library.
 #### Also link against Boost so that the log catcher in the nodelet can be used.
-target_link_libraries(${PROJECT_NAME}_tracker_nodelet
+target_link_libraries(${PROJECT_NAME}_nodelet
     ${catkin_LIBRARIES}
     ${PROJECT_NAME}
     ${Boost_LIBRARIES}
     ${nodelet_LIBRARIES}
     ${roscpp_LIBRARIES}
+    ${cv_bridge_LIBRARIES}
 )
 
 ## Declare a C++ executable
 #### ROS Node
-add_executable(${PROJECT_NAME}_tracker_node
-    src/tracker_node.cpp
+add_executable(${PROJECT_NAME}_node
+    src/node.cpp
 )
 
 ## Set links for the node executable
 #### Link the ROS node executable target against:
 ########    catkin libraries
 ########    nodelet library
-target_link_libraries(${PROJECT_NAME}_tracker_node
+target_link_libraries(${PROJECT_NAME}_node
     ${catkin_LIBRARIES}
     ${nodelet_LIBRARIES}
     ${roscpp_LIBRARIES}

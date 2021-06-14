@@ -1,5 +1,11 @@
 <launch>
-    <node pkg="example_package" type="example_package_node" name="example_package" output="screen">
-        <rosparam command="load" file="$(find example_package)/config/example_params.yaml" />
+    <!-- Options for tracker_type: 
+        1. DESCMATCHING : brute force matching of descriptors
+        2. KLT: kanade-lucas tracking
+        3. GUIDEDMATCHING: guided descriptor matching -->
+    <node pkg="visualize_feature_tracks" type="visualize_feature_tracks_node" name="visualize_feature_tracks" output="screen">
+        <param name="image_in_topic" type="string" value="/monocular_camera/image" />
+        <param name="image_out_topic" type="string" value="/monocular_camera/tracks" />
+        <param name="tracker_type" type="string" value="DESCMATCHING" />
     </node>
 </launch>

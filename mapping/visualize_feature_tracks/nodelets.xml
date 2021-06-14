@@ -1,5 +1,5 @@
 <library path="lib/libvisualize_feature_tracks_nodelet">
-    <class name="visualize_feature_tracks/tracker_nodelet"
+    <class name="visualize_feature_tracks/nodelet"
            type="visualize_feature_tracks::TrackerNodelet"
            base_class_type="nodelet::Nodelet">
         <description>

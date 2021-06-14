@@ -8,14 +8,14 @@
     <author>nicholas.c.charron@gmail.com</author>
 
     <buildtool_depend>catkin</buildtool_depend>
-    <build_depend>message_generation</build_depend>
 
     <depend>roscpp</depend>
     <depend>roslib</depend>
     <depend>nodelet</depend>
+    <depend>cv_bridge</depend>
+    <depend>std_msgs</depend>
+    <depend>sensor_msgs</depend>
     <depend>libbeam</depend>
-    
-    <exec_depend>message_runtime</exec_depend>
 
     <!-- The export tag contains other, unspecified, tags -->
     <export>
