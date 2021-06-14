@@ -7,6 +7,7 @@
 #include <beam_cv/descriptors/Descriptors.h>
 #include <beam_cv/detectors/Detectors.h>
 #include <beam_cv/matchers/Matchers.h>
+#include <beam_cv/trackers/Trackers.h>
 
 namespace visualize_feature_tracks {
 
@@ -17,7 +18,7 @@ FeatureTracker::FeatureTracker() {
       std::make_shared<beam_cv::ORBDescriptor>();
   std::shared_ptr<beam_cv::Matcher> matcher =
       std::make_shared<beam_cv::BFMatcher>();
-  tracker_ = std::make_unique<beam_cv::Tracker>(detector, descriptor, matcher);
+  tracker_ = std::make_unique<beam_cv::DescMatchingTracker>(detector, descriptor, matcher);
 }
 
 std::vector<beam_cv::FeatureTrack> FeatureTracker::GetTracks(const cv::Mat& image, const ros::Time& stamp) {

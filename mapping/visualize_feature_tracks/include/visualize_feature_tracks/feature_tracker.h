@@ -3,7 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include <ros/time.h>
 
-#include <beam_cv/tracker/Tracker.h>
+#include <beam_cv/trackers/Tracker.h>
 
 namespace visualize_feature_tracks {
 
