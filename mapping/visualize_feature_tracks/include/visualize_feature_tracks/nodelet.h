@@ -23,15 +23,17 @@ class TrackerNodelet : public nodelet::Nodelet {
 
   void ImageCallback(const sensor_msgs::Image::ConstPtr img_msg);
 
+  ros::NodeHandle nh_;
+  ros::NodeHandle private_nh_;
+
   ros::Subscriber image_subscriber_;
   ros::Publisher image_publisher_;
 
   std::string image_in_topic_;
   std::string image_out_topic_;
-  std::string tracker_type_;
-  ros::NodeHandle nh_;
-  ros::NodeHandle private_nh_;
-  FeatureTracker tracker_;
+  
+  FeatureTracker::Params feature_tracker_params_;
+  std::unique_ptr<FeatureTracker> feature_tracker_;
 };
 
 }  // namespace visualize_feature_tracks

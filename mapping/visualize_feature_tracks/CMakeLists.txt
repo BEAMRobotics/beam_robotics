@@ -80,6 +80,8 @@ target_link_libraries(${PROJECT_NAME}_nodelet
     ${nodelet_LIBRARIES}
     ${roscpp_LIBRARIES}
     ${cv_bridge_LIBRARIES}
+    beam::cv
+    beam::utils
 )
 
 ## Declare a C++ executable
@@ -96,5 +98,7 @@ target_link_libraries(${PROJECT_NAME}_node
     ${catkin_LIBRARIES}
     ${nodelet_LIBRARIES}
     ${roscpp_LIBRARIES}
+    beam::cv
+    beam::utils
 )
 
