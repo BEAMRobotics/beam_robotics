@@ -1,0 +1,14 @@
+<launch>
+    <node pkg="visualize_feature_tracks" type="visualize_feature_tracks_node" name="visualize_feature_tracks" output="screen">
+        <param name="image_in_topic" type="string" value="/monocular_camera/image" />
+        <param name="image_out_topic" type="string" value="/monocular_camera/tracks" />
+        <param name="tracker_type" type="string" value="KL" />
+        <param name="tracker_config" type="string" value="" />
+        <param name="detector_type" type="string" value="ORB" />
+        <param name="detector_config" type="string" value="" />
+        <param name="descriptor_type" type="string" value="ORB" />
+        <param name="descriptor_config" type="string" value="" />
+        <param name="matcher_type" type="string" value="BF" />
+        <param name="matcher_config" type="string" value="" />
+    </node>
+</launch>
