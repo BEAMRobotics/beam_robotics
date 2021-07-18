@@ -17,7 +17,7 @@ This tool maintains the indexed times of all messages and ensures *sensor_msgs/P
 
 Run the main exectuble as follows:
 
-`cd catkin_ws/build/unpack_velodyne_scans` \
+`cd catkin_ws/build/rosbag_tools` \
 `./unpack_velodyne_scans_main [args]`
 
 For information on `[args]`, run: `./unpack_velodyne_scans_main --help`

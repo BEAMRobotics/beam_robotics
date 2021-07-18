@@ -7,6 +7,8 @@ import rosbag
 from cv_bridge import CvBridge
 from os.path import join
 
+# NOTE: You can use rosrun image_view extract_images instead of this script: http://wiki.ros.org/image_view#image_view.2Fdiamondback.extract_images
+
 def print_usage():
     print("Usage: bag2imgs.py <ros bag> <ros topic> <output path> <images to skip (optional)>")
     print("Example: bag2imgs.py record.bag /robot/camera robot_images/ 1")
