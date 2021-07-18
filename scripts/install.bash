@@ -1,20 +1,16 @@
 #!/bin/bash
 set -e
 
-# This script installs and compiles the entire beam robotics software stack
-# Running this script with some parts already installed should be fine
-
-# Specify location of installation scripts
-INSTALL_SCRIPTS=$"$HOME/software/beam_install_scripts"
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# This script 
+# 1) installs and compiles the entire beam robotics software stack
+# 2) installs and compiles optional installations 
 
 # Ensure that Beam install scripts are installed
+INSTALL_SCRIPTS=$"$HOME/software/beam_install_scripts"
 if [ -d $INSTALL_SCRIPTS ]; then
     echo "Beam install scripts found"
 else
-    echo "Cloning Beam install scripts into:"
-    echo $INSTALL_SCRIPTS
-    echo "Make sure they are not installed somewhere else."
+    echo "Cloning Beam install scripts into: $INSTALL_SCRIPTS..."
     if [ ! -d "$HOME/software" ]; then
       mkdir -p "$HOME/software"
     fi
