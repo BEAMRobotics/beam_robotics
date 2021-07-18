@@ -10,6 +10,6 @@
 [submodule "inspection_tools/cnn_defect_segmentation"]
 	path = inspection_tools/cnn_defect_segmentation
 	url = git@github.com:BEAMRobotics/cnn_defect_segmentation.git
-[submodule "dependencies/velodyne"]
-	path = dependencies/velodyne
-	url = git@github.com:BEAMRobotics/velodyne.git
+[submodule "dependencies/velodyne-1"]
+	path = dependencies/velodyne-1
+	url = git@github.com:BEAMRobotics/velodyne-1.git
