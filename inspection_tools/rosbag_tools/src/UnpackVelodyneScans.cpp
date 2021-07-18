@@ -4,7 +4,7 @@
 #include <ros/package.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-#include <velodyne_pointcloud/pointcloudXYZIR.h>
+#include <velodyne_pointcloud/pointcloudXYZIRT.h>
 
 #include <beam_utils/log.h>
 #include <boost/foreach.hpp>
@@ -36,7 +36,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
 
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
   data_->setParameters(min_range_, max_range_, view_direction_, view_width_);
-  container_ptr_ = std::make_shared<velodyne_pointcloud::PointcloudXYZIR>(
+  container_ptr_ = std::make_shared<velodyne_pointcloud::PointcloudXYZIRT>(
       max_range_, min_range_, "", "", data_->scansPerPacket());
 }
 
@@ -64,7 +64,7 @@ void UnpackVelodyneScans::Run() {
       container_ptr_->setup(vel_scan_msg);
       data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
                     vel_scan_msg->header.stamp);
-      container_ptr_->modify_pkt_time(vel_scan_msg->packets[i]);
+      container_ptr_->modify_packet_time(vel_scan_msg->packets[i]);
       sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
       ros::Time packet_indexed_time =
           msg.getTime() +
