@@ -39,3 +39,12 @@ target_link_libraries(unpack_velodyne_scans_main
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
+
+# executables
+add_executable(pose_stamped_to_odometry_main
+  src/PoseStampedToOdometry.cpp
+)
+target_link_libraries(pose_stamped_to_odometry_main
+  ${PROJECT_NAME}
+	${catkin_LIBRARIES}
+)
