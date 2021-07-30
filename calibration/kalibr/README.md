@@ -6,6 +6,16 @@ Though several methods exist for installing [Kalibr](https://github.com/ethz-asl
 
 For a description of how to use Kalibr for calibrating beam robots, see our [Calibration Procedure for Beam Robots](https://github.com/BEAMRobotics/beam_robotics/wiki/Calibration-Procedure-for-Beam-Robots)
 
+## Installation
+
+In a terminal, run
+
+```docker
+docker pull stereolabs/kalibr
+```
+
+To pull the most recent docker image. This image may be updated after the automatic installation
+
 ## Run Kalibr as a docker image
 
 In a terminal, run
