@@ -11,4 +11,4 @@ xhost +local:root;
 docker run -it -e DISPLAY -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix:rw -v $data_dir:/root/data stereolabs/kalibr:kinetic /bin/bash -c "cd /root/data; /bin/bash"
 xhost -local:root;
 
-echo "Succesfully loaded docker image of Kalibr. Enter Kalibr commands below "
+echo "Successfully loaded docker image of Kalibr. Enter Kalibr commands below. "
