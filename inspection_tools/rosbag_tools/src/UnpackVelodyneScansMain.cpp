@@ -3,12 +3,12 @@
 #include <beam_utils/gflags.h>
 #include <gflags/gflags.h>
 
-DEFINE_string(bag_file_path, "", "Full path to bag file (Required).");
+DEFINE_string(bag_file_path, "", "Full path to bag file (Required)");
 DEFINE_validator(bag_file_path, &beam::gflags::ValidateBagFileMustExist);
 DEFINE_string(calibration_file, "VLP16_hires_db.yaml",
-              "velodyne calibration file (Optional).");
+              "velodyne calibration file (Optional)");
 DEFINE_string(output_postfix, "_unpacked",
-              "topic postfix for unpacked velodyne scans (Optional).");
+              "topic postfix for unpacked velodyne scans (Optional)");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
