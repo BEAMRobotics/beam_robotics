@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string>
 
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <pluginlib/class_list_macros.h>
+
+#include <beam_cv/OpenCVConversions.h>
 
 namespace visualize_feature_tracks {
 
@@ -26,29 +27,17 @@ void TrackerNodelet::onInit() {
 
 void TrackerNodelet::ImageCallback(const sensor_msgs::Image::ConstPtr img_msg) {
   // extract image
-  cv_bridge::CvImagePtr cv_ptr;
-  try {
-    cv_ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::RGB8);
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-  cv::Mat img_col = cv_ptr->image;
+  cv::Mat img_col = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
   cv::Mat img_mono;
-  cv::cvtColor(img_col, img_mono, CV_BGR2GRAY);
+  cv::cvtColor(img_col, img_mono, cv::COLOR_BGR2GRAY);
 
   // get image with tracks drawn
   std::vector<beam_cv::FeatureTrack> tracks =
       feature_tracker_->GetTracks(img_mono, img_msg->header.stamp);
   cv::Mat image_out = feature_tracker_->DrawTracks(tracks, img_col);
 
-  cv_bridge::CvImage out_tmp;
-  out_tmp.header = img_msg->header;
-  out_tmp.encoding = sensor_msgs::image_encodings::RGB8;
-  out_tmp.image = image_out;
-
-  sensor_msgs::Image out_msg;
-  out_tmp.toImageMsg(out_msg);
+  sensor_msgs::Image out_msg = beam_cv::OpenCVConversions::MatToRosImg(
+      image_out, img_msg->header, "rgb8");
   image_publisher_.publish(out_msg);
 }
 

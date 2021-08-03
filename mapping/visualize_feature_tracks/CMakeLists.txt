@@ -14,8 +14,8 @@ set(catkin_deps roscpp roslib nodelet)
 find_package(catkin REQUIRED ${catkin_deps})
 find_package(nodelet REQUIRED)
 find_package(roscpp REQUIRED)
-find_package(cv_bridge REQUIRED)
 find_package(beam REQUIRED utils cv)
+find_package(OpenCV 4.5.2 REQUIRED COMPONENTS)
 
 ## Find Boost log components used for autonomoose diagnostics
 find_package(Boost COMPONENTS REQUIRED log_setup log)
@@ -48,7 +48,7 @@ include_directories(
     ${Boost_INCLUDE_DIR} # NOTE: No 'S' for Boost's include directory
     ${nodelet_INCLUDE_DIRS}
     ${roscpp_INCLUDE_DIRS}
-    ${cv_bridge_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library for underlying (non-ROS) implementation (in this case: example_class)
@@ -79,7 +79,6 @@ target_link_libraries(${PROJECT_NAME}_nodelet
     ${Boost_LIBRARIES}
     ${nodelet_LIBRARIES}
     ${roscpp_LIBRARIES}
-    ${cv_bridge_LIBRARIES}
     beam::cv
     beam::utils
 )
