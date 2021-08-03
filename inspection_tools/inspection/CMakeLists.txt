@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  cv_bridge
   geometry_msgs
   nav_msgs
   pcl_ros
@@ -18,15 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(gflags REQUIRED)
 find_package(rosbag REQUIRED)
-find_package(cv_bridge REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(beam REQUIRED calibration colorize containers defects utils)
-
 find_package(pcl_ros REQUIRED)
-find_package(cv_bridge REQUIRED)
 find_package(nlohmann_json 3.2.0 REQUIRED)
+find_package(OpenCV 4.5.2 REQUIRED COMPONENTS)
 
 # Add the core inspection library
 add_subdirectory(src/lib)

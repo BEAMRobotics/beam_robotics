@@ -12,7 +12,6 @@
     <depend>roscpp</depend>
     <depend>roslib</depend>
     <depend>nodelet</depend>
-    <depend>cv_bridge</depend>
     <depend>std_msgs</depend>
     <depend>sensor_msgs</depend>
     <depend>libbeam</depend>

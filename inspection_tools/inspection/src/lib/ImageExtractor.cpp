@@ -1,12 +1,12 @@
 #include <inspection/ImageExtractor.h>
 
 #include <boost/filesystem.hpp>
-#include <cv_bridge/cv_bridge.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/image_encodings.h>
 
 #include <beam_containers/ImageBridge.h>
 #include <beam_mapping/Poses.h>
+#include <beam_cv/OpenCVConversions.h>
 #include <beam_utils/angles.h>
 #include <beam_utils/log.h>
 #include <beam_utils/math.h>
@@ -292,19 +292,15 @@ cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,
     last_image_time_ = img_msg->header.stamp;
     if (first_image) { frame_ids_.push_back(img_msg->header.frame_id); }
     if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
-      cv::Mat image =
-          cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8)
-              ->image;
+      cv::Mat image = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
       return ApplyImageTransforms(image, cam_number);
     } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
-      cv::Mat image_RGB =
-          cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::RGB8)
-              ->image;
+      cv::Mat image_RGB = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
       cv::Mat image_BGR;
       cv::cvtColor(image_RGB, image_BGR, CV_RGB2BGR);
       return ApplyImageTransforms(image_BGR, cam_number);
     } else {
-      cv::Mat image = ROSConvertColor(img_msg);
+      cv::Mat image = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
       return ApplyImageTransforms(image, cam_number);
     }
   }

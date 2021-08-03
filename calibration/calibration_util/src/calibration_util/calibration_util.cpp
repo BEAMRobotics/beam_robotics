@@ -369,7 +369,7 @@ void drawBothChessboardCorners(cv::Mat &image, cv::Size pattern_size,
   cv::Scalar proj_colour(0, 0, 255);
   int i, x, y;
   int radius = 5;
-  int line_type = CV_AA;
+  int line_type = cv::LINE_AA;
   for (y = 0, i = 0; y < pattern_size.height; y++) {
     for (x = 0; x < pattern_size.width; x++, i++) {
       cv::Point pt_base, pt_proj;
@@ -385,7 +385,7 @@ void drawBothChessboardCorners(cv::Mat &image, cv::Size pattern_size,
                cv::Point(pt_proj.x - radius, pt_proj.y), proj_colour, 1,
                line_type);
       cv::line(image, cv::Point(pt_proj.x, pt_proj.y + radius),
-               cvPoint(pt_proj.x, pt_proj.y - radius), proj_colour, 1,
+               cv::Point(pt_proj.x, pt_proj.y - radius), proj_colour, 1,
                line_type);
       // Draw link between points
       cv::line(image, pt_base, pt_proj, link_colour, 1, line_type);
