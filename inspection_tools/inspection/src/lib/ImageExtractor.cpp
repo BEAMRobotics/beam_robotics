@@ -297,7 +297,7 @@ cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,
     } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
       cv::Mat image_RGB = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
       cv::Mat image_BGR;
-      cv::cvtColor(image_RGB, image_BGR, CV_RGB2BGR);
+      cv::cvtColor(image_RGB, image_BGR, cv::COLOR_RGB2BGR);
       return ApplyImageTransforms(image_BGR, cam_number);
     } else {
       cv::Mat image = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
@@ -353,13 +353,13 @@ cv::Mat
     ImageExtractor::ApplyHistogramTransform(const cv::Mat& image,
                                             const std::vector<double>& params) {
   cv::Mat ycrcb;
-  cv::cvtColor(image, ycrcb, CV_BGR2YCrCb);
+  cv::cvtColor(image, ycrcb, cv::COLOR_BGR2YCrCb);
   std::vector<cv::Mat> channels;
   cv::split(ycrcb, channels);
   cv::equalizeHist(channels[0], channels[0]);
   cv::Mat new_image;
   cv::merge(channels, ycrcb);
-  cv::cvtColor(ycrcb, new_image, CV_YCrCb2BGR);
+  cv::cvtColor(ycrcb, new_image, cv::COLOR_YCrCb2BGR);
   return new_image;
 }
 
@@ -407,7 +407,7 @@ cv::Mat ImageExtractor::ApplyUndistortTransform(
 cv::Mat ImageExtractor::ApplyClaheTransform(const cv::Mat& image,
                                             const std::vector<double>& params) {
   cv::Mat lab_image;
-  cv::cvtColor(image, lab_image, CV_BGR2Lab);
+  cv::cvtColor(image, lab_image, cv::COLOR_BGR2Lab);
   std::vector<cv::Mat> lab_planes(6);
   cv::split(lab_image, lab_planes);
   cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
@@ -417,7 +417,7 @@ cv::Mat ImageExtractor::ApplyClaheTransform(const cv::Mat& image,
   dst.copyTo(lab_planes[0]);
   cv::merge(lab_planes, lab_image);
   cv::Mat new_image;
-  cv::cvtColor(lab_image, new_image, CV_Lab2BGR);
+  cv::cvtColor(lab_image, new_image, cv::COLOR_Lab2BGR);
   return new_image;
 }
 
