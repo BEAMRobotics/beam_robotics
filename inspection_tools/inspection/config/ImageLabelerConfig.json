@@ -1,0 +1,1 @@
+{"crack_model_path": "/home/alice/projects/beam_robotics/inspection_tools/inspection/src/lib/models/crack_segmentation_model_python_2.pth", "num_classes": 2, "crack_confidence_threshold": 0.7, "crack_seg_threshold": 0.3}
