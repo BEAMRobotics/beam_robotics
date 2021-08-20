@@ -26,7 +26,7 @@ def main(args):
             stamps[topic] = []
         msgs[topic].append(msg)
         stamps[topic].append(
-            rospy.Time(msg.stamp.secs, msg.stamp.nsecs*100).to_sec())
+            rospy.Time(msg.stamp.secs, msg.stamp.nsecs).to_sec())
 
     bag.close()
     print(range(len(stamps[topics[0]])))
