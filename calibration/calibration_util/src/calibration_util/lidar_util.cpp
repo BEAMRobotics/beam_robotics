@@ -1,20 +1,17 @@
-#include "calibration_util/lidar_util.hpp"
+#include <calibration_util/lidar_util.hpp>
 
 #include <pcl/filters/passthrough.h>
-
 #include <Eigen/Core>
 #include <opencv2/core/eigen.hpp>
-
 #include <pcl/ModelCoefficients.h>
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/common/common_headers.h>
-#include <pcl/conversions.h>
 #include <pcl/filters/project_inliers.h>
 #include <pcl/impl/point_types.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl_ros/transforms.h>
+
+#include <beam_utils/pcl_conversions.h>
 
 namespace lidar_util {
 
@@ -96,7 +93,7 @@ fitPlaneAndProject(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, bool &success) {
   seg.setInputCloud(cloud);
   seg.segment(*inliers, *coefficients);
   if (inliers->indices.size() == 0) {
-    ROS_ERROR("Could not estimate a planar model for the given dataset.");
+    std::cout << "ERROR: Could not estimate a planar model for the given dataset.\n";
     success = false;
     return cloud;
   }
@@ -122,7 +119,7 @@ filterPointCloud(const sensor_msgs::PointCloud2ConstPtr &lidar_msg,
                  double z_limit) {
   // Convert point cloud to PCL
   pcl::PCLPointCloud2 pcl_pc2;
-  pcl_conversions::toPCL(*lidar_msg, pcl_pc2);
+  beam::pcl_conversions::toPCL(*lidar_msg, pcl_pc2);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromPCLPointCloud2(pcl_pc2, *cloud);
   // Change to camera frame

@@ -1,72 +1,73 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.14)
 project(calibration_util)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-set(CMAKE_BUILD_TYPE RELEASE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
-set(catkin_deps
-    rosbag
-    pcl_ros
-    message_filters)
-
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  geometry_msgs
-  sensor_msgs
-  pcl_ros
-)
+set(CMAKE_CXX_STANDARD 14)
 
 ## System dependencies are found with CMake's conventions
-find_package(OpenCV REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen3)
-
+find_package(OpenCV 4.5.2 REQUIRED)
+find_package(Boost REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(beam REQUIRED utils)
 find_package(PCL 1.11.1 REQUIRED common registration point_types io)
-add_definitions(${PCL_DEFINITIONS})
-
-if(NOT EIGEN3_FOUND)
-  #Fallback to cmake modules
-  find_package(cmake_modules REQUIRED)
-  find_package(Eigen REQUIRED)
-  set(EIGEN3_INCLUDE_DIR ${EIGEN_INCLUDE_DIRS})
-  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
-endif(NOT EIGEN3_FOUND)
-
-add_definitions(${EIGEN_DEFINITIONS})
 find_package(Ceres REQUIRED)
-add_definitions(-DUSE_CERES)
 find_package(gflags REQUIRED)
 
+find_package(
+  catkin REQUIRED
+  COMPONENTS
+    roscpp
+    geometry_msgs
+    sensor_msgs
+    roslib
+  )
+    
+
 catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS ${catkin_deps}
-  DEPENDS Eigen OpenCV
-  LIBRARIES ${PROJECT_NAME}
-)
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}
+  CATKIN_DEPENDS 
+    geometry_msgs
+    roscpp
+    sensor_msgs
+    tf2
+    tf2_geometry_msgs
+    tf2_ros
+    roslib
+  DEPENDS
+    Boost
+    CERES
+    EIGEN3
+  )
 
 ###########
 ## Build ##
 ###########
 include_directories(
-  ${EIGEN3_INCLUDE_DIR}
-  ${gflag_INCLUDE_DIR}
-  ${CERES_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
+  include  
+  ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+  ${gflag_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
-  include
 )
 
-LINK_DIRECTORIES(
-  ${PCL_LIBRARY_DIRS}
-)
-
-add_library(${PROJECT_NAME}
+add_library(
+  ${PROJECT_NAME}
   src/calibration_util/calibration_util.cpp
   src/calibration_util/lidar_util.cpp
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(
+  ${PROJECT_NAME}
+    ${catkin_LIBRARIES}
+    ${CERES_LIBRARIES}
+    ${PCL_LIBRARIES}
+    beam::utils
 )
 
 if (CATKIN_ENABLE_TESTING)
@@ -84,5 +85,7 @@ if (CATKIN_ENABLE_TESTING)
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     ${OpenCV_LIBRARIES}
+    ${PCL_LIBRARIES}
+    beam::utils
   )
 endif (CATKIN_ENABLE_TESTING)
