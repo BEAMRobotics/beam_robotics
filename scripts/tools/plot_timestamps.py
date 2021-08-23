@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Plot header timestamps to validate synchronization.')
+        description='Plot TimeReference msgs to validate synchronization.')
     parser.add_argument('-b', '--bag', nargs=1, help='input bag file')
     parser.add_argument(
         '-t', '--topics', nargs='+', help='whitespace separated list of topics')
@@ -26,7 +26,7 @@ def main(args):
             stamps[topic] = []
         msgs[topic].append(msg)
         stamps[topic].append(
-            rospy.Time(msg.stamp.secs, msg.stamp.nsecs).to_sec())
+            rospy.Time(msg.time_ref.secs, msg.time_ref.nsecs).to_sec())
 
     bag.close()
     print(range(len(stamps[topics[0]])))
