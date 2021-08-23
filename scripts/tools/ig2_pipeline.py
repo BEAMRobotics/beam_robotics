@@ -3,17 +3,17 @@ import sys
 import argparse
 import os
 
-from restamp import *
+from restamp import restamp
 
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Plot TimeReference msgs to validate synchronization.')
-    parser.add_argument('-b', '--bag', nargs=1, help='input bag file')
+        description='Pipeline of post processing steps for raw ig2 bags.')
+    parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
     parser.add_argument(
-        '-d', '--data_topics', nargs='+', help='whitespace separated list of topics')
+        '-d', '--data_topics', nargs='+', help='whitespace separated list of sensor message topics', default=["/imu/data", "/F1/image_raw", "/F2/image_raw", "/F3/image_raw"])
     parser.add_argument(
-        '-t', '--time_topics', nargs='+', help='whitespace separated list of topics')
+        '-t', '--time_topics', nargs='+', help='whitespace separated list of time reference topics', default=["/imu/imu_time", "/F1/cam_time", "/F2/cam_time", "/F3/cam_time"])
 
     args = parser.parse_args()
 
@@ -26,22 +26,9 @@ def main(args):
     data_topics = args.data_topics
     
     # pair and restamp data/time message couples
-    bag = restamp(bag, data_topics, time_topics)
+    outbag = restamp(bag, outbag, data_topics, time_topics)
     
-    # print(bag.read_messages())
-    # for topic, msg, t in bag.read_messages(data_topics):
-    #     if not topic in msgs:
-    #         msgs[topic] = []
-    #         stamps[topic] = []
-    #     msgs[topic].append(msg)
-    #     stamps[topic].append(
-    #         rospy.Time(msg.time_ref.secs, msg.time_ref.nsecs).to_sec())
-
-    # bag.close()
-    # print(range(len(stamps[topics[0]])))
-    # print(stamps[topics[0]])
-    # plt.scatter(range(len(stamps[topics[0]])), stamps[topics[0]])
-    # plt.show()
+    outbag.close()
 
 
 if __name__ == "__main__":
