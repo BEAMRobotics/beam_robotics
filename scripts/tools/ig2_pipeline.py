@@ -9,7 +9,7 @@ from restamp import restamp
 def main(args):
     parser = argparse.ArgumentParser(
         description='Pipeline of post processing steps for raw ig2 bags.')
-    parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
+    parser.add_argument('-b', '--bag', help='input bag file', required=True)
     parser.add_argument(
         '-d', '--data_topics', nargs='+', help='whitespace separated list of sensor message topics', default=["/imu/data", "/F1/image_raw", "/F2/image_raw", "/F3/image_raw"])
     parser.add_argument(
@@ -17,8 +17,8 @@ def main(args):
 
     args = parser.parse_args()
 
-    bag = rosbag.Bag(args.bag[0])
-    folder = os.path.dirname(args.bag[0])
+    bag = rosbag.Bag(args.bag)
+    folder = os.path.dirname(args.bag)
     outfile = os.path.join(folder, "output.bag")
     outbag = rosbag.Bag(outfile, "w")
 

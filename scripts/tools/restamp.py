@@ -1,5 +1,4 @@
 import rosbag
-import rospy
 import sys
 import argparse
 import os
@@ -30,7 +29,7 @@ def restamp(bag, outbag, data_topics, time_topics):
 def main(args):
     parser = argparse.ArgumentParser(
         description='Plot TimeReference msgs to validate synchronization.')
-    parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
+    parser.add_argument('-b', '--bag', help='input bag file', required=True)
     parser.add_argument(
         '-d', '--data_topics', nargs='+', help='whitespace separated list of topics', required=True)
     parser.add_argument(
@@ -41,8 +40,8 @@ def main(args):
     data_topics = args.data_topics
     time_topics = args.time_topics
   
-    bag = rosbag.Bag(args.bag[0])
-    folder = os.path.dirname(args.bag[0])
+    bag = rosbag.Bag(args.bag)
+    folder = os.path.dirname(args.bag)
     outfile = os.path.join(folder, "output.bag")
     outbag = rosbag.Bag(outfile, "w")
 
