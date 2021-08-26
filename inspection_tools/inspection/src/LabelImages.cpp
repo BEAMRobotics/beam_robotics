@@ -17,6 +17,7 @@ DEFINE_bool(delam, true, "Segment delaminations from images");
 DEFINE_bool(corrosion, true, "Segment corrosions from images");
 DEFINE_bool(spall, true, "Segment spalls from images");
 DEFINE_bool(vis, false, "Visualize segmentation results");
+DEFINE_bool(verbose, false, "Print filepath of image being processed");
 
 
 int main(int argc, char* argv[]){
@@ -53,6 +54,9 @@ int main(int argc, char* argv[]){
   if (FLAGS_vis){
     model_flags = model_flags + 1;
   }
+  if (FLAGS_verbose){
+    model_flags = model_flags + 1;
+  }
 
   FILE* fp;
   int argc_py = 3 + model_flags;
@@ -80,10 +84,14 @@ int main(int argc, char* argv[]){
   }
   if (!FLAGS_spall){
     argv_py[idx] = static_cast<const char*>("--spall");
-    idx = idx +1;
+    idx = idx + 1;
   }
   if (FLAGS_vis){
     argv_py[idx] = static_cast<const char*>("--vis");
+    idx = idx + 1;
+  }
+  if (FLAGS_verbose){
+    argv_py[idx] = static_cast<const char*>("--verbose");
   }
 
   //run python code
