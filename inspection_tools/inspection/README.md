@@ -57,8 +57,10 @@ There are currently 3 options for transforming/enhancing the images at extractio
 
 The image labeler is python code with a c++ wrapper. By default python 2.7 is used. To run the existing models, python needs to have the following libraries installed:
 
- * Pytorch
+ * torch
+ * torchvision
  * tensorflow or tensorflow-gpu version 1.13.1
  * keras version 2.2.4
  * h5py version < 3.0.0
 
+Note: tensorflow as installed by pip requires a device with a cpu that can read AVX instructions, otherwise a build from source is required. 
