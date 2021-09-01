@@ -11,6 +11,7 @@ This module contains the main code needed to perform an inspections given a ROS 
 ## Executables:
 
  * inspection_extract_images: This takes a bag file and a set of poses and extracts images at certain intervals based on motion. Images are extracted into image containers with the option of extracting them all to the same root directory (not using image containers). 
+ * inspection_label_images: This takes an extracted bag file from inspection_extract_images and attempts to generate defect masks using each of the segmentation model provided. If any models cannot be loaded, than segmentation of that defect is bypassed. 
  * inspection_label_map: This takes the output from SLAM (map + poses) and a set of images from inspection_extract_images which also have defect masks, and returns a labeled map. The map has the same set of points from the SLAM map but each point has a label for each of the defect classes.
  * inspection_quantify_defects: This takes the results from the label_map and quantifies all the defects.
  * odom_topic_to_poses_file: This is a tool for getting a poses file from an odometry topic in a ROS bag. 
@@ -27,7 +28,7 @@ The order at which to run the executables to go through the whole inspection pip
   2. Export SLAM map to a PCD file
   3. Generate a json poses file (you can use odom_topic_to_poses_file if the SLAM method chosen does not output the poses file)
   4. Run inspection_extract_images given the original ROS bag and the poses file
-  5.  Label the images from inspection_extract_images by generating defect masks. This step has not been fully automated.
+  5. Run insepection_label_images to label the images from inspection_extract_images by generating defect masks. This step has not been fully automated for all defects. Currently only implemented for crack and spall detection.
 
 ## Image Extractor Instructions  
 
@@ -51,3 +52,13 @@ There are currently 3 options for transforming/enhancing the images at extractio
  * histogram: histogram equalization
  * clahe: see // https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
  * undistort: undistorts the images using the intrinsic calibrations. You can specify the cropping of the image as a percent of width and height. This is useful if you want to remove border pixels which are often black after the undistortion, Note that this will crop based on the size of the input image, not the size of the camera model. So if the input image has already been cropped, this will crop it further. Also, if the images are compressed, they will first be upsampled to the camera model dimensions, then undistorted, then recompressed to the original image size and then cropped (if specified). Note that you cannot use cropped and downsampled/compressed images because we are unable to get back to the original camera model dimensions.
+
+### Image Labeler:
+
+The image labeler is python code with a c++ wrapper. By default python 2.7 is used. To run the existing models, python needs to have the following libraries installed:
+
+ * Pytorch
+ * tensorflow or tensorflow-gpu version 1.13.1
+ * keras version 2.2.4
+ * h5py version < 3.0.0
+

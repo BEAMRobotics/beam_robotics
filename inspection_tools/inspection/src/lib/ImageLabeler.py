@@ -10,7 +10,14 @@ from torchvision.transforms import transforms as T
 from crack_segmentation_model import pretrained_mask_rcnn
 import sys
 
-# 
+import tensorflow as tf
+from keras.models import load_model
+from keras.preprocessing.image import ImageDataGenerator
+from delam_segmentation_model import Deeplabv3
+from delam_segmentation_model import relu6, BilinearUpsampling
+import keras
+import keras.backend as K
+from deep_defect_functions import *
 
 
 # load models
@@ -30,7 +37,6 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
     with open(config_path) as config_json:
         config_dict = json.load(config_json)
         if crack:
-            #print("loading crack model")
             crack_model_path = config_dict["crack_model_path"]
 
             if not os.path.isabs(crack_model_path):
@@ -80,6 +86,10 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if torch.cuda.is_available():
             crack_model.cuda()
+        crack_checkpoint = torch.load(crack_model_path, map_location=device)
+        crack_model.load_state_dict(crack_checkpoint["model"])
+        crack_model.eval()
+        crack = False
         try:
             crack_checkpoint = torch.load(crack_model_path, map_location=device)
             crack_model.load_state_dict(crack_checkpoint["model"])
@@ -89,7 +99,19 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
             print("ERROR: Cannot load crack model file. Crack segmentation will not be completed")       
 
     if delam: 
-        print("load delam model")
+        try:
+            # load trained deeplab model
+            delam_model = load_model(delam_model_path,
+                                     custom_objects={'relu6':relu6,
+                                     'BilinearUpsampling':BilinearUpsampling,
+                                     'perDelam':perDelam,
+                                     'predDelam':predDelam,
+                                     'realDelam':realDelam,
+                                     'iou_loss':iou_loss})
+            print("load delam model")
+        except:
+            print("ERROR: Cannot load delam model file. Delam segmentation will not be completed")
+            delam = False
 
     if corrosion:
         print("load corrosion model")
@@ -171,11 +193,20 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
                 
                 if delam:
                     img = Image.open(data_path + camera + "/" + img_name + "/IRImage.jpg")
+                    
+                    width, height = img.size
+                    if width > 3000 or height > 2000:
+                        new_size = (int(width/2), int(height/2))
+                        img = img.resize(new_size)
+                    res = delam_model.predict(np.expand_dims(img_scale,0), batch_size=1)
+                    labels = np.argmax(res.squeeze(),-1)
+                    ir_mask = Image.fromarray((labels).astype(np.uint8))
+                    ir_mask.save(data_path + camera + "/" + img_name + "/IRMask.jpg")
                     #delam segmentation here
 
-                    #if visualize:
-                    #    mask_visualize = Image.fromarray(labels*255)
-                    #    mask_visualize.save(data_path + camera + "/" + img_name + "/IRMask_visualize.jpg")
+                    if visualize:
+                        mask_visualize = Image.fromarray((labels*255).astype(np.uint8))
+                        mask_visualize.save(data_path + camera + "/" + img_name + "/IRMask_visualize.jpg")
 
                     img_info["ir_mask_method"] = "Deeplabv3_delam"
                     img_info["is_ir_mask_set"] = True
