@@ -34,7 +34,7 @@
 
 #include <gtest/gtest.h>
 #include <stdio.h>
-#include "example_package/example_class/example_class.hpp"
+#include "example_package/example_class/example_class.h"
 
 // Test the ExampleClass::Bar(int input) function.
 TEST(ExampleClassTest, BarTest) {

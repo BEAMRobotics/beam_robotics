@@ -1,5 +1,4 @@
-#ifndef LIDAR_UTIL_HPP
-#define LIDAR_UTIL_HPP
+#pragma once
 
 // PCL
 #include <pcl/common/projection_matrix.h>
@@ -62,5 +61,3 @@ filterPointCloud(const sensor_msgs::PointCloud2ConstPtr &lidar_msg,
                  Eigen::Matrix4f T_Target_lidar, double xy_limit,
                  double z_limit);
 }
-
-#endif // LIDAR_UTIL_HPP

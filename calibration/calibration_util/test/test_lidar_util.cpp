@@ -1,21 +1,19 @@
-#include "calibration_util/lidar_util.hpp"
-
-#include <pcl/PCLPointCloud2.h>
-#include <pcl/conversions.h>
-#include <pcl/filters/approximate_voxel_grid.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl_conversions/pcl_conversions.h>
-
-#include <Eigen/Core>
-#include <opencv2/core/eigen.hpp>
+#include <calibration_util/lidar_util.hpp>
 
 #include <math.h>
 #include <stdlib.h>
+#include <cmath>
 
+#include <Eigen/Core>
+#include <pcl/PCLPointCloud2.h>
+#include <pcl/filters/approximate_voxel_grid.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <opencv2/core/eigen.hpp>
 #include <gtest/gtest.h>
 
-#include <cmath>
+#include <beam_utils/pcl_conversions.h>
+
 const auto PI = M_PI;
 
 namespace lidar_util {
@@ -61,9 +59,9 @@ TEST(TestLidarUtil, Test_filterPointCloud) {
   pcl::PCLPointCloud2 pcl_pc2;
   pcl::toPCLPointCloud2(*full_point_cloud, pcl_pc2);
   sensor_msgs::PointCloud2 sens_message;
-  pcl_conversions::fromPCL(pcl_pc2, sens_message);
+  beam::pcl_conversions::fromPCL(pcl_pc2, sens_message);
   const sensor_msgs::PointCloud2ConstPtr &input =
-      std::make_shared<sensor_msgs::PointCloud2>(sens_message);
+      boost::make_shared<sensor_msgs::PointCloud2>(sens_message);
   Eigen::Matrix4f eye = Eigen::Matrix4f::Identity();
   // Filter points
   pcl::PointCloud<pcl::PointXYZ>::Ptr filtered =
