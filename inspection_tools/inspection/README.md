@@ -4,8 +4,7 @@ This module contains the main code needed to perform an inspections given a ROS 
 
 ## TODO:
 
- * Create pipelines (in python?) that call all the executables to run the whole inspection pipeline from start to finish.
- * Automate defect labeling in images. Currently we have some CNN models trained for spall detection and delamination detection (in IR images) in beam_robotics/inspection_tools/cnn_defect_segmentation. But these models cannot yet be called from within our inspection pipeline. We need to create an executable that applies these models to the images from inspection_extract_images. The models were created using TensorFlow so it might be easier to make this a python executable, but it also could be convenient to be able to call Pytorch models which can easily be done in C++. We also have ImageLabeler class files stored here as a place holder but they are empty.
+ * Train/find spall and corrosion models. Incorporate automated detection for these models into ImageLabeler.py.
  * Create GenerateReport class. Currently the files are in place but empty. The goal of this class would be to get use the defect quantities to generate a report of this inspection.
 
 ## Executables:
@@ -55,7 +54,7 @@ There are currently 3 options for transforming/enhancing the images at extractio
 
 ### Image Labeler:
 
-The image labeler is python code with a c++ wrapper. By default python 2.7 is used. To run the existing models, python needs to have the following libraries installed:
+The image labeler is python code with a c++ wrapper. By default python 2.7 is used. To run the existing models, python needs to have the following libraries installed (code will compile without these):
 
  * torch
  * torchvision
@@ -63,10 +62,10 @@ The image labeler is python code with a c++ wrapper. By default python 2.7 is us
  * keras version 2.2.4
  * h5py version < 3.0.0
 
-Installation Code:
-sudo apt install python-pip
-pip install torch
-pip install torchvision
-pip install tensorflow==1.13.1
-pip install keras==2.2.4
-pip install 'h5py<3.0.0'
+Installation Code:\
+sudo apt install python-pip\
+pip install torch\
+pip install torchvision\
+pip install tensorflow==1.13.1\
+pip install keras==2.2.4\
+pip install 'h5py<3.0.0'\
