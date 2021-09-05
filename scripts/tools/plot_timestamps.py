@@ -1,37 +1,49 @@
 import rosbag
 import rospy
 import sys
+import subprocess
+import yaml
 import argparse
 import matplotlib.pyplot as plt
 
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Plot header timestamps to validate synchronization.')
-    parser.add_argument('-b', '--bag', nargs=1, help='input bag file')
+        description='Plot all TimeReference topics in a bag to validate synchronization.')
+    parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
     parser.add_argument(
-        '-t', '--topics', nargs='+', help='whitespace separated list of topics')
+        '-t', '--topics', nargs='+', help='whitespace separated list of topics to include, leave empty for all TimeReference topics')
 
     args = parser.parse_args()
 
     bag = rosbag.Bag(args.bag[0])
-    topics = args.topics
 
-    msgs = {}
+    topics = list()
+    if args.topics is not None:
+        for topic in args.topics:
+            if topic == "sensor_msgs/TimeReference":
+                topics.append(topic)
+    else:
+        info_dict = yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', args.bag[0]], stdout=subprocess.PIPE).communicate()[0])
+        for topic in info_dict["topics"]:
+            if topic["type"] == "sensor_msgs/TimeReference":
+                topics.append(topic["topic"])
+
+
     stamps = {}
 
     for topic, msg, t in bag.read_messages(topics):
-        if not topic in msgs:
-            msgs[topic] = []
+        if not topic in stamps:
             stamps[topic] = []
-        msgs[topic].append(msg)
-        stamps[topic].append(
-            rospy.Time(msg.stamp.secs, msg.stamp.nsecs*100).to_sec())
+        stamps[topic].append(msg.time_ref.to_sec())
 
     bag.close()
-    print(range(len(stamps[topics[0]])))
-    print(stamps[topics[0]])
-    plt.scatter(range(len(stamps[topics[0]])), stamps[topics[0]])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for topic in stamps:
+        ax.scatter(x=range(len(stamps[topic])), y=stamps[topic], label=topic)
+    plt.legend(loc="lower right")
     plt.show()
 
 
