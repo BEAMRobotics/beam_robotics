@@ -63,7 +63,7 @@ The image labeler is python code with a c++ wrapper. By default python 2.7 is us
  * keras version 2.2.4
  * h5py version < 3.0.0
 
-Code to install:
+Installation Code:
 sudo apt install python-pip
 pip install torch
 pip install torchvision
