@@ -1,5 +1,4 @@
 import torch
-import glob
 from PIL import Image
 import os
 import json
@@ -7,17 +6,11 @@ import numpy as np
 import argparse
 
 from torchvision.transforms import transforms as T
-from crack_segmentation_model import pretrained_mask_rcnn
-import sys
+from ModelUtils.crack_segmentation_model import pretrained_mask_rcnn
 
-import tensorflow as tf
 from keras.models import load_model
-from keras.preprocessing.image import ImageDataGenerator
-from delam_segmentation_model import Deeplabv3
-from delam_segmentation_model import relu6, BilinearUpsampling
-import keras
-import keras.backend as K
-from deep_defect_functions import *
+from ModelUtils.delam_segmentation_model import relu6, BilinearUpsampling
+from ModelUtils.deep_defect_functions import *
 
 
 # load models
@@ -98,9 +91,9 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
         except:
             print("ERROR: Cannot load crack model file. Crack segmentation will not be completed")       
 
-    if delam: 
+    if delam:
+        print("load delam model")
         try:
-            # load trained deeplab model
             delam_model = load_model(delam_model_path,
                                      custom_objects={'relu6':relu6,
                                      'BilinearUpsampling':BilinearUpsampling,
@@ -108,7 +101,6 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
                                      'predDelam':predDelam,
                                      'realDelam':realDelam,
                                      'iou_loss':iou_loss})
-            print("load delam model")
         except:
             print("ERROR: Cannot load delam model file. Delam segmentation will not be completed")
             delam = False
@@ -189,20 +181,17 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
 
             if img_info["is_ir_image_set"]:
                 if verbose: 
-                    print(data_path + camera + "/" + img_name + "/BGRImage.jpg")
+                    print(data_path + camera + "/" + img_name + "/IRImage.jpg")
                 
                 if delam:
-                    img = Image.open(data_path + camera + "/" + img_name + "/IRImage.jpg")
+                    img = np.asarray(Image.open(data_path + camera + "/" + img_name + "/IRImage.jpg"))
                     
-                    width, height = img.size
-                    if width > 3000 or height > 2000:
-                        new_size = (int(width/2), int(height/2))
-                        img = img.resize(new_size)
+                    img_scale = customRescale(img)
+
                     res = delam_model.predict(np.expand_dims(img_scale,0), batch_size=1)
                     labels = np.argmax(res.squeeze(),-1)
                     ir_mask = Image.fromarray((labels).astype(np.uint8))
                     ir_mask.save(data_path + camera + "/" + img_name + "/IRMask.jpg")
-                    #delam segmentation here
 
                     if visualize:
                         mask_visualize = Image.fromarray((labels*255).astype(np.uint8))
