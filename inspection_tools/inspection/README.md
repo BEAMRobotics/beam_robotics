@@ -63,4 +63,10 @@ The image labeler is python code with a c++ wrapper. By default python 2.7 is us
  * keras version 2.2.4
  * h5py version < 3.0.0
 
-Note: tensorflow as installed by pip requires a device with a cpu that can read AVX instructions, otherwise a build from source is required. 
+Code to install:
+sudo apt install python-pip
+pip install torch
+pip install torchvision
+pip install tensorflow==1.13.1
+pip install keras==2.2.4
+pip install 'h5py<3.0.0'

@@ -38,9 +38,9 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
             if not os.path.isfile(crack_model_path):
                 print("ERROR: Crack model file does not exist. Crack segmentation will not be completed")
                 crack = False
-            num_classes = config_dict["crack_num_classes"]  # crack and background classes
-            crack_confidence_threshold = config_dict["crack_confidence_threshold"]
-            crack_seg_threshold = config_dict["crack_seg_threshold"]
+            num_classes = config_dict["crack_num_classes"]  # default = 2, crack and background classes 
+            crack_confidence_threshold = config_dict["crack_confidence_threshold"]  # default = 0.7
+            crack_seg_threshold = config_dict["crack_seg_threshold"]  # default = 0.3
 
         if delam:
             delam_model_path = config_dict["delam_model_path"]
