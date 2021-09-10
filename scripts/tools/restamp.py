@@ -33,7 +33,7 @@ def restamp(bag, outbag, data_topics, time_topics):
         
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Restamp and reserialize data topics with corresponding TimeReference topics.  Unspecified topics are preserved.')
+        description='Restamp and reserialize data topics with corresponding TimeReference topics.  Unspecified topics are only reserialized.')
     parser.add_argument('-b', '--bag', help='input bag file', required=True)
     parser.add_argument(
         '-d', '--data_topics', nargs='+', help='whitespace separated list of topics', required=True)
