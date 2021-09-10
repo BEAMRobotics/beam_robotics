@@ -1,8 +1,7 @@
-#include "calibration_util/calibration_util.hpp"
+#include <calibration_util/calibration_util.hpp>
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <ros/package.h>
-
 #include <gtest/gtest.h>
 
 namespace calibration_util {
