@@ -70,7 +70,7 @@ void UnpackVelodyneScans::Run() {
                       vel_scan_msg->header.stamp);
       }
       sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
-      bag_out.write(out_topic, vel_scan_msg->header.stamp, cloud_packet);
+      bag_out.write(out_topic, msg.getTime(), cloud_packet);
     } else {
       for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
         container_ptr_->setup(vel_scan_msg);
