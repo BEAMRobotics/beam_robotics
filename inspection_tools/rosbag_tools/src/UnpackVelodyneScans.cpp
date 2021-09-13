@@ -11,10 +11,12 @@
 
 namespace unpack_velodyne_scans {
 
-UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
+UnpackVelodyneScans::UnpackVelodyneScans(bool aggregate_packets,
+                                         const std::string& bag_file_path,
                                          const std::string& calibration_file,
                                          const std::string& output_postfix)
-    : bag_file_path_(bag_file_path),
+    : aggregate_packets_(aggregate_packets),
+      bag_file_path_(bag_file_path),
       calibration_file_(calibration_file),
       output_postfix_(output_postfix),
       data_(std::make_shared<velodyne_rawdata::RawData>()) {
@@ -29,7 +31,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
   int setup =
       data_->setupOffline(calibration_full_path, max_range_, min_range_);
   if (setup == -1) {
-    BEAM_CRITICAL("Ensure calibration file is inlcuded in " + calibration_path +
+    BEAM_CRITICAL("Ensure calibration file is included in " + calibration_path +
                   ". Exiting Program");
     throw std::invalid_argument{""};
   }
@@ -60,16 +62,27 @@ void UnpackVelodyneScans::Run() {
 
     std::string out_topic = msg.getTopic();
     out_topic += output_postfix_;
-    for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
+
+    if (aggregate_packets_) {
       container_ptr_->setup(vel_scan_msg);
-      data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
-                    vel_scan_msg->header.stamp);
-      container_ptr_->modify_packet_time(vel_scan_msg->packets[i]);
+      for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
+        data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
+                      vel_scan_msg->header.stamp);
+      }
       sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
-      ros::Time packet_indexed_time =
-          msg.getTime() +
-          (cloud_packet.header.stamp - vel_scan_msg->header.stamp);
-      bag_out.write(out_topic, packet_indexed_time, cloud_packet);
+      bag_out.write(out_topic, msg.getTime(), cloud_packet);
+    } else {
+      for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
+        container_ptr_->setup(vel_scan_msg);
+        data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
+                      vel_scan_msg->header.stamp);
+        container_ptr_->modify_packet_time(vel_scan_msg->packets[i]);
+        sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
+        ros::Time packet_indexed_time =
+            msg.getTime() +
+            (cloud_packet.header.stamp - vel_scan_msg->header.stamp);
+        bag_out.write(out_topic, packet_indexed_time, cloud_packet);
+      }
     }
   }
 
