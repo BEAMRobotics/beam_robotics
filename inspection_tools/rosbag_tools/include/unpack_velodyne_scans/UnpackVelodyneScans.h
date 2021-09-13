@@ -7,13 +7,15 @@ namespace unpack_velodyne_scans {
 
 class UnpackVelodyneScans {
  public:
-  explicit UnpackVelodyneScans(const std::string& bag_file_path,
+  explicit UnpackVelodyneScans(bool aggregate_packets,
+                               const std::string& bag_file_path,
                                const std::string& calibration_file,
                                const std::string& output_postfix);
   ~UnpackVelodyneScans() = default;
   void Run();
 
  private:
+  bool aggregate_packets_;
   std::string bag_file_path_;
   std::string calibration_file_;
   std::string output_postfix_;
