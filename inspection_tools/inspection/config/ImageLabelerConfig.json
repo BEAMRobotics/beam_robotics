@@ -1,0 +1,9 @@
+{
+    "crack_model_path": "src/lib/models/crack_segmentation_model_python_2.pth",
+    "crack_num_classes": 2,
+    "crack_confidence_threshold": 0.7,
+    "crack_seg_threshold": 0.3,
+    "delam_model_path": "src/lib/models/delam_segmentation_model.h5",
+    "corrosion_model_path": "",
+    "spall_model_path": ""
+}

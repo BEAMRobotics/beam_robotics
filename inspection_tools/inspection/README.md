@@ -4,13 +4,13 @@ This module contains the main code needed to perform an inspections given a ROS 
 
 ## TODO:
 
- * Create pipelines (in python?) that call all the executables to run the whole inspection pipeline from start to finish.
- * Automate defect labeling in images. Currently we have some CNN models trained for spall detection and delamination detection (in IR images) in beam_robotics/inspection_tools/cnn_defect_segmentation. But these models cannot yet be called from within our inspection pipeline. We need to create an executable that applies these models to the images from inspection_extract_images. The models were created using TensorFlow so it might be easier to make this a python executable, but it also could be convenient to be able to call Pytorch models which can easily be done in C++. We also have ImageLabeler class files stored here as a place holder but they are empty.
+ * Train/find spall and corrosion models. Incorporate automated detection for these models into ImageLabeler.py.
  * Create GenerateReport class. Currently the files are in place but empty. The goal of this class would be to get use the defect quantities to generate a report of this inspection.
 
 ## Executables:
 
  * inspection_extract_images: This takes a bag file and a set of poses and extracts images at certain intervals based on motion. Images are extracted into image containers with the option of extracting them all to the same root directory (not using image containers). 
+ * inspection_label_images: This takes an extracted bag file from inspection_extract_images and attempts to generate defect masks using each of the segmentation model provided. If any models cannot be loaded, than segmentation of that defect is bypassed. 
  * inspection_label_map: This takes the output from SLAM (map + poses) and a set of images from inspection_extract_images which also have defect masks, and returns a labeled map. The map has the same set of points from the SLAM map but each point has a label for each of the defect classes.
  * inspection_quantify_defects: This takes the results from the label_map and quantifies all the defects.
  * odom_topic_to_poses_file: This is a tool for getting a poses file from an odometry topic in a ROS bag. 
@@ -27,7 +27,7 @@ The order at which to run the executables to go through the whole inspection pip
   2. Export SLAM map to a PCD file
   3. Generate a json poses file (you can use odom_topic_to_poses_file if the SLAM method chosen does not output the poses file)
   4. Run inspection_extract_images given the original ROS bag and the poses file
-  5.  Label the images from inspection_extract_images by generating defect masks. This step has not been fully automated.
+  5. Run insepection_label_images to label the images from inspection_extract_images by generating defect masks. This step has not been fully automated for all defects. Currently only implemented for crack and spall detection.
 
 ## Image Extractor Instructions  
 
@@ -51,3 +51,21 @@ There are currently 3 options for transforming/enhancing the images at extractio
  * histogram: histogram equalization
  * clahe: see // https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE
  * undistort: undistorts the images using the intrinsic calibrations. You can specify the cropping of the image as a percent of width and height. This is useful if you want to remove border pixels which are often black after the undistortion, Note that this will crop based on the size of the input image, not the size of the camera model. So if the input image has already been cropped, this will crop it further. Also, if the images are compressed, they will first be upsampled to the camera model dimensions, then undistorted, then recompressed to the original image size and then cropped (if specified). Note that you cannot use cropped and downsampled/compressed images because we are unable to get back to the original camera model dimensions.
+
+### Image Labeler:
+
+The image labeler is python code with a c++ wrapper. By default python 2.7 is used. To run the existing models, python needs to have the following libraries installed (code will compile without these):
+
+ * torch
+ * torchvision
+ * tensorflow or tensorflow-gpu version 1.13.1
+ * keras version 2.2.4
+ * h5py version < 3.0.0
+
+Installation Code:\
+sudo apt install python-pip\
+pip install torch\
+pip install torchvision\
+pip install tensorflow==1.13.1\
+pip install keras==2.2.4\
+pip install 'h5py<3.0.0'\
