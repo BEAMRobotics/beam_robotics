@@ -14,8 +14,6 @@
 
 namespace inspection {
 
-typedef Eigen::aligned_allocator<Eigen::Affine3d> AffineAlign;
-
 ImageExtractor::ImageExtractor(const std::string& bag_file,
                                const std::string& poses_file,
                                const std::string& save_directory,
@@ -110,7 +108,7 @@ void ImageExtractor::GetTimeStamps() {
   // load all poses
   beam_mapping::Poses p;
   p.LoadFromJSON(poses_file_);
-  std::vector<Eigen::Affine3d, AffineAlign> poses = p.GetPoses();
+  std::vector<Eigen::Affine3d, beam::AlignAff3d> poses = p.GetPoses();
   std::vector<ros::Time> pose_time_stamps = p.GetTimeStamps();
   image_time_stamps_ =
       std::vector<std::vector<ros::Time>>(image_topics_.size());
