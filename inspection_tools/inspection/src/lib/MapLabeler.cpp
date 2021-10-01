@@ -138,7 +138,7 @@ void MapLabeler::ProcessJSONConfig() {
       final_map_name_ = json_config_.at("final_map_name");
     if (!json_config_.at("cloud_combiner").empty())
       cloud_combiner_type_ = json_config_.at("cloud_combiner");
-    json cameras_json = json_config_.at("cameras");
+    nlohmann::json cameras_json = json_config_.at("cameras");
 
     BEAM_DEBUG("MapLabeler JSON - Images path: {}", images_folder_);
     BEAM_DEBUG("MapLabeler JSON - Map path: {}", map_path_);
@@ -156,7 +156,7 @@ void MapLabeler::ProcessJSONConfig() {
       cameras_.push_back(std::move(cam));
     }
 
-  } catch (json::exception& e) {
+  } catch (nlohmann::json::exception& e) {
     BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
                   e.id);
   }

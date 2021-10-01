@@ -46,7 +46,7 @@ class MapLabeler {
      * @param cam_intrinsics_path Path to folder containing all camera
      * intrinsics files (e.g., .../calibrations/)
      */
-    Camera(json camera_config_json, std::string cam_imgs_folder,
+    Camera(nlohmann::json camera_config_json, std::string cam_imgs_folder,
            std::string intrin_folder)
         : camera_name_(camera_config_json.at("Name")),
           cam_imgs_folder_(cam_imgs_folder),
