@@ -4,7 +4,7 @@
   "camera_type": "RADTAN",
   "image_width": 4096,
   "image_height": 3000,
-  "frame_id": "F$_link",
+  "frame_id": "F4_link",
   "intrinsics": [
     2.317962718195548e+03,
     2.316565439350143e+03,
