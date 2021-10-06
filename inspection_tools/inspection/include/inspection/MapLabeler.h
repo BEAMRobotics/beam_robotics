@@ -25,11 +25,8 @@ using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
 using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
-using json = nlohmann::json;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
-using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
-using AffineAlign = Eigen::aligned_allocator<Eigen::Affine3d>;
 
 /**
  * @brief class for labeling/coloring a SLAM map given beam image containers
@@ -49,7 +46,7 @@ class MapLabeler {
      * @param cam_intrinsics_path Path to folder containing all camera
      * intrinsics files (e.g., .../calibrations/)
      */
-    Camera(json camera_config_json, std::string cam_imgs_folder,
+    Camera(nlohmann::json camera_config_json, std::string cam_imgs_folder,
            std::string intrin_folder)
         : camera_name_(camera_config_json.at("Name")),
           cam_imgs_folder_(cam_imgs_folder),
@@ -196,7 +193,7 @@ private:
   beam_calibration::TfTree tf_tree_;
 
   std::string json_labeler_filepath_ = {};
-  json json_config_ = {};
+  nlohmann::json json_config_ = {};
 
   std::string images_folder_ = {};
   std::string intrinsics_folder_ = {};
@@ -207,7 +204,7 @@ private:
   std::string cloud_combiner_type_ = "Override";
   bool output_individual_clouds_ = false;
 
-  std::vector<Eigen::Affine3d, AffineAlign> final_poses_;
+  std::vector<Eigen::Affine3d, beam::AlignAff3d> final_poses_;
   std::vector<ros::Time> final_timestamps_;
   DefectCloud::Ptr defect_pointcloud_ = std::make_shared<DefectCloud>();
 

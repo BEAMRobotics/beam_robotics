@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(inspection)
 
 set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -23,9 +23,11 @@ find_package(PCL 1.11.1 REQUIRED)
 find_package(beam REQUIRED calibration colorize containers defects utils)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(OpenCV 4.5.2 REQUIRED COMPONENTS)
+find_package(PythonLibs REQUIRED)
 
 # Add the core inspection library
 add_subdirectory(src/lib)
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 # extract images binary
 add_executable(${PROJECT_NAME}_extract_images
@@ -35,6 +37,17 @@ target_link_libraries(${PROJECT_NAME}_extract_images
 	${PROJECT_NAME}
 	gflags
 	beam::utils
+)
+
+# Image Labeller
+add_executable(${PROJECT_NAME}_label_images
+        src/LabelImages.cpp
+)
+target_link_libraries(${PROJECT_NAME}_label_images
+        ${PROJECT_NAME}
+        gflags
+        beam::utils
+        ${PYTHON_LIBRARIES}
 )
 
 # ManualB inspection binaries
