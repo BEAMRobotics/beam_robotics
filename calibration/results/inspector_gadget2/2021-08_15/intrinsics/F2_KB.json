@@ -1,10 +1,10 @@
 {
   "date": "2021-08-15",
-  "method": "Open-CV",
+  "method": "OpenCV",
   "camera_type": "KANNALABRANDT",
   "image_width": 2048,
   "image_height": 1536,
-  "frame_id": "F2",
+  "frame_id": "F2_link",
   "intrinsics": [
     768.37621100697526799,
     768.25291474526727598,

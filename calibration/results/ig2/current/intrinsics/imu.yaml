@@ -1,9 +1,0 @@
-rostopic: /imu/data
-update_rate: 200.00
-#Accelerometers
-accelerometer_noise_density: 0.00094.
-accelerometer_random_walk: 0.0000024.
-#Gyroscopes
-gyroscope_noise_density: 0.00057.
-gyroscope_random_walk: 0.0000037.
-
