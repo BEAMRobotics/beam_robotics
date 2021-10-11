@@ -14,7 +14,8 @@ namespace unpack_velodyne_scans {
 UnpackVelodyneScans::UnpackVelodyneScans(bool aggregate_packets,
                                          const std::string& bag_file_path,
                                          const std::string& calibration_file,
-                                         const std::string& output_postfix)
+                                         const std::string& output_postfix,
+                                         const std::string& lidar_model)
     : aggregate_packets_(aggregate_packets),
       bag_file_path_(bag_file_path),
       calibration_file_(calibration_file),
@@ -29,7 +30,7 @@ UnpackVelodyneScans::UnpackVelodyneScans(bool aggregate_packets,
   calibration_full_path += calibration_path + calibration_file_;
 
   int setup =
-      data_->setupOffline(calibration_full_path, max_range_, min_range_);
+      data_->setupOffline(calibration_full_path, lidar_model, max_range_, min_range_);
   if (setup == -1) {
     BEAM_CRITICAL("Ensure calibration file is included in " + calibration_path +
                   ". Exiting Program");
