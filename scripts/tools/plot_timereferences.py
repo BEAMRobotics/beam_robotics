@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Plot all TimeReference topics in a bag to validate synchronization.')
+        description='Plot all TimeReference topics in a bag. This is helpful to validate synchronization in a dataset (e.g., ig2 data).')
     parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
     parser.add_argument(
         '-t', '--topics', nargs='+', help='whitespace separated list of topics to include, leave empty for all TimeReference topics')
