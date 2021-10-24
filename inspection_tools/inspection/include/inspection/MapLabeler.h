@@ -16,13 +16,11 @@
 #include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
 #include <beam_utils/log.h>
-#include <beam_utils/time.h>
+
 #include <inspection/CloudCombiner.h>
 
 namespace inspection {
 
-using Clock = std::chrono::steady_clock;
-using TimePoint = std::chrono::time_point<Clock>;
 using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
@@ -46,65 +44,17 @@ class MapLabeler {
      * @param cam_intrinsics_path Path to folder containing all camera
      * intrinsics files (e.g., .../calibrations/)
      */
-    Camera(nlohmann::json camera_config_json, std::string cam_imgs_folder,
-           std::string intrin_folder)
-        : camera_name_(camera_config_json.at("Name")),
-          cam_imgs_folder_(cam_imgs_folder),
-          cam_intrinsics_path_(intrin_folder + camera_name_ + ".json") {
-      BEAM_DEBUG("Creating camera: {}", camera_name_);
+    Camera(const nlohmann::json& camera_config_json,
+           const std::string& cam_imgs_folder,
+           const std::string& intrin_folder);
 
-      using namespace beam_calibration;
-      using namespace beam_colorize;
-      using namespace boost::filesystem;
-
-      cam_model_ = CameraModel::Create(cam_intrinsics_path_);
-
-      // Next we create/fill in a string vector which will store the path to
-      // each image folder for our camera (this is used for instantiating image
-      // container objects)
-      path p{cam_imgs_folder_};
-      BEAM_DEBUG("    Getting image paths for camera...");
-      for (const auto& imgs : camera_config_json.at("Images")) {
-        std::string img_type = imgs.at("Type");
-        for (const auto& ids : imgs.at("IDs")) {
-          if (ids == "All") {
-            for (auto& entry :
-                 boost::make_iterator_range(directory_iterator(p), {})) {
-              std::string path = entry.path().string();
-              img_paths_.emplace_back(path);
-              BEAM_DEBUG("      Adding path: {}", path);
-            }
-          } else {
-            img_paths_.emplace_back(cam_imgs_folder_ + "/" + img_type +
-                                    std::string(ids));
-            camera_pose_ids_.push_back(std::stoi(std::string(ids)));
-            BEAM_DEBUG("      Adding path: {}", img_paths_.back());
-          }
-        }
-      }
-      std::sort(img_paths_.begin(), img_paths_.end());
-      BEAM_DEBUG("    Total image paths: {}", img_paths_.size());
-
-      if (camera_config_json.at("Colorizer") == "Projection") {
-        colorizer_ = Colorizer::Create(ColorizerType::PROJECTION);
-        colorizer_type_ = "Projection";
-      } else if (camera_config_json.at("Colorizer") == "RayTrace") {
-        colorizer_ = Colorizer::Create(ColorizerType::RAY_TRACE);
-        colorizer_type_ = "RayTrace";
-      }
-      BEAM_DEBUG("    Creating {} colorizer object", colorizer_type_);
-
-      colorizer_->SetIntrinsics(cam_model_);
-      colorizer_->SetDistortion(true);
-      BEAM_DEBUG("    Sucessfully constructed camera: {}!", camera_name_);
-    }
     Camera() = default;
 
-    std::string colorizer_type_ = {};
-    std::string camera_name_ = {};
-    std::string cam_imgs_folder_ = {};
-    std::string cam_intrinsics_path_ = {};
-    std::vector<std::string> img_paths_ = {};
+    std::string colorizer_type_;
+    std::string camera_name_;
+    std::string cam_imgs_folder_;
+    std::string cam_intrinsics_path_;
+    std::vector<std::string> img_paths_;
     std::shared_ptr<beam_calibration::CameraModel> cam_model_;
     std::unique_ptr<beam_colorize::Colorizer> colorizer_;
     std::vector<Eigen::Affine3f> transforms_;
@@ -192,25 +142,25 @@ private:
 
   beam_calibration::TfTree tf_tree_;
 
-  std::string json_labeler_filepath_ = {};
-  nlohmann::json json_config_ = {};
+  std::string json_labeler_filepath_;
+  nlohmann::json json_config_;
 
-  std::string images_folder_ = {};
-  std::string intrinsics_folder_ = {};
-  std::string map_path_ = {};
-  std::string poses_path_ = {};
-  std::string extrinsics_path_ = {};
-  std::string final_map_name_ = "_final_map.pcd";
-  std::string cloud_combiner_type_ = "Override";
-  bool output_individual_clouds_ = false;
+  std::string images_folder_;
+  std::string intrinsics_folder_;
+  std::string map_path_;
+  std::string poses_path_;
+  std::string extrinsics_path_;
+  std::string final_map_name_{"_final_map.pcd"};
+  std::string cloud_combiner_type_{"Override"};
+  bool output_individual_clouds_{false};
 
-  std::vector<Eigen::Affine3d, beam::AlignAff3d> final_poses_;
+  std::vector<Eigen::Matrix4d, beam::AlignMat4d> final_poses_;
   std::vector<ros::Time> final_timestamps_;
   DefectCloud::Ptr defect_pointcloud_ = std::make_shared<DefectCloud>();
 
-  std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_ = {};
+  std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_;
 
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds_ = {};
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds_;
   beam_containers::ImageBridge img_bridge_;
 
   std::vector<Camera> cameras_;

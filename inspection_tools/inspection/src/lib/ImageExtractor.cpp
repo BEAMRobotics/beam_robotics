@@ -5,8 +5,8 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include <beam_containers/ImageBridge.h>
-#include <beam_mapping/Poses.h>
 #include <beam_cv/OpenCVConversions.h>
+#include <beam_mapping/Poses.h>
 #include <beam_utils/angles.h>
 #include <beam_utils/log.h>
 #include <beam_utils/math.h>
@@ -108,7 +108,7 @@ void ImageExtractor::GetTimeStamps() {
   // load all poses
   beam_mapping::Poses p;
   p.LoadFromJSON(poses_file_);
-  std::vector<Eigen::Affine3d, beam::AlignAff3d> poses = p.GetPoses();
+  std::vector<Eigen::Matrix4d, beam::AlignMat4d> poses = p.GetPoses();
   std::vector<ros::Time> pose_time_stamps = p.GetTimeStamps();
   image_time_stamps_ =
       std::vector<std::vector<ros::Time>>(image_topics_.size());
@@ -142,7 +142,7 @@ void ImageExtractor::GetTimeStamps() {
 
     // iterate over all poses for this camera
     std::vector<ros::Time> time_stamps;
-    Eigen::Affine3d TA_moving_fixed_last = poses[0];
+    Eigen::Matrix4d T_moving_fixed_last = poses[0];
     for (uint16_t pose_iter = 1; pose_iter < poses.size(); pose_iter++) {
       // first check that pose time is not outside current bag time
       if (pose_time_stamps[pose_iter] < topic_start_time ||
@@ -150,36 +150,21 @@ void ImageExtractor::GetTimeStamps() {
         continue;
       }
       // next, check sufficient motion has passed
-      Eigen::Affine3d TA_moving_fixed_curr = poses[pose_iter];
-      Eigen::Affine3d TA_curr_last =
-          TA_moving_fixed_curr.inverse() * TA_moving_fixed_last;
-      if (PassedMinMotion(TA_curr_last, cam_iter)) {
+      Eigen::Matrix4d T_moving_fixed_curr = poses[pose_iter];
+      Eigen::Matrix4d T_curr_last =
+          T_moving_fixed_curr.inverse() * T_moving_fixed_last;
+      if (beam::PassedMotionThreshold(T_moving_fixed_curr, T_moving_fixed_last,
+                                      rotation_between_images_[cam_iter],
+                                      distance_between_images_[cam_iter], true,
+                                      false, false)) {
         time_stamps.push_back(pose_time_stamps[pose_iter]);
-        TA_moving_fixed_last = TA_moving_fixed_curr;
+        T_moving_fixed_last = T_moving_fixed_curr;
       }
     }
     image_time_stamps_[cam_iter] = time_stamps;
     BEAM_INFO("Saving {} images from camera topic: {}", time_stamps.size(),
               image_topics_[cam_iter]);
   }
-}
-
-bool ImageExtractor::PassedMinMotion(const Eigen::Affine3d& TA_curr_last,
-                                     int cam_number) {
-  Eigen::Vector3d error_t = TA_curr_last.translation();
-  error_t[0] = std::abs(error_t[0]);
-  error_t[1] = std::abs(error_t[1]);
-  error_t[2] = std::abs(error_t[2]);
-  if (error_t[0] > distance_between_images_[cam_number] ||
-      error_t[1] > distance_between_images_[cam_number] ||
-      error_t[2] > distance_between_images_[cam_number]) {
-    return true;
-  }
-
-  double error_r = Eigen::AngleAxis<double>(TA_curr_last.rotation()).angle();
-  if (error_r > rotation_between_images_[cam_number]) { return true; }
-
-  return false;
 }
 
 void ImageExtractor::OutputImages() {
