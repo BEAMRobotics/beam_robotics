@@ -55,8 +55,6 @@ private:
 
   void GetTimeStamps();
 
-  bool PassedMinMotion(const Eigen::Affine3d& TA_curr_last, int cam_number);
-
   void OutputImages();
 
   cv::Mat GetImageFromBag(ros::Time& image_time, int cam_number,

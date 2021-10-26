@@ -10,15 +10,58 @@
 #include <beam_mapping/Poses.h>
 #include <beam_utils/time.h>
 
-using namespace std::literals::chrono_literals;
-
 namespace inspection {
 
-ros::Time TimePointToRosTime(const TimePoint& time_point) {
-  ros::Time ros_time;
-  ros_time.fromNSec(time_point.time_since_epoch() /
-                    std::chrono::nanoseconds(1));
-  return ros_time;
+MapLabeler::Camera::Camera(const nlohmann::json& camera_config_json,
+                           const std::string& cam_imgs_folder,
+                           const std::string& intrin_folder)
+    : camera_name_(camera_config_json.at("Name")),
+      cam_imgs_folder_(cam_imgs_folder),
+      cam_intrinsics_path_(intrin_folder + camera_name_ + ".json") {
+  BEAM_DEBUG("Creating camera: {}", camera_name_);
+
+  cam_model_ = beam_calibration::CameraModel::Create(cam_intrinsics_path_);
+
+  // Next we create/fill in a string vector which will store the path to
+  // each image folder for our camera (this is used for instantiating image
+  // container objects)
+  boost::filesystem::path p{cam_imgs_folder_};
+  BEAM_DEBUG("    Getting image paths for camera...");
+  for (const auto& imgs : camera_config_json.at("Images")) {
+    std::string img_type = imgs.at("Type");
+    for (const auto& ids : imgs.at("IDs")) {
+      if (ids == "All") {
+        for (auto& entry : boost::make_iterator_range(
+                 boost::filesystem::directory_iterator(p), {})) {
+          std::string path = entry.path().string();
+          img_paths_.emplace_back(path);
+          BEAM_DEBUG("      Adding path: {}", path);
+        }
+      } else {
+        img_paths_.emplace_back(cam_imgs_folder_ + "/" + img_type +
+                                std::string(ids));
+        camera_pose_ids_.push_back(std::stoi(std::string(ids)));
+        BEAM_DEBUG("      Adding path: {}", img_paths_.back());
+      }
+    }
+  }
+  std::sort(img_paths_.begin(), img_paths_.end());
+  BEAM_DEBUG("    Total image paths: {}", img_paths_.size());
+
+  if (camera_config_json.at("Colorizer") == "Projection") {
+    colorizer_ = beam_colorize::Colorizer::Create(
+        beam_colorize::ColorizerType::PROJECTION);
+    colorizer_type_ = "Projection";
+  } else if (camera_config_json.at("Colorizer") == "RayTrace") {
+    colorizer_ = beam_colorize::Colorizer::Create(
+        beam_colorize::ColorizerType::RAY_TRACE);
+    colorizer_type_ = "RayTrace";
+  }
+  BEAM_DEBUG("    Creating {} colorizer object", colorizer_type_);
+
+  colorizer_->SetIntrinsics(cam_model_);
+  colorizer_->SetDistortion(true);
+  BEAM_DEBUG("    Sucessfully constructed camera: {}!", camera_name_);
 }
 
 MapLabeler::MapLabeler(const std::string& images_directory,
@@ -179,7 +222,7 @@ void MapLabeler::FillTFTree() {
              final_poses_.size());
   geometry_msgs::TransformStamped tf_msg;
   for (int i = 0; i < final_poses_.size(); i++) {
-    tf_msg = tf2::eigenToTransform(final_poses_[i]);
+    tf_msg = tf2::eigenToTransform(Eigen::Affine3d(final_poses_[i]));
     tf_msg.header.stamp = final_timestamps_[i];
     tf_msg.header.frame_id = "map";
     tf_msg.child_frame_id = "hvlp_link";
@@ -291,7 +334,7 @@ DefectCloud::Ptr
     MapLabeler::ProjectImgToMap(beam_containers::ImageBridge img_container,
                                 Camera* camera) {
   BEAM_DEBUG("Projecting image to map");
-  ros::Time ros_img_time = TimePointToRosTime(img_bridge_.GetTimePoint());
+  ros::Time ros_img_time = beam::ChronoToRosTime(img_bridge_.GetTimePoint());
 
   // Get map in camera frame
   DefectCloud::Ptr map_cloud =
