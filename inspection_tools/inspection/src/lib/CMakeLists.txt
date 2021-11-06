@@ -15,10 +15,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   beam::beam
   Boost::boost
-  catkin::catkin
   PCL::PCL
   OpenCV::OpenCV
   nlohmann_json::nlohmann_json
   ${pcl_ros_LIBRARIES}
-  ${rosbag_LIBRARIES}
 )
