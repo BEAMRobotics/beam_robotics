@@ -1,3 +1,0 @@
-F_to_lidar_transformation.txt
-LB_to_lidar_transformation.txt
-imuRB_to_RB_transformation.txt
