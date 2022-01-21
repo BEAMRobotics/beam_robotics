@@ -2,6 +2,7 @@
   "output_individual_clouds": true,
   "final_map_name": "combined_cloud.pcd",
   "cloud_combiner": "Override",
+  "depth_enhancement": true,
   "cameras": [
     { "Name": "F1",
       "Enabled": true,
