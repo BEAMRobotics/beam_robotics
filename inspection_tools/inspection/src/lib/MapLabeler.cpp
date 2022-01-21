@@ -387,10 +387,8 @@ DefectCloud::Ptr
       Eigen::Vector3d point(p.x, p.y, p.z);
       bool in_image = false;
       Eigen::Vector2d coords;
-      if (!intrinsics_->ProjectPoint(point, coords, in_image)) {
-        continue;
-      } else if (!in_image) {
-        continue;
+      if (!intrinsics_->ProjectPoint(point, coords, in_image) || !in_image) {
+        new_points.push_back(p);
       }
 
       uint16_t col = coords(0, 0);

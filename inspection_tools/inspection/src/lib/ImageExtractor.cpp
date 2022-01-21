@@ -369,6 +369,7 @@ cv::Mat ImageExtractor::ApplyUndistortTransform(
       dst_image_dims[1] = static_cast<int>(image.cols * params[1]);
     }
 
+    // TODO: initialize this only once since building the map is expensive
     beam_calibration::UndistortImages undistort(camera_model, src_image_dims,
                                                 dst_image_dims);
     undistort_images_[cam_number] =
