@@ -152,6 +152,7 @@ private:
   std::string extrinsics_path_;
   std::string final_map_name_{"_final_map.pcd"};
   std::string cloud_combiner_type_{"Override"};
+  bool depth_enhancement_{false};
   bool output_individual_clouds_{false};
 
   std::vector<Eigen::Matrix4d, beam::AlignMat4d> final_poses_;

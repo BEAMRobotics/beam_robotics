@@ -14,7 +14,7 @@ using TimePoint = std::chrono::time_point<Clock>;
 using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
-using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZRGB>;
+using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZ>;
 
 /**
  * @brief Class for combining labeled clouds from each image / camera labeled

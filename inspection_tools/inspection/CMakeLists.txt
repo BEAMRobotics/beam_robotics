@@ -15,12 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-find_package(gflags REQUIRED)
+#find_package(gflags REQUIRED)
 find_package(rosbag REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.11.1 REQUIRED)
-find_package(beam REQUIRED calibration colorize containers defects utils)
+find_package(beam REQUIRED calibration colorize containers defects utils depth)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(OpenCV 4.5.2 REQUIRED COMPONENTS)
 find_package(PythonLibs REQUIRED)
