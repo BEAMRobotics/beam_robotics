@@ -7,6 +7,8 @@
 #include <boost/filesystem.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 
+#include <beam_depth/DepthCompletion.h>
+#include <beam_depth/DepthMap.h>
 #include <beam_mapping/Poses.h>
 #include <beam_utils/time.h>
 
@@ -375,40 +377,45 @@ DefectCloud::Ptr
   // Enhance defects with depth completion
   if (img_container.IsBGRMaskSet() && depth_enhancement_) {
     BEAM_DEBUG("Performing depth map extraction.");
-    std::shared_ptr<beam_cv::DepthMap> dm =
-        std::make_shared<beam_cv::DepthMap>(camera->cam_model_, xyz_cloud);
+    beam::HighResolutionTimer timer;
+    std::shared_ptr<beam_depth::DepthMap> dm =
+        std::make_shared<beam_depth::DepthMap>(camera->cam_model_, xyz_cloud);
     dm->ExtractDepthMap(0.025);
     cv::Mat depth_image = dm->GetDepthImage();
+    BEAM_DEBUG("Time elapsed: {}", timer.elapsed());
 
     BEAM_DEBUG("Removing Sparse defect points.");
-    std::vector<beam_containers::PointBridge> new_points;
+    std::vector<beam_containers::PointBridge,
+                Eigen::aligned_allocator<beam_containers::PointBridge>>
+        new_points;
     cv::Mat defect_mask = img_container.GetBGRMask();
     for (auto& p : return_cloud->points) {
       Eigen::Vector3d point(p.x, p.y, p.z);
       bool in_image = false;
       Eigen::Vector2d coords;
-      if (!intrinsics_->ProjectPoint(point, coords, in_image) || !in_image) {
+      if (!camera->cam_model_->ProjectPoint(point, coords, in_image) ||
+          !in_image) {
         new_points.push_back(p);
       }
 
       uint16_t col = coords(0, 0);
       uint16_t row = coords(1, 0);
-      if (defect_mask->at<uchar>(row, col) == 0) { new_points.push_back(p); }
+      if (defect_mask.at<uchar>(row, col) == 0) { new_points.push_back(p); }
     }
     return_cloud->points = new_points;
 
     BEAM_DEBUG("Performing depth completion.");
     cv::Mat depth_image_dense = depth_image.clone();
-    beam_cv::IPBasic(depth_image_dense);
+    beam_depth::IPBasic(depth_image_dense);
 
     BEAM_DEBUG("Adding dense defect points.");
-    for (int row = 0; row < depth_image_dense->rows; row++) {
-      for (int col = 0; col < depth_image_dense->cols; col++) {
-        if (defect_mask->at<uchar>(row, col) != 0) {
+    for (int row = 0; row < depth_image_dense.rows; row++) {
+      for (int col = 0; col < depth_image_dense.cols; col++) {
+        if (defect_mask.at<uchar>(row, col) != 0) {
           double depth = depth_image_dense.at<double>(row, col);
           Eigen::Vector2i pixel(col, row);
           Eigen::Vector3d ray;
-          if (!model_->BackProject(pixel, ray)) { continue; }
+          if (!camera->cam_model_->BackProject(pixel, ray)) { continue; }
           ray = ray.normalized();
           Eigen::Vector3d point = ray * depth;
           beam_containers::PointBridge point_bridge;
