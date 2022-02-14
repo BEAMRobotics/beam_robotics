@@ -7,18 +7,16 @@ namespace unpack_velodyne_scans {
 
 class UnpackVelodyneScans {
  public:
-  explicit UnpackVelodyneScans(bool aggregate_packets,
-                               const std::string& bag_file_path,
-                               const std::string& calibration_file,
+  explicit UnpackVelodyneScans(const std::string& bag_file_path,
                                const std::string& output_postfix,
-                               const std::string& lidar_model);
+                               const std::string& lidar_model,
+                               bool aggregate_packets);
   ~UnpackVelodyneScans() = default;
   void Run();
 
  private:
   bool aggregate_packets_;
   std::string bag_file_path_;
-  std::string calibration_file_;
   std::string output_postfix_;
 
   // Default Velodyne Parameters Required for Initialization

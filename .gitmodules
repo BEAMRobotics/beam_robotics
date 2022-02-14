@@ -1,15 +1,9 @@
 [submodule "libbeam"]
 	path = libbeam
 	url = git@github.com:BEAMRobotics/libbeam.git
-[submodule "calibration/camera_lidar_calib"]
-	path = calibration/camera_lidar_calib
-	url = git@github.com:BEAMRobotics/camera_lidar_calib.git
-[submodule "mapping/novatel_span_driver"]
-	path = mapping/novatel_span_driver
-	url = git@github.com:BEAMRobotics/novatel_span_driver.git
 [submodule "inspection_tools/cnn_defect_segmentation"]
 	path = inspection_tools/cnn_defect_segmentation
 	url = git@github.com:BEAMRobotics/cnn_defect_segmentation.git
-[submodule "dependencies/velodyne-1"]
-	path = dependencies/velodyne-1
-	url = git@github.com:BEAMRobotics/velodyne-1.git
+[submodule "dependencies/velodyne"]
+	path = dependencies/velodyne
+	url = git@github.com:BEAMRobotics/velodyne.git
