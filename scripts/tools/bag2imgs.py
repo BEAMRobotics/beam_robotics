@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     # Create output directory
     if not os.path.exists(output_path):
+        print("Creating directory: " + output_path)
         os.makedirs(output_path)
 
     # Check if topic is in bag
