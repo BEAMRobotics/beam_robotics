@@ -11,30 +11,38 @@
 
 namespace unpack_velodyne_scans {
 
-UnpackVelodyneScans::UnpackVelodyneScans(bool aggregate_packets,
-                                         const std::string& bag_file_path,
-                                         const std::string& calibration_file,
+UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
                                          const std::string& output_postfix,
-                                         const std::string& lidar_model)
-    : aggregate_packets_(aggregate_packets),
-      bag_file_path_(bag_file_path),
-      calibration_file_(calibration_file),
+                                         const std::string& lidar_model,
+                                         bool aggregate_packets)
+    : bag_file_path_(bag_file_path),
       output_postfix_(output_postfix),
+      aggregate_packets_(aggregate_packets),
       data_(std::make_shared<velodyne_rawdata::RawData>()) {
   ros::Time::init();
 
   BEAM_INFO("Loading velodyne calibration file for unpacking...");
-  std::string calibration_path;
-  std::string calibration_full_path;
-  calibration_path = ros::package::getPath("velodyne_pointcloud") + "/params/";
-  calibration_full_path += calibration_path + calibration_file_;
+  std::string calibration_full_path =
+      ros::package::getPath("velodyne_pointcloud") + "/params/";
+  if (lidar_model == "VLP16") {
+    calibration_full_path += "VLP16db.yaml";
+  } else if (lidar_model == "32C") {
+    calibration_full_path += "32db.yaml";
+  } else if (lidar_model == "32E") {
+    calibration_full_path += "VeloView-VLP-32C.yaml";
+  } else if (lidar_model == "VLS128") {
+    calibration_full_path += "VLS128.yaml";
+  } else {
+    BEAM_CRITICAL("Ensure lidar model is supported by BEAM");
+    throw std::invalid_argument{"Invalid lidar model."};
+  }
 
-  int setup =
-      data_->setupOffline(calibration_full_path, lidar_model, max_range_, min_range_);
+  BEAM_INFO("Setting up offline data processing...");
+  int setup = data_->setupOffline(calibration_full_path, lidar_model,
+                                  max_range_, min_range_);
   if (setup == -1) {
-    BEAM_CRITICAL("Ensure calibration file is included in " + calibration_path +
-                  ". Exiting Program");
-    throw std::invalid_argument{""};
+    BEAM_CRITICAL("Unable to set up offline data processing");
+    throw std::invalid_argument{"Invalid offline set up."};
   }
 
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking...");
