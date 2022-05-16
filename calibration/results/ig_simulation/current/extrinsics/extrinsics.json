@@ -1,0 +1,23 @@
+{
+  "type": "extrinsic_calibration",
+  "date": "2022_05_07",
+  "method": "simulation",
+  "calibrations": [
+    {
+      "to_frame": "hvlp_link",
+      "from_frame": "base_link",
+      "transform": [ 1, 0, 0, -0.210,
+                     0, 1, 0,  0.000,
+                     0, 0, 1, -0.352,
+                     0, 0, 0,  1.000]
+     },
+     {
+      "to_frame": "vvlp_link",
+      "from_frame": "base_link",
+      "transform": [ 0,  0, 1, -0.481,
+                     0, -1, 0,  0.000,
+                     1,  0, 0, -0.083,
+                     0,  0, 0,  1.000]
+      }
+  ]
+}
