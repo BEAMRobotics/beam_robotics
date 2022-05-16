@@ -34,7 +34,7 @@ public:
    */
   void CombineClouds(
       std::vector<std::vector<DefectCloud::Ptr>> clouds,
-      const std::vector<std::vector<Eigen::Affine3f>>& transforms);
+      const std::vector<std::vector<Eigen::Affine3d>>& transforms);
 
   DefectCloud::Ptr GetCombinedCloud() { return combined_cloud_; }
 

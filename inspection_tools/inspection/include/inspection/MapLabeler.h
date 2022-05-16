@@ -57,7 +57,7 @@ class MapLabeler {
     std::vector<std::string> img_paths_;
     std::shared_ptr<beam_calibration::CameraModel> cam_model_;
     std::unique_ptr<beam_colorize::Colorizer> colorizer_;
-    std::vector<Eigen::Affine3f> transforms_;
+    std::vector<Eigen::Affine3d> transforms_;
     std::vector<uint32_t> camera_pose_ids_;
   };
 
@@ -66,19 +66,12 @@ public:
                       const std::string& map, const std::string& poses,
                       const std::string& intrinsics_directory,
                       const std::string& extrinsics,
-                      const std::string& config_file_location);
+                      const std::string& config_file_location,
+                      const std::string& poses_moving_frame_override = "");
 
   MapLabeler() = default;
 
   ~MapLabeler() = default;
-
-  /**
-   * @brief Adds the frame_id to viewer for all times specified in the poses
-   * file
-   * @param frame_id ID of frame being plotted
-   * @param viewer Viewer that frames should be added to
-   */
-  void PlotFrames(std::string frame_id, PCLViewer viewer);
 
   /**
    * @brief Main method to kick off execution
@@ -111,10 +104,11 @@ public:
 
 private:
   /**
-   * @brief Populate TF tree with dynamic transforms from poses file and with
-   * static transforms frome extrinsic calibrations
+   * @brief Populate TF trees, one for the poses (used for interpolation) and
+   * one for the extrinsics. Note we don't combine these because it could break
+   * the tree depending on which frames are used in the pose measurements
    */
-  void FillTFTree();
+  void FillTFTrees();
 
   /**
    * @brief Loads the MapLabeler.json config file and sets up data parameters /
@@ -140,7 +134,18 @@ private:
   DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
                                    Camera* camera);
 
-  beam_calibration::TfTree tf_tree_;
+  /**
+   * @brief Uses extrinsics and poses Tf trees to get a pose from the map frame
+   * to any sensor frame.
+   * @param time time to query the poses
+   * @param sensor_frame frame to query the extrinsics
+   * @return T_MAP_SENSORFRAME
+   */
+  Eigen::Affine3d GetPose(const ros::Time& time,
+                          const std::string& sensor_frame);
+
+  beam_calibration::TfTree extinsics_tree_;
+  beam_calibration::TfTree poses_tree_;
 
   std::string json_labeler_filepath_;
   nlohmann::json json_config_;
@@ -149,6 +154,8 @@ private:
   std::string intrinsics_folder_;
   std::string map_path_;
   std::string poses_path_;
+  std::string poses_moving_frame_;
+  std::string poses_fixed_frame_;
   std::string extrinsics_path_;
   std::string final_map_name_{"_final_map.pcd"};
   std::string cloud_combiner_type_{"Override"};
@@ -165,7 +172,7 @@ private:
   beam_containers::ImageBridge img_bridge_;
 
   std::vector<Camera> cameras_;
-  tf::Transform tf_temp_;
+  Eigen::Matrix4d T_FRAMECURRENT_MAP_;
   inspection::CloudCombiner cloud_combiner_;
 };
 

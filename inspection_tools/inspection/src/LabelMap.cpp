@@ -22,6 +22,8 @@ DEFINE_validator(extrinsics, &beam::gflags::ValidateJsonFileMustExist);
 DEFINE_string(config, "",
               "Full path to json config file. If none provided, it will use "
               "the file inspection/config/MapLabeler.json");
+DEFINE_string(frame_override, "",
+              "Set this to override the moving frame id in the poses file.");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -35,15 +37,10 @@ int main(int argc, char* argv[]) {
 
   inspection::MapLabeler mapper(FLAGS_images, FLAGS_map, FLAGS_poses,
                                 FLAGS_intrinsics, FLAGS_extrinsics,
-                                config_path);
+                                config_path, FLAGS_frame_override);
 
   mapper.PrintConfiguration();
   mapper.Run();
-
-  // TODO: put these into a json
-  mapper.PlotFrames("hvlp_link", mapper.viewer);
-  mapper.PlotFrames("F1_link", mapper.viewer);
-  mapper.PlotFrames("F2_link", mapper.viewer);
   mapper.DrawFinalMap();
   mapper.SaveLabeledClouds();
 
