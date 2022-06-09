@@ -10,6 +10,8 @@ using namespace std::literals::chrono_literals;
 
 DEFINE_string(images, "", "Full path to root folder of images. (Required)");
 DEFINE_validator(images, &beam::gflags::ValidateDirMustExist);
+DEFINE_string(output, "", "Full path to output folder of labeled. (Required)");
+DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);
 DEFINE_string(map, "", "Full path to unlabeled pcd map. (Required)");
 DEFINE_validator(map, &beam::gflags::ValidateFileMustExist);
 DEFINE_string(poses, "", "Full path to poses file (Required).");
@@ -36,8 +38,8 @@ int main(int argc, char* argv[]) {
   }
 
   inspection::MapLabeler mapper(FLAGS_images, FLAGS_map, FLAGS_poses,
-                                FLAGS_intrinsics, FLAGS_extrinsics,
-                                config_path, FLAGS_frame_override);
+                                FLAGS_intrinsics, FLAGS_extrinsics, config_path,
+                                FLAGS_output, FLAGS_frame_override);
 
   mapper.PrintConfiguration();
   mapper.Run();

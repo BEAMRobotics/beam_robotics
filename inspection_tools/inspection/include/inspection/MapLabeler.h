@@ -58,6 +58,7 @@ class MapLabeler {
     std::shared_ptr<beam_calibration::CameraModel> cam_model_;
     std::unique_ptr<beam_colorize::Colorizer> colorizer_;
     std::vector<Eigen::Affine3d> transforms_;
+    std::vector<ros::Time> stamps_;
     std::vector<uint32_t> camera_pose_ids_;
   };
 
@@ -67,6 +68,7 @@ public:
                       const std::string& intrinsics_directory,
                       const std::string& extrinsics,
                       const std::string& config_file_location,
+                      const std::string& output_directory,
                       const std::string& poses_moving_frame_override = "");
 
   MapLabeler() = default;
@@ -157,10 +159,13 @@ private:
   std::string poses_moving_frame_;
   std::string poses_fixed_frame_;
   std::string extrinsics_path_;
+  std::string output_directory_;
   std::string final_map_name_{"_final_map.pcd"};
   std::string cloud_combiner_type_{"Override"};
   bool depth_enhancement_{false};
   bool output_individual_clouds_{false};
+  double frustum_lengh_{1};
+  double draw_points_increment_{0.01};
 
   std::vector<Eigen::Matrix4d, beam::AlignMat4d> final_poses_;
   std::vector<ros::Time> final_timestamps_;

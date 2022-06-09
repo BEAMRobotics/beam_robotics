@@ -10,6 +10,7 @@
 #include <beam_depth/DepthCompletion.h>
 #include <beam_depth/DepthMap.h>
 #include <beam_mapping/Poses.h>
+#include <beam_utils/pointclouds.h>
 #include <beam_utils/time.h>
 
 namespace inspection {
@@ -72,12 +73,14 @@ MapLabeler::MapLabeler(const std::string& images_directory,
                        const std::string& intrinsics_directory,
                        const std::string& extrinsics,
                        const std::string& config_file_location,
+                       const std::string& output_directory,
                        const std::string& poses_moving_frame_override) {
   images_folder_ = images_directory;
   map_path_ = map;
   poses_path_ = poses;
   extrinsics_path_ = extrinsics;
   json_labeler_filepath_ = config_file_location;
+  output_directory_ = output_directory;
   intrinsics_folder_ = intrinsics_directory;
 
   BEAM_INFO("Loading config from: {}", config_file_location);
@@ -241,15 +244,7 @@ void MapLabeler::FillTFTrees() {
 }
 
 void MapLabeler::SaveLabeledClouds() {
-  using namespace boost::filesystem;
-  std::string root_cloud_folder = images_folder_ + "/../clouds";
-  BEAM_INFO("Saving labeled clouds to: {}", root_cloud_folder);
-
-  boost::filesystem::path path = root_cloud_folder;
-  if (!is_directory(path)) {
-    BEAM_INFO("No cloud folder in {}, creating...", root_cloud_folder);
-    create_directories(path);
-  }
+  BEAM_INFO("Saving labeled clouds to: {}", output_directory_);
 
   for (size_t cam = 0; cam < defect_clouds_.size(); cam++) {
     int cloud_number = 1;
@@ -257,7 +252,7 @@ void MapLabeler::SaveLabeledClouds() {
       std::string file_name = cameras_[cam].camera_name_ + "_" +
                               std::to_string(cloud_number) + ".pcd";
       if (cloud->points.size() > 0) {
-        pcl::io::savePCDFileBinary(root_cloud_folder + "/" + file_name, *cloud);
+        pcl::io::savePCDFileBinary(output_directory_ + "/" + file_name, *cloud);
         cloud_number++;
       }
     }
@@ -266,10 +261,63 @@ void MapLabeler::SaveLabeledClouds() {
                cameras_[cam].camera_name_);
   }
 
-  std::string labeled_map_path = root_cloud_folder + "/_labeled_map.pcd";
+  std::string labeled_map_path = output_directory_ + "/labeled_map.pcd";
   pcl::io::savePCDFileBinary(labeled_map_path,
                              *cloud_combiner_.GetCombinedCloud());
   BEAM_DEBUG("Saved combined labeled cloud to: {}", labeled_map_path);
+
+  BEAM_INFO("Saving camera poses to: {}", output_directory_);
+  std::vector<pcl::PointCloud<pcl::PointXYZRGBL>::Ptr> camera_poses_clouds;
+  std::vector<pcl::PointCloud<pcl::PointXYZRGBL>::Ptr> baselink_poses_clouds;
+
+  for (const Camera& cam : cameras_) {
+    // get extrinsics
+    std::string cam_frame_id = cam.cam_model_->GetFrameID();
+    Eigen::Matrix4d T_CAM_BASELINK =
+        extinsics_tree_.GetTransformEigen(cam_frame_id, poses_moving_frame_)
+            .matrix();
+
+    auto camera_frames = std::make_shared<pcl::PointCloud<pcl::PointXYZRGBL>>();
+    auto baselink_frames =
+        std::make_shared<pcl::PointCloud<pcl::PointXYZRGBL>>();
+    for (int image_num = 0; image_num < cam.transforms_.size(); image_num++) {
+      Eigen::Matrix4d T_WORLD_CAM = cam.transforms_.at(image_num).matrix();
+      Eigen::Matrix4d T_WORLD_BASELINK = T_WORLD_CAM * T_CAM_BASELINK;
+
+      // draw camera frames
+      pcl::PointCloud<pcl::PointXYZRGBL> new_frame =
+          beam::CreateFrameCol(cam.stamps_.at(image_num));
+      beam::MergeFrameToCloud(*camera_frames, new_frame, T_WORLD_CAM);
+
+      // add camera frustums
+      pcl::PointCloud<pcl::PointXYZRGBL> frustum =
+          cam.cam_model_->CreateCameraFrustum(cam.stamps_.at(image_num),
+                                              draw_points_increment_,
+                                              frustum_lengh_);
+      beam::MergeFrameToCloud(*camera_frames, frustum, T_WORLD_CAM);
+
+      // draw baselink frames
+      beam::MergeFrameToCloud(*baselink_frames, new_frame, T_WORLD_BASELINK);
+    }
+    camera_poses_clouds.push_back(camera_frames);
+    baselink_poses_clouds.push_back(baselink_frames);
+  }
+
+  for (int poses_counter = 0; poses_counter < camera_poses_clouds.size();
+       poses_counter++) {
+    std::string filename =
+        cameras_.at(poses_counter).camera_name_ + "_poses_in_camera_frame.pcd";
+    std::string save_path = output_directory_ + "/" + filename;
+    pcl::io::savePCDFileBinary(save_path,
+                               *camera_poses_clouds.at(poses_counter));
+    BEAM_INFO("Saved camera poses file to: {}", save_path);
+    std::string filename2 = cameras_.at(poses_counter).camera_name_ +
+                            "_poses_in_baselink_frame.pcd";
+    std::string save_path2 = output_directory_ + "/" + filename2;
+    pcl::io::savePCDFileBinary(save_path2,
+                               *baselink_poses_clouds.at(poses_counter));
+    BEAM_INFO("Saved image baselink poses file to: {}", save_path2);
+  }
 }
 
 DefectCloud::Ptr MapLabeler::TransformMapToImageFrame(ros::Time tf_time,
@@ -304,12 +352,14 @@ void MapLabeler::FillCameraPoses() {
         const ros::Time& time = final_timestamps_[pose_id - 1];
         Eigen::Affine3d T_MAP_CAM = GetPose(time, cam_frame);
         camera.transforms_.push_back(T_MAP_CAM);
+        camera.stamps_.push_back(time);
       }
     } else {
       // if no poses are specified, add every pose
       for (const ros::Time& time : final_timestamps_) {
         Eigen::Affine3d T_MAP_CAM = GetPose(time, cam_frame);
         camera.transforms_.push_back(T_MAP_CAM);
+        camera.stamps_.push_back(time);
       }
     }
   }
