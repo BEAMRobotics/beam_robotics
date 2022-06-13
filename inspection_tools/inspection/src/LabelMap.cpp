@@ -37,9 +37,16 @@ int main(int argc, char* argv[]) {
     config_path = FLAGS_config;
   }
 
-  inspection::MapLabeler mapper(FLAGS_images, FLAGS_map, FLAGS_poses,
-                                FLAGS_intrinsics, FLAGS_extrinsics, config_path,
-                                FLAGS_output, FLAGS_frame_override);
+  inspection::MapLabeler::Inputs inputs{
+      .images_directory = FLAGS_images,
+      .map = FLAGS_map,
+      .poses = FLAGS_poses,
+      .intrinsics_directory = FLAGS_intrinsics,
+      .extrinsics = FLAGS_extrinsics,
+      .config_file_location = config_path,
+      .output_directory = FLAGS_output,
+      .poses_moving_frame_override = FLAGS_frame_override};
+  inspection::MapLabeler mapper(inputs);
 
   mapper.PrintConfiguration();
   mapper.Run();

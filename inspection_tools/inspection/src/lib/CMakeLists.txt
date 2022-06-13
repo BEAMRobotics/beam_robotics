@@ -5,6 +5,7 @@ add_library(${PROJECT_NAME}
   ImageExtractor.cpp
   ImageLabeler.cpp
   MapLabeler.cpp
+  Camera.cpp
   QuantifyDefects.cpp
   InspectionUtils.cpp
 )

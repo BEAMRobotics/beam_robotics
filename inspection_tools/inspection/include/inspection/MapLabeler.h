@@ -10,13 +10,10 @@
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
 
-#include <beam_calibration/CameraModel.h>
-#include <beam_calibration/TfTree.h>
-#include <beam_colorize/Colorizer.h>
-#include <beam_containers/ImageBridge.h>
 #include <beam_containers/PointBridge.h>
-#include <beam_utils/log.h>
+#include <beam_utils/pointclouds.h>
 
+#include <inspection/Camera.h>
 #include <inspection/CloudCombiner.h>
 
 namespace inspection {
@@ -30,46 +27,21 @@ using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
  * @brief class for labeling/coloring a SLAM map given beam image containers
  */
 class MapLabeler {
-  /**
-   * @brief Struct for holding information relevant for every camera being used
-   * for labeling
-   */
-  struct Camera {
-    /**
-     * @brief Constructor
-     * @param folder_path Path to root folder containing CamerasList.json (e.g.,
-     * .../inspection/images)
-     * @param cam_name ID of camera being instantiated (e.g., "F1",
-     * corresponding to a folder such as .../inspection/images/F1)
-     * @param cam_intrinsics_path Path to folder containing all camera
-     * intrinsics files (e.g., .../calibrations/)
-     */
-    Camera(const nlohmann::json& camera_config_json,
-           const std::string& cam_imgs_folder,
-           const std::string& intrin_folder);
+public:
+  struct Inputs {
+    std::string images_directory;
+    std::string map;
+    std::string poses;
+    std::string intrinsics_directory;
+    std::string extrinsics;
+    std::string config_file_location;
+    std::string output_directory;
+    std::string poses_moving_frame_override;
 
-    Camera() = default;
-
-    std::string colorizer_type_;
-    std::string camera_name_;
-    std::string cam_imgs_folder_;
-    std::string cam_intrinsics_path_;
-    std::vector<std::string> img_paths_;
-    std::shared_ptr<beam_calibration::CameraModel> cam_model_;
-    std::unique_ptr<beam_colorize::Colorizer> colorizer_;
-    std::vector<Eigen::Affine3d> transforms_;
-    std::vector<ros::Time> stamps_;
-    std::vector<uint32_t> camera_pose_ids_;
+    void Print();
   };
 
-public:
-  explicit MapLabeler(const std::string& images_directory,
-                      const std::string& map, const std::string& poses,
-                      const std::string& intrinsics_directory,
-                      const std::string& extrinsics,
-                      const std::string& config_file_location,
-                      const std::string& output_directory,
-                      const std::string& poses_moving_frame_override = "");
+  explicit MapLabeler(const Inputs& inputs);
 
   MapLabeler() = default;
 
@@ -87,17 +59,13 @@ public:
 
   /**
    * @brief Saves each of the labeled defect clouds in a clouds folder inside
-   * the images folder
+   * the images folder. This also saves trajectories and camera poses for each
+   * image drawn
    */
   void SaveLabeledClouds();
 
   /**
-   * @brief Fill each camera with a list of its transformations
-   */
-  void FillCameraPoses();
-
-  /**
-   * @brief Draw the final labeled map in the viewer
+   * @brief Draw the final labeled map in the PCL viewer
    */
   void DrawFinalMap();
 
@@ -106,6 +74,12 @@ public:
 
 private:
   /**
+   * @brief Loads the MapLabeler.json config file and sets up data parameters /
+   * cameras
+   */
+  void ProcessJSONConfig();
+
+  /**
    * @brief Populate TF trees, one for the poses (used for interpolation) and
    * one for the extrinsics. Note we don't combine these because it could break
    * the tree depending on which frames are used in the pose measurements
@@ -113,71 +87,42 @@ private:
   void FillTFTrees();
 
   /**
-   * @brief Loads the MapLabeler.json config file and sets up data parameters /
-   * cameras
+   * @brief Iterate through each camera and fill the image poses using the
+   * current tf trees and the image timestamps from the image container
    */
-  void ProcessJSONConfig();
-
-  /**
-   * @brief Transforms map point cloud into an image frame
-   * @param tf_time Time to lookup map->frame_id transform
-   * @param frame_id Frame that map is being transformed into
-   * @return Map cloud in image frame
-   */
-  DefectCloud::Ptr TransformMapToImageFrame(ros::Time tf_time,
-                                            std::string frame_id);
+  void FillCameraPoses();
 
   /**
    * @brief Labels point cloud map with image specified
-   * @param img_container Image container used for labeling
-   * @param camera Camera corresponding to image container
-   * @return Labeled point cloud map
+   * @param image
+   * @param camera
+   * @return Labeled point cloud map in map frame containing only map points
+   * that were labeled with this image
    */
-  DefectCloud::Ptr ProjectImgToMap(beam_containers::ImageBridge img_container,
-                                   Camera* camera);
+  DefectCloud::Ptr ProjectImgToMap(const Image& image, const Camera& camera);
 
-  /**
-   * @brief Uses extrinsics and poses Tf trees to get a pose from the map frame
-   * to any sensor frame.
-   * @param time time to query the poses
-   * @param sensor_frame frame to query the extrinsics
-   * @return T_MAP_SENSORFRAME
-   */
-  Eigen::Affine3d GetPose(const ros::Time& time,
-                          const std::string& sensor_frame);
+  Inputs inputs_;
 
-  beam_calibration::TfTree extinsics_tree_;
-  beam_calibration::TfTree poses_tree_;
-
-  std::string json_labeler_filepath_;
-  nlohmann::json json_config_;
-
-  std::string images_folder_;
-  std::string intrinsics_folder_;
-  std::string map_path_;
-  std::string poses_path_;
-  std::string poses_moving_frame_;
-  std::string poses_fixed_frame_;
-  std::string extrinsics_path_;
-  std::string output_directory_;
-  std::string final_map_name_{"_final_map.pcd"};
-  std::string cloud_combiner_type_{"Override"};
+  // from config file
+  std::string colorizer_type_;
   bool depth_enhancement_{false};
   bool output_individual_clouds_{false};
+  std::string final_map_name_{"_final_map.pcd"};
+  std::string cloud_combiner_type_{"Override"};
+
+  // params only tunable here
   double frustum_lengh_{1};
   double draw_points_increment_{0.01};
+  float depth_map_extraction_thresh_{0.025};
 
-  std::vector<Eigen::Matrix4d, beam::AlignMat4d> final_poses_;
-  std::vector<ros::Time> final_timestamps_;
-  DefectCloud::Ptr defect_pointcloud_ = std::make_shared<DefectCloud>();
-
+  // data
+  beam_calibration::TfTree extinsics_tree_;
+  beam_calibration::TfTree poses_tree_;
+  std::string poses_moving_frame_;
+  std::string poses_fixed_frame_;
+  PointCloud::Ptr map_ = std::make_shared<PointCloud>();
   std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_;
-
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> rgb_clouds_;
-  beam_containers::ImageBridge img_bridge_;
-
   std::vector<Camera> cameras_;
-  Eigen::Matrix4d T_FRAMECURRENT_MAP_;
   inspection::CloudCombiner cloud_combiner_;
 };
 
