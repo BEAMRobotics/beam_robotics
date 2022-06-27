@@ -1,5 +1,5 @@
 {
-  "image_container_type": "None",
+  "image_container_type": "ImageBridge",
   "intrinsics_directory": "/home/nick/config/inspection/",
   "camera_params": [
     {
@@ -15,14 +15,38 @@
           "type": "UNDISTORT",
           "crop_height": 1,
           "crop_width": 1
+        },
+        {
+          "type": "LINEAR",
+          "alpha": 7,
+          "beta": 0
         }
       ]
     },
     {
       "image_topic": "/F2/image_raw",
-      "intrinsics_name": "F1.json",
-      "distance_between_images": 1,
-      "rotation_between_images": 30,
+      "intrinsics_name": "F2.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 30,
+      "are_images_distorted": true,
+      "are_images_compressed": false,
+      "is_ir_camera": false,
+      "image_transforms": [
+        {
+          "type": "UNDISTORT",
+          "crop_height": 1,
+          "crop_width": 1
+        },
+        {
+          "type": "HISTOGRAM"
+        }
+      ]
+    },
+    {
+      "image_topic": "/F3/image_raw",
+      "intrinsics_name": "F3.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 30,
       "are_images_distorted": true,
       "are_images_compressed": false,
       "is_ir_camera": false,
@@ -31,6 +55,9 @@
           "type": "UNDISTORT",
           "crop_height": 0.75,
           "crop_width": 0.75
+        },
+        {
+          "type": "CLAHE"
         }
       ]
     }

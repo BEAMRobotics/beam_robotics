@@ -1,0 +1,24 @@
+{
+  "final_map_name": "combined_cloud.pcd",
+  "cloud_combiner": "Override",
+  "depth_enhancement": true,
+  "colorizer": "RayTrace",
+  "cameras": [
+    {
+      "Name": "camera0",
+      "Intrinsics": "F1.json",
+      "Enabled": true,
+      "SelectedImages": [
+        "ImageBridge34"
+      ]
+    },
+    {
+      "Name": "camera1",
+      "Intrinsics": "F2.json",
+      "Enabled": false,
+      "SelectedImages": [
+        "All"
+      ]
+    }
+  ]
+}

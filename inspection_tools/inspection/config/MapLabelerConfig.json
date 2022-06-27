@@ -1,5 +1,4 @@
 {
-  "output_individual_clouds": true,
   "final_map_name": "combined_cloud.pcd",
   "cloud_combiner": "Override",
   "depth_enhancement": true,
@@ -9,7 +8,6 @@
       "Name": "camera0",
       "Intrinsics": "F1.json",
       "Enabled": true,
-      "ImagesDistorted": true,
       "SelectedImages": [
         "ImageBridge34"
       ]
@@ -18,7 +16,6 @@
       "Name": "camera1",
       "Intrinsics": "F2.json",
       "Enabled": false,
-      "ImagesDistorted": true,
       "SelectedImages": [
         "All"
       ]

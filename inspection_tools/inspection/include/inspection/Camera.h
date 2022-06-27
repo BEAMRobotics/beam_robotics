@@ -32,8 +32,6 @@ struct Camera {
    * (e.g.,
    * .../inspection/images)
    * @param colorizer_type type of colorizer to use (e.g., Override)
-   * @param images_distorted set to true if your images are distorted (i.e.,
-   * have not been undistorted)
    * @param selected_images vector of image names to use for map labeling. These
    * filenames must match the image container folder name. (e.g., ImageBridge1,
    * ImageBridge2, ...). If none are provided, it wll use all images contained
@@ -41,7 +39,6 @@ struct Camera {
    */
   Camera(const std::string& camera_name, const std::string& intrinsics_filename,
          const std::string& images_directory, const std::string& colorizer_type,
-         bool images_distorted,
          const std::vector<std::string>& selected_images =
              std::vector<std::string>());
 
@@ -74,7 +71,7 @@ struct Camera {
  * MapLabeler config under the field "cameras"
  *
  * @param camera_config_json list of json objects having the fields: Name,
- * Intrinsics, Enabled, ImagesDistorted, SelectedImages
+ * Intrinsics, Enabled, SelectedImages
  * @param images_directory
  * @param intrinsics_directory
  * @param colorizer_type

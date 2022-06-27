@@ -180,23 +180,26 @@ void ImageExtractor::OutputImages() {
     BEAM_INFO("Saving images for Camera {}.", cam_count);
     std::string camera_dir =
         save_directory_ + "/camera" + std::to_string(cam_count);
+    
     boost::filesystem::create_directories(camera_dir);
     camera_list_.push_back("camera" + std::to_string(cam_count));
     image_object_list_.clear();
-
+    
     // iterate over all poses for this camera
     for (uint32_t image_count = 0;
          image_count < image_time_stamps_[cam_count].size(); image_count++) {
       ros::Time image_time = image_time_stamps_[cam_count][image_count];
       cv::Mat image =
           GetImageFromBag(image_time, cam_count, (image_count == 0));
-
+      
       if (image_container_type_ == "ImageBridge") {
+        
         beam_containers::ImageBridge image_container;
         std::string image_container_dir = camera_dir + "/" +
                                           image_container_type_ +
                                           std::to_string(image_count);
         boost::filesystem::create_directories(image_container_dir);
+        
         if (is_ir_camera_[cam_count]) {
           image_container.SetIRImage(image);
           image_container.SetIRIsDistorted(
@@ -208,7 +211,7 @@ void ImageExtractor::OutputImages() {
               are_output_images_distorted_[cam_count]);
           image_container.SetBGRFrameId(frame_ids_[cam_count]);
         }
-
+        
         beam::TimePoint image_timepoint = beam::RosTimeToChrono(image_time);
         image_container.SetTimePoint(image_timepoint);
         image_container.SetImageSeq(image_count);
@@ -233,12 +236,12 @@ void ImageExtractor::OutputImages() {
             "header is included in ImageExtractor.h"};
       }
     }
-
+    
     if (image_object_list_.size() > 0) {
       OutputJSONList(camera_dir + "/ImagesList.json", image_object_list_);
     }
   }
-
+  
   if (camera_list_.size() > 0) {
     OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
   }

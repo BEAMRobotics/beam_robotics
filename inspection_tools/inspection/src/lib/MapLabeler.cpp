@@ -3,6 +3,7 @@
 #include <inspection/MapLabeler.h>
 
 #include <thread>
+#include <boost/filesystem.hpp>
 
 #include <tf2_eigen/tf2_eigen.h>
 
@@ -21,7 +22,6 @@ void MapLabeler::Inputs::Print() {
   BEAM_INFO("Intrinsics root folder: {}", intrinsics_directory);
   BEAM_INFO("Extrinsics file path: {}", extrinsics);
   BEAM_INFO("Config file path: {}", config_file_location);
-  BEAM_INFO("Output folder: {}", output_directory);
   BEAM_INFO("Poses moving frame override: {}", poses_moving_frame_override);
 }
 
@@ -77,8 +77,6 @@ void MapLabeler::PrintConfiguration() {
   BEAM_INFO("Colorizer type: {}", colorizer_type_);
   BEAM_INFO("Strategy for combining clouds: {}", cloud_combiner_type_);
   BEAM_INFO("Saving final map to: {}", final_map_name_);
-  BEAM_INFO("Saving individual labeled clouds: {}",
-            output_individual_clouds_ ? "True" : "False");
   BEAM_INFO("Run depth enhancement: {}", depth_enhancement_ ? "True" : "False");
 
   BEAM_INFO("Map number of points: {}", map_->size());
@@ -123,7 +121,6 @@ void MapLabeler::ProcessJSONConfig() {
 
   nlohmann::json cameras_json;
   try {
-    output_individual_clouds_ = J.at("output_individual_clouds");
     depth_enhancement_ = J.at("depth_enhancement");
     final_map_name_ = J.at("final_map_name");
     cloud_combiner_type_ = J.at("cloud_combiner");
@@ -178,8 +175,8 @@ void MapLabeler::FillTFTrees() {
   extinsics_tree_.LoadJSON(inputs_.extrinsics);
 }
 
-void MapLabeler::SaveLabeledClouds() {
-  BEAM_INFO("Saving labeled clouds to: {}", inputs_.output_directory);
+void MapLabeler::SaveLabeledClouds(const std::string& output_folder) {
+  BEAM_INFO("Saving labeled individual clouds to: {}", output_folder);
 
   for (size_t cam = 0; cam < defect_clouds_.size(); cam++) {
     int cloud_number = 1;
@@ -187,8 +184,7 @@ void MapLabeler::SaveLabeledClouds() {
       std::string file_name =
           cameras_[cam].name + "_" + std::to_string(cloud_number) + ".pcd";
       if (cloud->points.size() > 0) {
-        pcl::io::savePCDFileBinary(inputs_.output_directory + "/" + file_name,
-                                   *cloud);
+        pcl::io::savePCDFileBinary(output_folder + "/" + file_name, *cloud);
         cloud_number++;
       }
     }
@@ -196,13 +192,17 @@ void MapLabeler::SaveLabeledClouds() {
     BEAM_DEBUG("Saved {} labeled clouds from Camera: {}", cloud_number - 1,
                cameras_[cam].name);
   }
+}
 
-  std::string labeled_map_path = inputs_.output_directory + "/labeled_map.pcd";
+void MapLabeler::SaveFinalMap(const std::string& output_folder) {
+  std::string labeled_map_path = output_folder + "/labeled_map.pcd";
   pcl::io::savePCDFileBinary(labeled_map_path,
                              *cloud_combiner_.GetCombinedCloud());
   BEAM_DEBUG("Saved combined labeled cloud to: {}", labeled_map_path);
+}
 
-  BEAM_INFO("Saving camera poses to: {}", inputs_.output_directory);
+void MapLabeler::SaveCameraPoses(const std::string& output_folder) {
+  BEAM_INFO("Saving camera poses to: {}", output_folder);
   std::vector<pcl::PointCloud<pcl::PointXYZRGBL>::Ptr> camera_poses_clouds;
   std::vector<pcl::PointCloud<pcl::PointXYZRGBL>::Ptr> baselink_poses_clouds;
 
@@ -244,16 +244,29 @@ void MapLabeler::SaveLabeledClouds() {
        poses_counter++) {
     std::string filename =
         cameras_.at(poses_counter).name + "_poses_in_camera_frame.pcd";
-    std::string save_path = inputs_.output_directory + "/" + filename;
+    std::string save_path = output_folder + "/" + filename;
     pcl::io::savePCDFileBinary(save_path,
                                *camera_poses_clouds.at(poses_counter));
     BEAM_INFO("Saved camera poses file to: {}", save_path);
     std::string filename2 =
         cameras_.at(poses_counter).name + "_poses_in_baselink_frame.pcd";
-    std::string save_path2 = inputs_.output_directory + "/" + filename2;
+    std::string save_path2 = output_folder + "/" + filename2;
     pcl::io::savePCDFileBinary(save_path2,
                                *baselink_poses_clouds.at(poses_counter));
     BEAM_INFO("Saved image baselink poses file to: {}", save_path2);
+  }
+}
+
+void MapLabeler::SaveImages(const std::string& output_folder) {
+  BEAM_INFO("Saving images used for labeling to: {}", output_folder);
+  for (int cam_num = 0; cam_num < cameras_.size(); cam_num++) {
+    const Camera& cam = cameras_.at(cam_num);
+    for (int image_num = 0; image_num < cam.images.size(); image_num++) {
+      std::string dir = output_folder + "/cam" + std::to_string(cam_num) +
+                        "_img" + std::to_string(image_num);
+      boost::filesystem::create_directories(dir);
+      cam.images.at(image_num).image_container.Write(dir);
+    }
   }
 }
 
@@ -285,6 +298,7 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
   const auto& image_container = image.image_container;
   if (image_container.IsBGRImageSet()) {
     BEAM_DEBUG("Setting BGR image in colorizer");
+    camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted()); 
     camera.colorizer->SetImage(image_container.GetBGRImage());
 
     // Get colored cloud & remove uncolored points
@@ -309,7 +323,8 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
     BEAM_DEBUG("Performing depth map extraction.");
     beam::HighResolutionTimer timer;
     std::shared_ptr<beam_depth::DepthMap> dm =
-        std::make_shared<beam_depth::DepthMap>(camera.cam_model, map_in_camera_frame);
+        std::make_shared<beam_depth::DepthMap>(camera.cam_model,
+                                               map_in_camera_frame);
     dm->ExtractDepthMap(depth_map_extraction_thresh_);
     cv::Mat depth_image = dm->GetDepthImage();
     BEAM_DEBUG("Time elapsed: {}", timer.elapsed());

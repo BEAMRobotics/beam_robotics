@@ -11,7 +11,7 @@ Image::Image(const std::string& image_directory) {
 Camera::Camera(const std::string& camera_name,
                const std::string& intrinsics_filename,
                const std::string& images_directory,
-               const std::string& colorizer_type, bool images_distorted,
+               const std::string& colorizer_type,
                const std::vector<std::string>& selected_images)
     : name(camera_name), intrinsics_path(intrinsics_filename) {
   BEAM_DEBUG("Creating camera: {}", name);
@@ -48,7 +48,6 @@ Camera::Camera(const std::string& camera_name,
         beam_colorize::ColorizerType::RAY_TRACE);
   }
   colorizer->SetIntrinsics(cam_model);
-  colorizer->SetDistortion(images_distorted);
 }
 
 void Camera::FillPoses(const beam_calibration::TfTree& extinsics_tree,
@@ -74,7 +73,6 @@ std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
     bool camera_enabled;
     std::string instrinsics_filename;
     std::vector<std::string> selected_images;
-    bool images_distorted;
     std::string camera_name;
 
     try {
@@ -84,8 +82,6 @@ std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
       instrinsics_filename = tmp2;
       std::vector<std::string> tmp3 = camera_config_json.at("SelectedImages");
       selected_images = tmp3;
-      bool tmp4 = camera_config_json.at("ImagesDistorted");
-      images_distorted = tmp4;
       std::string tmp5 = camera_config_json.at("Name");
       camera_name = tmp5;
     } catch (nlohmann::json::exception& e) {
@@ -102,12 +98,11 @@ std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
       continue;
     }
 
-    if (!selected_images.empty() || selected_images[0] == "All") {
+    if (selected_images.empty() || selected_images[0] == "All") {
       selected_images = std::vector<std::string>();
     }
     cameras.push_back(Camera(camera_name, instrinsics_path, images_directory,
-                             colorizer_type, images_distorted,
-                             selected_images));
+                             colorizer_type, selected_images));
   }
 
   return cameras;

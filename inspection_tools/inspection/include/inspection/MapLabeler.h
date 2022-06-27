@@ -35,7 +35,6 @@ public:
     std::string intrinsics_directory;
     std::string extrinsics;
     std::string config_file_location;
-    std::string output_directory;
     std::string poses_moving_frame_override;
 
     void Print();
@@ -62,7 +61,24 @@ public:
    * the images folder. This also saves trajectories and camera poses for each
    * image drawn
    */
-  void SaveLabeledClouds();
+  void SaveLabeledClouds(const std::string& output_folder);
+
+  /**
+   * @brief save  the final labeled map as pcd
+   */
+  void SaveFinalMap(const std::string& output_folder);
+
+  /**
+   * @brief save calculated camera poses for each images used in the labeling.
+   * This saves the RGB frame for the camera frame and baselink frame for each
+   * image, it also draws the camera frustums and outputs them all as PCD files
+   */
+  void SaveCameraPoses(const std::string& output_folder);
+
+  /**
+   * @brief save images used for map labeling
+   */
+  void SaveImages(const std::string& output_folder);
 
   /**
    * @brief Draw the final labeled map in the PCL viewer
@@ -106,7 +122,6 @@ private:
   // from config file
   std::string colorizer_type_;
   bool depth_enhancement_{false};
-  bool output_individual_clouds_{false};
   std::string final_map_name_{"_final_map.pcd"};
   std::string cloud_combiner_type_{"Override"};
 
