@@ -15,7 +15,7 @@ namespace inspection {
 void CloudCombiner::CombineClouds(
     std::vector<std::vector<pcl::PointCloud<beam_containers::PointBridge>::Ptr>>
         clouds,
-    const std::vector<std::vector<Eigen::Affine3f>>& transforms) {
+    const std::vector<std::vector<Eigen::Affine3d>>& transforms) {
   pcl::search::KdTree<BridgePoint> kdtree;
   BridgePoint bp = {0, 0, 0};
   combined_cloud_->points.push_back(bp);
@@ -25,11 +25,11 @@ void CloudCombiner::CombineClouds(
   std::vector<float> closest_camera_pose;
   for (int cam = 0; cam < num_cams; cam++) {
     // get transformations for the specific camera
-    std::vector<Eigen::Affine3f> camera_tfs = transforms[cam];
+    std::vector<Eigen::Affine3d> camera_tfs = transforms[cam];
     int i = 0;
     for (const auto& pc : clouds[cam]) {
       // for each cloud for the camera, get origin in map frame
-      Eigen::Vector3f tf_origin = camera_tfs[i++].translation();
+      Eigen::Vector3d tf_origin = camera_tfs[i++].translation();
       int replaced_points = 0;
       kdtree.setInputCloud(combined_cloud_);
       for (const auto& search_point : *pc) {

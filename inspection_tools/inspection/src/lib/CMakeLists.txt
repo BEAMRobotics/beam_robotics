@@ -1,10 +1,9 @@
 # Core inspection library
 add_library(${PROJECT_NAME}
   CloudCombiner.cpp
-  GenerateReport.cpp
   ImageExtractor.cpp
-  ImageLabeler.cpp
   MapLabeler.cpp
+  Camera.cpp
   QuantifyDefects.cpp
   InspectionUtils.cpp
 )

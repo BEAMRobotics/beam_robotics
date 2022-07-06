@@ -121,7 +121,7 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
             imgs_list = json.load(imgs_json)["Items"]
 
         for img_name in imgs_list:
-            with open(data_path + camera + "/" + img_name + "/ImageBridgeInfo.json") as img_json:
+            with open(data_path + camera + "/" + img_name + "/ImageInfo.json") as img_json:
                 img_info = json.load(img_json)
 
             if img_info["is_bgr_image_set"]:
@@ -200,7 +200,7 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
                     img_info["ir_mask_method"] = "Deeplabv3_delam"
                     img_info["is_ir_mask_set"] = True
 
-            with open(data_path + camera + "/" + img_name + "/ImageBridgeInfo.json", "w") as img_json:
+            with open(data_path + camera + "/" + img_name + "/ImageInfo.json", "w") as img_json:
                 json.dump(img_info, img_json)
 
 
