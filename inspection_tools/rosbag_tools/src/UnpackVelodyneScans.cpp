@@ -13,11 +13,9 @@ namespace unpack_velodyne_scans {
 
 UnpackVelodyneScans::UnpackVelodyneScans(const std::string& bag_file_path,
                                          const std::string& output_postfix,
-                                         const std::string& lidar_model,
-                                         bool aggregate_packets)
+                                         const std::string& lidar_model)
     : bag_file_path_(bag_file_path),
       output_postfix_(output_postfix),
-      aggregate_packets_(aggregate_packets),
       data_(std::make_shared<velodyne_rawdata::RawData>()) {
   ros::Time::init();
 
@@ -72,27 +70,13 @@ void UnpackVelodyneScans::Run() {
     std::string out_topic = msg.getTopic();
     out_topic += output_postfix_;
 
-    if (aggregate_packets_) {
-      container_ptr_->setup(vel_scan_msg);
-      for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
-        data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
-                      vel_scan_msg->header.stamp);
-      }
-      sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
-      bag_out.write(out_topic, msg.getTime(), cloud_packet);
-    } else {
-      for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
-        container_ptr_->setup(vel_scan_msg);
-        data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
-                      vel_scan_msg->header.stamp);
-        container_ptr_->modify_packet_time(vel_scan_msg->packets[i]);
-        sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
-        ros::Time packet_indexed_time =
-            msg.getTime() +
-            (cloud_packet.header.stamp - vel_scan_msg->header.stamp);
-        bag_out.write(out_topic, packet_indexed_time, cloud_packet);
-      }
+    container_ptr_->setup(vel_scan_msg);
+    for (size_t i = 0; i < vel_scan_msg->packets.size(); ++i) {
+      data_->unpack(vel_scan_msg->packets[i], *container_ptr_,
+                    vel_scan_msg->header.stamp);
     }
+    sensor_msgs::PointCloud2 cloud_packet = container_ptr_->finishCloud();
+    bag_out.write(out_topic, msg.getTime(), cloud_packet);
   }
 
   BEAM_INFO("Unpacking completed. Results have been written to: {}",
