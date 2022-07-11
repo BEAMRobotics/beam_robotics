@@ -9,8 +9,7 @@ class UnpackVelodyneScans {
  public:
   explicit UnpackVelodyneScans(const std::string& bag_file_path,
                                const std::string& output_postfix,
-                               const std::string& lidar_model,
-                               bool aggregate_packets);
+                               const std::string& lidar_model);
   ~UnpackVelodyneScans() = default;
   void Run();
 
