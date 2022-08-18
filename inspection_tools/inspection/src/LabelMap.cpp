@@ -1,9 +1,10 @@
 #include <thread>
 
-#include <gflags/gflags.h>
 #include <boost/filesystem.hpp>
+#include <gflags/gflags.h>
 
 #include <beam_utils/gflags.h>
+#include <beam_utils/log.h>
 #include <inspection/InspectionUtils.h>
 #include <inspection/MapLabeler.h>
 
@@ -37,7 +38,7 @@ DEFINE_bool(
 DEFINE_bool(
     output_images, true,
     "set to true to output all image containers used in the labeling process");
-DEFINE_bool(draw_final_map, false,
+DEFINE_bool(draw_final_map, true,
             "set to true to draw final map in a PCL viewer");
 
 int main(int argc, char* argv[]) {
@@ -58,37 +59,51 @@ int main(int argc, char* argv[]) {
       .extrinsics = FLAGS_extrinsics,
       .config_file_location = config_path,
       .poses_moving_frame_override = FLAGS_frame_override};
+  BEAM_INFO("Instantiating MapLabler");    
   inspection::MapLabeler mapper(inputs);
-
+  BEAM_INFO("Done instantiating MapLabler");    
+  BEAM_INFO("Printing MapLabeler configuration");
   mapper.PrintConfiguration();
+  BEAM_INFO("Running MapLabler");    
   mapper.Run();
+  BEAM_INFO("MapLabler run complete, saving final map");    
   mapper.SaveFinalMap(FLAGS_output);
+  BEAM_INFO("Done saving final map");    
 
   if (FLAGS_output_individual_clouds) {
     std::string dir = FLAGS_output + "/labelled_clouds/";
     boost::filesystem::create_directories(dir);
+    BEAM_INFO("Saving labeled clouds");    
     mapper.SaveLabeledClouds(dir);
+    BEAM_INFO("Done saving labeled clouds");    
   }
 
   if (FLAGS_output_camera_poses) {
     std::string dir = FLAGS_output + "/camera_poses/";
     boost::filesystem::create_directories(dir);
+    BEAM_INFO("Saving camera poses");    
     mapper.SaveCameraPoses(dir);
+    BEAM_INFO("Done saving camera poses");    
   }
 
   if (FLAGS_output_images) {
     std::string dir = FLAGS_output + "/images/";
     boost::filesystem::create_directories(dir);
+    BEAM_INFO("Saving images used for colorization");    
     mapper.SaveImages(dir);
+    BEAM_INFO("Done saving images used for colorization");    
   }
 
   if (FLAGS_draw_final_map) {
+    BEAM_INFO("Drawing final map in viewer");    
     mapper.DrawFinalMap();
     while (!mapper.viewer->wasStopped()) {
       mapper.viewer->spinOnce(100);
       std::this_thread::sleep_for(100ms);
     }
+    BEAM_INFO("Map viewer closed");    
   }
 
+  BEAM_INFO("LabelMap binary finished successfully!");    
   return 0;
 }
