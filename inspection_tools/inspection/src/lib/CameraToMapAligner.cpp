@@ -5,20 +5,24 @@
 namespace inspection {
 
 CameraToMapAligner::CameraToMapAligner(const Inputs& inputs) : inputs_(inputs) {
-  // Load map
   if (pcl::io::loadPCDFile<pcl::PointXYZ>(inputs_.map, *map_) == -1) {
     BEAM_ERROR("Couldn't read file map pcd file: {}", inputs_.map);
   }
-
-  // Fill tf tree object with poses & extrinsics
-  FillTFTrees();
-
-  // load intrinsics
-  camera_model_ = beam_calibration::CameraModel::Create(inputs_.intrinsics);
+  LoadImageContainer();
+  FillTfTrees();
+  SetupColorizer();
+  AddFixedCoordinateSystems();
 }
 
-void CameraToMapAligner::FillTFTrees() {
+void CameraToMapAligner::LoadImageContainer() {
+  std::string json_path = inputs_.image_container_root + "/ImageInfo.json";
+  BEAM_INFO("Reading image container from json: {}", json_path);
+  image_container_.LoadFromJSON(json_path);
+}
+
+void CameraToMapAligner::FillTfTrees() {
   // Load previous poses file specified in labeler json
+  BEAM_INFO("Loading poses form {}", inputs_.poses);
   beam_mapping::Poses poses_container;
   poses_container.LoadFromFile(inputs_.poses);
   const auto& poses = poses_container.GetPoses();
@@ -41,216 +45,222 @@ void CameraToMapAligner::FillTFTrees() {
                              poses_moving_frame_, timestamps[i]);
   }
 
-  BEAM_DEBUG("Filling TF tree with extrinsic transforms");
-  extinsics_original_.LoadJSON(inputs_.extrinsics);
-  extinsics_edited_ = extinsics_original_;
+  BEAM_INFO("Filling TF tree with extrinsic from {}", inputs_.extrinsics);
+  beam_calibration::TfTree extinsics;
+  extinsics.LoadJSON(inputs_.extrinsics);
+
+  BEAM_INFO("Getting transform from {} (reference) to {} (moving frame) from "
+            "extrinsics.",
+            inputs_.reference_frame, poses_moving_frame_);
+  Eigen::Matrix4d T_moving_reference =
+      extinsics.GetTransformEigen(poses_moving_frame_, inputs_.reference_frame)
+          .matrix();
+
+  // load image position
+  ros::Time image_time = image_container_.GetRosTime();
+  BEAM_INFO("Getting transform from {} (moving frame) to {} (map/fixed frame) "
+            "at time {}s from poses",
+            poses_moving_frame_, poses_fixed_frame_, image_time.toSec());
+  Eigen::Matrix4d T_map_moving =
+      poses_tree_
+          .GetTransformEigen(poses_fixed_frame_, poses_moving_frame_,
+                             image_time)
+          .matrix();
+  T_map_reference_ = T_map_moving * T_moving_reference;
+
+  // set initial transform to be edited
+  BEAM_INFO("setting initial transform from {} (camera) to {} (reference)",
+            image_container_.GetBGRFrameId(), inputs_.reference_frame);
+  T_reference_camera_ = extinsics
+                            .GetTransformEigen(inputs_.reference_frame,
+                                               image_container_.GetBGRFrameId())
+                            .matrix();
 }
 
-void CameraToMapAligner::Run() {
-  LoadImageContainer();
-  AddFixedCoordinateSystems();
-  while (!viewer_->wasStopped()) {
-    if (GetUserInput()) {
-      UpdateExtrinsics();
-      UpdateMap();
-      UpdateViewer();
-    }
-    viewer_->spinOnce(100);
+void CameraToMapAligner::SetupColorizer() {
+  std::shared_ptr<beam_calibration::CameraModel> camera_model =
+      beam_calibration::CameraModel::Create(inputs_.intrinsics);
+
+  BEAM_INFO("Creating colorizer");
+  colorizer_ = beam_colorize::Colorizer::Create(
+      beam_colorize::ColorizerType::PROJECTION);
+  colorizer_->SetIntrinsics(camera_model);
+
+  if (image_container_.IsBGRImageSet()) {
+    BEAM_INFO("Setting BGR image in colorizer");
+    colorizer_->SetDistortion(image_container_.GetBGRIsDistorted());
+    colorizer_->SetImage(image_container_.GetBGRImage());
+  } else {
+    BEAM_ERROR("image container does not have a BGR image, cannot run app.");
+    throw std::runtime_error("invalid image container");
   }
+
+  colorizer_->SetDistortion(image_container_.GetBGRIsDistorted());
+  colorizer_->SetImage(image_container_.GetBGRImage());
 }
 
 void CameraToMapAligner::AddFixedCoordinateSystems() {
   // add map coordinate frame
-  viewer->addCoordinateSystem(coordinateFrameScale_,
-                              poses_fixed_frame_ + " (Map)");
+  BEAM_INFO("Adding fixed coordinate systems to viewer");
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               poses_fixed_frame_ + " (Map)");
 
   // add reference coordinate frame
-  Eigen::Matrix4f T_map_reference =
-      (T_map_moving_ * T_moving_reference_).cast<float>();
-  viewer->addCoordinateSystem(coordinateFrameScale_,
-                              Eigen::Affine3f(T_map_reference),
-                              inputs_.reference_frame + " (Ref)");
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               Eigen::Affine3f(T_map_reference_.cast<float>()),
+                               inputs_.reference_frame + " (Ref)");
 
   // add original camera coordinate frame
   Eigen::Matrix4f T_map_camera =
-      (T_map_moving_ * T_moving_reference_ * T_reference_camera_).cast<float>();
-  viewer->addCoordinateSystem(coordinateFrameScale_,
-                              Eigen::Affine3f(T_map_camera),
-                              inputs_.reference_frame + "CameraFrameOrig");
+      (T_map_reference_ * T_reference_camera_).cast<float>();
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               Eigen::Affine3f(T_map_camera),
+                               inputs_.reference_frame + "CameraFrameOrig");
 }
 
-void CameraToMapAligner::LoadImageContainer() {
-  // todo: set T_map_moving_ and T_moving_reference_ and T_reference_camera_
+void CameraToMapAligner::Run() {
+  viewer_->registerKeyboardCallback(this->keyboardEventOccurred,
+                                    (void*)&viewer_);
+  PrintIntructions();
+  while (!viewer_->wasStopped()) { viewer_->spinOnce(10); }
 }
 
-bool CameraToMapAligner::GetUserInput() {
-  // todo
+void CameraToMapAligner::keyboardEventOccurred(
+    const pcl::visualization::KeyboardEvent& event, void* viewer_void) {
+  bool update_trans = true;
+  Eigen::Vector3d trans;
+  Eigen::Vector3d rot;
+  pcl::visualization::PCLVisualizer::Ptr viewer =
+      *static_cast<pcl::visualization::PCLVisualizer::Ptr*>(viewer_void);
+  if (event.getKeySym() == "a" && event.keyDown()) {
+    trans[0] = sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "s" && event.keyDown()) {
+    trans[1] = sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "d" && event.keyDown()) {
+    trans[2] = sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "z" && event.keyDown()) {
+    trans[0] = -sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "x" && event.keyDown()) {
+    trans[1] = -sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "v" && event.keyDown()) {
+    trans[2] = -sensitivity_t_ / 1000;
+  } else if (event.getKeySym() == "k" && event.keyDown()) {
+    rot[0] = sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "l" && event.keyDown()) {
+    rot[1] = sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "semicolon" && event.keyDown()) {
+    rot[2] = sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "m" && event.keyDown()) {
+    rot[0] = -sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "comma" && event.keyDown()) {
+    rot[1] = -sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "period" && event.keyDown()) {
+    rot[2] = -sensitivity_r_ * M_PI / 180;
+  } else if (event.getKeySym() == "Up" && event.keyDown()) {
+    sensitivity_t_ += 0.1;
+    std::cout << "increasing translational sensitivity\n";
+    PrintIntructions();
+    update_trans = false;
+  } else if (event.getKeySym() == "Down" && event.keyDown()) {
+    sensitivity_t_ -= 0.1;
+    std::cout << "decreasing translational sensitivity\n";
+    PrintIntructions();
+    update_trans = false;
+  } else if (event.getKeySym() == "Right" && event.keyDown()) {
+    sensitivity_r_ += 0.1;
+    std::cout << "increasing rotation sensitivity\n";
+    PrintIntructions();
+    update_trans = false;
+  } else if (event.getKeySym() == "Left" && event.keyDown()) {
+    sensitivity_r_ -= 0.1;
+    std::cout << "decreasing rotation sensitivity\n";
+    PrintIntructions();
+    update_trans = false;
+  } else if (event.getKeySym() == "End" && event.keyDown()) {
+    OutputUpdatedTransform();
+    update_trans = false;
+    BEAM_INFO("You can now exit using 'ctrl + c'");
+  }
+
+  if (update_trans) {
+    UpdateExtrinsics(trans, rot);
+    UpdateMap();
+    UpdateViewer();
+  }
 }
 
-void CameraToMapAligner::UpdateExtrinsics() {
-  // calculate T_reference_camera_
+void CameraToMapAligner::UpdateExtrinsics(const Eigen::Vector3d& trans,
+                                          const Eigen::Vector3d& rot) {
+  Eigen::Matrix4d T_pert = Eigen::Matrix4d::Identity();
+  T_pert.block(0, 0, 3, 3) = beam::LieAlgebraToR(rot);
+  T_pert.block(0, 3, 3, 1) = trans;
+  T_reference_camera_ = T_reference_camera_ * T_pert;
+}
+
+void CameraToMapAligner::PrintIntructions() {
+  std::cout
+      << "Current sensitivity [trans - mm, rot - deg]: [" << sensitivity_t_
+      << ", " << sensitivity_r_ << "]"
+      << "\n"
+      << "Press up/down arrow keys to increase/decrease translation sensitivity"
+      << "\n"
+      << "Press right/left arrow keys to increase/decrease rotation sensitivity"
+      << "\n"
+      << "Press buttons 'a/s/d' to increase translational DOF in x/y/z"
+      << "\n"
+      << "Press buttons 'z/x/v' to decrease translational DOF in x/y/z"
+      << "\n"
+      << "Press buttons 'k/l/;' to increase rotational DOF about x/y/z"
+      << "\n"
+      << "Press buttons 'm/,/.' to decrease rotational DOF about x/y/z"
+      << "\n"
+      << "Press 'End' button to save final transform."
+      << "\n";
 }
 
 void CameraToMapAligner::UpdateMap() {
-  // todo
+  colorizer_->SetPointCloud(map_);
+  Eigen::Matrix4d T_map_camera = T_map_reference_ * T_reference_camera_;
+  Eigen::Affine3d TA_camera_map(beam::InvertTransform(T_map_camera));
+  colorizer_->SetTransform(TA_camera_map);
+  map_colored_ = colorizer_->ColorizePointCloud();
 }
 
 void CameraToMapAligner::UpdateViewer() {
   // add point cloud
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
       map_colored_);
-  viewer->removeAllPointClouds();
-  viewer->addPointCloud<PointTypeCol>(map_colored_, rgb, "Map");
-  viewer->setPointCloudRenderingProperties(
+  viewer_->removeAllPointClouds();
+  viewer_->addPointCloud<PointTypeCol>(map_colored_, rgb, "Map");
+  viewer_->setPointCloudRenderingProperties(
       pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Map");
-  viewer->setBackgroundColor(1, 1, 1);
-  
+  viewer_->setBackgroundColor(1, 1, 1);
+
   // Update coordinate frame
-  Eigen::Matrix4f T_map_camera = (T_map_moving_ * T_moving_reference_ * T_reference_camera_).cast<float>();
-  viewer->removeCoordinateSystem("CameraFrameUpdated");
-  viewer->addCoordinateSystem(coordinateFrameScale_, Eigen::Affine3f(T_map_camera), "CameraFrameUpdated");
-
-
-  viewer->initCameraParameters();
+  Eigen::Matrix4f T_map_camera =
+      (T_map_reference_ * T_reference_camera_).cast<float>();
+  viewer_->removeCoordinateSystem("CameraFrameUpdated");
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               Eigen::Affine3f(T_map_camera),
+                               "CameraFrameUpdated");
+  viewer_->initCameraParameters();
 }
 
-// todo move content to UpdateMap
-DefectCloud::Ptr CameraToMapAligner::ProjectImgToMap(const Image& image,
-                                                     const Camera& camera) {
-  BEAM_DEBUG("Projecting image to map");
+void CameraToMapAligner::OutputUpdatedTransform() {
+  BEAM_INFO("Saving final transform to {}", inputs_.output);
+  const auto& T = T_reference_camera_;
+  double T1 = T(0, 0), T2 = T(0, 1), T3 = T(0, 2), T4 = T(0, 3), T5 = T(1, 0),
+         T6 = T(1, 1), T7 = T(1, 2), T8 = T(1, 3), T9 = T(2, 0), T10 = T(2, 1),
+         T11 = T(2, 2), T12 = T(2, 3), T13 = T(3, 0), T14 = T(3, 1),
+         T15 = T(3, 2), T16 = T(3, 3);
 
-  // Get map in camera frame
-  PointCloud::Ptr map_in_camera_frame = std::make_shared<PointCloud>();
-  pcl::transformPointCloud(*map_, *map_in_camera_frame,
-                           image.T_MAP_CAMERA.inverse());
-
-  // Set up the camera colorizer with the point cloud which is being labeled
-  BEAM_DEBUG("Setting map cloud in colorizer");
-
-  camera.colorizer->SetPointCloud(map_in_camera_frame);
-
-  DefectCloud::Ptr labeled_cloud_in_camera_frame =
-      std::make_shared<DefectCloud>();
-
-  // Color point cloud with BGR images
-  const auto& image_container = image.image_container;
-  if (image_container.IsBGRImageSet()) {
-    BEAM_DEBUG("Setting BGR image in colorizer");
-    camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted());
-    camera.colorizer->SetImage(image_container.GetBGRImage());
-
-    // Get colored cloud & remove uncolored points
-    BEAM_DEBUG("Coloring point cloud");
-
-    auto xyzrgb_cloud = camera.colorizer->ColorizePointCloud();
-    BEAM_DEBUG("Finished colorizing point cloud");
-    xyzrgb_cloud->points.erase(
-        std::remove_if(xyzrgb_cloud->points.begin(), xyzrgb_cloud->points.end(),
-                       [](auto& point) {
-                         return (point.r == 0 && point.g == 0 && point.b == 0);
-                       }),
-        xyzrgb_cloud->points.end());
-    xyzrgb_cloud->width = xyzrgb_cloud->points.size();
-    BEAM_DEBUG("Labeled cloud size: {}", xyzrgb_cloud->points.size());
-
-    pcl::copyPointCloud(*xyzrgb_cloud, *labeled_cloud_in_camera_frame);
-  }
-
-  // Enhance defects with depth completion
-  if (image_container.IsBGRMaskSet() && depth_enhancement_) {
-    BEAM_DEBUG("Performing depth map extraction.");
-    beam::HighResolutionTimer timer;
-    std::shared_ptr<beam_depth::DepthMap> dm =
-        std::make_shared<beam_depth::DepthMap>(camera.cam_model,
-                                               map_in_camera_frame);
-    dm->ExtractDepthMap(depth_map_extraction_thresh_);
-    cv::Mat depth_image = dm->GetDepthImage();
-    BEAM_DEBUG("Time elapsed: {}", timer.elapsed());
-
-    BEAM_DEBUG("Removing Sparse defect points.");
-    std::vector<beam_containers::PointBridge,
-                Eigen::aligned_allocator<beam_containers::PointBridge>>
-        new_points;
-    cv::Mat defect_mask = image_container.GetBGRMask();
-    for (auto& p : labeled_cloud_in_camera_frame->points) {
-      Eigen::Vector3d point(p.x, p.y, p.z);
-      bool in_image = false;
-      Eigen::Vector2d coords;
-      if (!camera.cam_model->ProjectPoint(point, coords, in_image) ||
-          !in_image) {
-        new_points.push_back(p);
-      }
-
-      uint16_t col = coords(0, 0);
-      uint16_t row = coords(1, 0);
-      if (defect_mask.at<uchar>(row, col) == 0) { new_points.push_back(p); }
-    }
-    labeled_cloud_in_camera_frame->points = new_points;
-
-    BEAM_DEBUG("Performing depth completion.");
-    cv::Mat depth_image_dense = depth_image.clone();
-    beam_depth::IPBasic(depth_image_dense);
-
-    BEAM_DEBUG("Adding dense defect points.");
-    for (int row = 0; row < depth_image_dense.rows; row++) {
-      for (int col = 0; col < depth_image_dense.cols; col++) {
-        if (defect_mask.at<uchar>(row, col) != 0) {
-          double depth = depth_image_dense.at<double>(row, col);
-          Eigen::Vector2i pixel(col, row);
-          Eigen::Vector3d ray;
-          if (!camera.cam_model->BackProject(pixel, ray)) { continue; }
-          ray = ray.normalized();
-          Eigen::Vector3d point = ray * depth;
-          beam_containers::PointBridge point_bridge;
-          point_bridge.x = point[0];
-          point_bridge.y = point[1];
-          point_bridge.z = point[2];
-          labeled_cloud_in_camera_frame->push_back(point_bridge);
-        }
-      }
-    }
-  }
-
-  // Color point cloud with Mask
-  if (image_container.IsBGRMaskSet()) {
-    camera.colorizer->SetImage(image_container.GetBGRMask());
-
-    // Get labeled cloud & remove unlabeled points
-    DefectCloud::Ptr labeled_cloud = camera.colorizer->ColorizeMask();
-    labeled_cloud->points.erase(std::remove_if(labeled_cloud->points.begin(),
-                                               labeled_cloud->points.end(),
-                                               [](auto& point) {
-                                                 return (point.crack == 0 &&
-                                                         point.delam == 0 &&
-                                                         point.corrosion == 0);
-                                               }),
-                                labeled_cloud->points.end());
-    labeled_cloud->width = labeled_cloud->points.size();
-
-    // Now we need to go back into the final defect cloud and
-    // label the points that have defects
-    pcl::search::KdTree<BridgePoint> kdtree;
-    kdtree.setInputCloud(labeled_cloud_in_camera_frame);
-    for (const auto& search_point : *labeled_cloud) {
-      std::vector<int> nn_point_ids(1);
-      std::vector<float> nn_point_distances(1);
-      if (kdtree.nearestKSearch(search_point, 1, nn_point_ids,
-                                nn_point_distances) > 0) {
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].crack +=
-            search_point.crack;
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].delam +=
-            search_point.delam;
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].corrosion +=
-            search_point.corrosion;
-      }
-    }
-  }
-
-  // Transform the cloud back into the map frame
-  DefectCloud::Ptr labeled_cloud_in_map_frame = std::make_shared<DefectCloud>();
-  pcl::transformPointCloud(*labeled_cloud_in_camera_frame,
-                           *labeled_cloud_in_map_frame, image.T_MAP_CAMERA);
-  return labeled_cloud_in_map_frame;
+  nlohmann::json J = {{"to_frame", inputs_.reference_frame},
+                      {"from_frame", image_container_.GetBGRFrameId()},
+                      {"transform",
+                       {T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13,
+                        T14, T15, T16}}};
+  std::ofstream file(inputs_.output);
+  file << std::setw(4) << J << std::endl;
 }
 
 } // end namespace inspection

@@ -6,6 +6,7 @@ add_library(${PROJECT_NAME}
   Camera.cpp
   QuantifyDefects.cpp
   InspectionUtils.cpp
+  CameraToMapAligner.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC

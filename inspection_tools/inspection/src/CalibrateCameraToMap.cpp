@@ -52,10 +52,11 @@ int main(int argc, char* argv[]) {
 
   inspection::CameraToMapAligner::Inputs inputs{
       .map = FLAGS_map,
+      .poses = FLAGS_poses,
       .poses_moving_frame_override = FLAGS_poses_moving_frame_override,
-      .image_container = FLAGS_image_container,
+      .image_container_root = FLAGS_image_container,
       .extrinsics = FLAGS_extrinsics,
-      .intrinsics = FLAGS_intirinsics,
+      .intrinsics = FLAGS_intrinsics,
       .reference_frame = FLAGS_reference_frame,
       .output = FLAGS_output};
   inspection::CameraToMapAligner aligner(inputs);
