@@ -43,8 +43,7 @@ private:
 
   void AddFixedCoordinateSystems();
 
-  static void keyboardEventOccurred(const pcl::visualization::KeyboardEvent& event,
-                             void* viewer_void);
+  void keyboardEventOccurred(const pcl::visualization::KeyboardEvent& event);
 
   void UpdateExtrinsics(const Eigen::Vector3d& trans,
                         const Eigen::Vector3d& rot);

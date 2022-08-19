@@ -15,9 +15,9 @@ CameraToMapAligner::CameraToMapAligner(const Inputs& inputs) : inputs_(inputs) {
 }
 
 void CameraToMapAligner::LoadImageContainer() {
-  std::string json_path = inputs_.image_container_root + "/ImageInfo.json";
-  BEAM_INFO("Reading image container from json: {}", json_path);
-  image_container_.LoadFromJSON(json_path);
+  BEAM_INFO("Reading image container from json: {}",
+            inputs_.image_container_root);
+  image_container_.LoadFromJSON(inputs_.image_container_root);
 }
 
 void CameraToMapAligner::FillTfTrees() {
@@ -119,19 +119,25 @@ void CameraToMapAligner::AddFixedCoordinateSystems() {
 }
 
 void CameraToMapAligner::Run() {
-  viewer_->registerKeyboardCallback(this->keyboardEventOccurred,
-                                    (void*)&viewer_);
+  std::function<void(const pcl::visualization::KeyboardEvent&)> keyboard_cb =
+      [this](const pcl::visualization::KeyboardEvent& event) {
+        keyboardEventOccurred(event);
+      };
+  viewer_->registerKeyboardCallback(keyboard_cb);
+  UpdateExtrinsics(Eigen::Vector3d(), Eigen::Vector3d());
+  UpdateMap();
+  UpdateViewer();
   PrintIntructions();
   while (!viewer_->wasStopped()) { viewer_->spinOnce(10); }
 }
 
 void CameraToMapAligner::keyboardEventOccurred(
-    const pcl::visualization::KeyboardEvent& event, void* viewer_void) {
+    const pcl::visualization::KeyboardEvent& event) {
   bool update_trans = true;
   Eigen::Vector3d trans;
   Eigen::Vector3d rot;
-  pcl::visualization::PCLVisualizer::Ptr viewer =
-      *static_cast<pcl::visualization::PCLVisualizer::Ptr*>(viewer_void);
+  // pcl::visualization::PCLVisualizer::Ptr viewer =
+  //     *static_cast<pcl::visualization::PCLVisualizer::Ptr*>(viewer_void);
   if (event.getKeySym() == "a" && event.keyDown()) {
     trans[0] = sensitivity_t_ / 1000;
   } else if (event.getKeySym() == "s" && event.keyDown()) {
