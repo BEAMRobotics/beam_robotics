@@ -5,6 +5,7 @@
 namespace inspection {
 
 CameraToMapAligner::CameraToMapAligner(const Inputs& inputs) : inputs_(inputs) {
+  viewer_ = std::make_shared<pcl::visualization::PCLVisualizer>();
   if (pcl::io::loadPCDFile<pcl::PointXYZ>(inputs_.map, *map_) == -1) {
     BEAM_ERROR("Couldn't read file map pcd file: {}", inputs_.map);
   }
@@ -12,6 +13,7 @@ CameraToMapAligner::CameraToMapAligner(const Inputs& inputs) : inputs_(inputs) {
   FillTfTrees();
   SetupColorizer();
   AddFixedCoordinateSystems();
+  BEAM_INFO("Done initializing CameraToMapAligner");
 }
 
 void CameraToMapAligner::LoadImageContainer() {
@@ -87,35 +89,49 @@ void CameraToMapAligner::SetupColorizer() {
   colorizer_->SetIntrinsics(camera_model);
 
   if (image_container_.IsBGRImageSet()) {
-    BEAM_INFO("Setting BGR image in colorizer");
+    BEAM_INFO("Setting distortion");
     colorizer_->SetDistortion(image_container_.GetBGRIsDistorted());
+    BEAM_INFO("Setting BGR image in colorizer");
     colorizer_->SetImage(image_container_.GetBGRImage());
+    BEAM_INFO("Done setting image");
   } else {
     BEAM_ERROR("image container does not have a BGR image, cannot run app.");
     throw std::runtime_error("invalid image container");
   }
-
-  colorizer_->SetDistortion(image_container_.GetBGRIsDistorted());
-  colorizer_->SetImage(image_container_.GetBGRImage());
 }
 
 void CameraToMapAligner::AddFixedCoordinateSystems() {
   // add map coordinate frame
-  BEAM_INFO("Adding fixed coordinate systems to viewer");
-  viewer_->addCoordinateSystem(coordinateFrameScale_,
+  BEAM_INFO("Adding map coordinate system to viewer");
+  viewer_->addText3D("MapFrame", pcl::PointXYZ(), text_scale_);
+  viewer_->addCoordinateSystem(coordinateFrameScale_, Eigen::Affine3f(),
                                poses_fixed_frame_ + " (Map)");
 
   // add reference coordinate frame
-  viewer_->addCoordinateSystem(coordinateFrameScale_,
-                               Eigen::Affine3f(T_map_reference_.cast<float>()),
+  BEAM_INFO("Adding reference frame coordinate system to viewer");
+  Eigen::Affine3f T_reference_map(
+      beam::InvertTransform(T_map_reference_).cast<float>());
+  Eigen::Vector3f t_reference_map = T_reference_map.translation();
+  viewer_->addText3D(
+      "RefFrame",
+      pcl::PointXYZ(t_reference_map[0], t_reference_map[1], t_reference_map[2]),
+      text_scale_);
+  viewer_->addCoordinateSystem(coordinateFrameScale_, T_reference_map,
                                inputs_.reference_frame + " (Ref)");
 
   // add original camera coordinate frame
-  Eigen::Matrix4f T_map_camera =
-      (T_map_reference_ * T_reference_camera_).cast<float>();
-  viewer_->addCoordinateSystem(coordinateFrameScale_,
-                               Eigen::Affine3f(T_map_camera),
+  BEAM_INFO("Adding initial camera frame coordinate system to viewer");
+  Eigen::Matrix4d T_map_camera = T_map_reference_ * T_reference_camera_;
+  Eigen::Affine3f T_camera_map(
+      beam::InvertTransform(T_map_camera).cast<float>());
+  Eigen::Vector3f t_camera_map = T_camera_map.translation();
+  viewer_->addText3D(
+      "CamFrameInit",
+      pcl::PointXYZ(t_camera_map[0], t_camera_map[1], t_camera_map[2]),
+      text_scale_);
+  viewer_->addCoordinateSystem(coordinateFrameScale_, T_camera_map,
                                inputs_.reference_frame + "CameraFrameOrig");
+  BEAM_INFO("Done adding coordinate frames to viewer");
 }
 
 void CameraToMapAligner::Run() {
@@ -123,8 +139,8 @@ void CameraToMapAligner::Run() {
       [this](const pcl::visualization::KeyboardEvent& event) {
         keyboardEventOccurred(event);
       };
+  BEAM_INFO("Registering keyboard callback");
   viewer_->registerKeyboardCallback(keyboard_cb);
-  UpdateExtrinsics(Eigen::Vector3d(), Eigen::Vector3d());
   UpdateMap();
   UpdateViewer();
   PrintIntructions();
@@ -136,8 +152,6 @@ void CameraToMapAligner::keyboardEventOccurred(
   bool update_trans = true;
   Eigen::Vector3d trans;
   Eigen::Vector3d rot;
-  // pcl::visualization::PCLVisualizer::Ptr viewer =
-  //     *static_cast<pcl::visualization::PCLVisualizer::Ptr*>(viewer_void);
   if (event.getKeySym() == "a" && event.keyDown()) {
     trans[0] = sensitivity_t_ / 1000;
   } else if (event.getKeySym() == "s" && event.keyDown()) {
@@ -225,6 +239,7 @@ void CameraToMapAligner::PrintIntructions() {
 }
 
 void CameraToMapAligner::UpdateMap() {
+  BEAM_INFO("Updating map");
   colorizer_->SetPointCloud(map_);
   Eigen::Matrix4d T_map_camera = T_map_reference_ * T_reference_camera_;
   Eigen::Affine3d TA_camera_map(beam::InvertTransform(T_map_camera));
@@ -233,21 +248,23 @@ void CameraToMapAligner::UpdateMap() {
 }
 
 void CameraToMapAligner::UpdateViewer() {
+  BEAM_INFO("updating viewer");
   // add point cloud
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
       map_colored_);
   viewer_->removeAllPointClouds();
   viewer_->addPointCloud<PointTypeCol>(map_colored_, rgb, "Map");
   viewer_->setPointCloudRenderingProperties(
-      pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Map");
-  viewer_->setBackgroundColor(1, 1, 1);
+      pcl::visualization::PCL_VISUALIZER_POINT_SIZE, point_size_, "Map");
+  viewer_->setBackgroundColor(backgound_col_[0], backgound_col_[1],
+                              backgound_col_[2]);
 
   // Update coordinate frame
   Eigen::Matrix4f T_map_camera =
       (T_map_reference_ * T_reference_camera_).cast<float>();
   viewer_->removeCoordinateSystem("CameraFrameUpdated");
   viewer_->addCoordinateSystem(coordinateFrameScale_,
-                               Eigen::Affine3f(T_map_camera),
+                               Eigen::Affine3f(T_map_camera).inverse(),
                                "CameraFrameUpdated");
   viewer_->initCameraParameters();
 }

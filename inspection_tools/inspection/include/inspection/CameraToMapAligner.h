@@ -58,8 +58,7 @@ private:
 
   Inputs inputs_;
 
-  pcl::visualization::PCLVisualizer::Ptr viewer_ =
-      std::make_shared<pcl::visualization::PCLVisualizer>();
+  pcl::visualization::PCLVisualizer::Ptr viewer_;
   beam_calibration::TfTree poses_tree_;
   beam_containers::ImageBridge image_container_;
   std::unique_ptr<beam_colorize::Colorizer> colorizer_;
@@ -78,6 +77,9 @@ private:
   double coordinateFrameScale_{0.5};
   double sensitivity_r_ = 3; // can be tuned by user
   double sensitivity_t_ = 5; // can be tuned by user
+  int point_size_{3};
+  double text_scale_{0.1};
+  std::vector<double> backgound_col_{0.8, 0.8, 0.8};
 };
 
 } // namespace inspection
