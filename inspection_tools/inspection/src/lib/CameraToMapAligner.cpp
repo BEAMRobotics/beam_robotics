@@ -57,7 +57,6 @@ void CameraToMapAligner::FillTfTrees() {
   Eigen::Matrix4d T_moving_reference =
       extinsics.GetTransformEigen(poses_moving_frame_, inputs_.reference_frame)
           .matrix();
-  std::cout << "T_moving_reference: \n" << T_moving_reference << "\n";
 
   // load image position
   ros::Time image_time = image_container_.GetRosTime();
@@ -69,9 +68,7 @@ void CameraToMapAligner::FillTfTrees() {
           .GetTransformEigen(poses_fixed_frame_, poses_moving_frame_,
                              image_time)
           .matrix();
-  std::cout << "T_map_moving: \n" << T_map_moving << "\n";
   T_map_reference_ = T_map_moving * T_moving_reference;
-  std::cout << "T_map_reference_: \n" << T_map_reference_ << "\n";
 
   // set initial transform to be edited
   BEAM_INFO("setting initial transform from {} (camera) to {} (reference)",
@@ -242,9 +239,6 @@ void CameraToMapAligner::UpdateMap() {
   Eigen::Affine3d TA_camera_map(beam::InvertTransform(T_map_camera));
   colorizer_->SetTransform(TA_camera_map);
   map_colored_ = colorizer_->ColorizePointCloud();
-  beam::SavePointCloud<pcl::PointXYZRGB>("/home/nick/map_colored.pcd",
-                                         *map_colored_);
-  beam::SavePointCloud<pcl::PointXYZ>("/home/nick/map.pcd", *map_);
 }
 
 void CameraToMapAligner::UpdateViewer() {
