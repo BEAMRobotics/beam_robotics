@@ -57,6 +57,7 @@ void CameraToMapAligner::FillTfTrees() {
   Eigen::Matrix4d T_moving_reference =
       extinsics.GetTransformEigen(poses_moving_frame_, inputs_.reference_frame)
           .matrix();
+  std::cout << "T_moving_reference: \n" << T_moving_reference << "\n";
 
   // load image position
   ros::Time image_time = image_container_.GetRosTime();
@@ -68,7 +69,9 @@ void CameraToMapAligner::FillTfTrees() {
           .GetTransformEigen(poses_fixed_frame_, poses_moving_frame_,
                              image_time)
           .matrix();
+  std::cout << "T_map_moving: \n" << T_map_moving << "\n";
   T_map_reference_ = T_map_moving * T_moving_reference;
+  std::cout << "T_map_reference_: \n" << T_map_reference_ << "\n";
 
   // set initial transform to be edited
   BEAM_INFO("setting initial transform from {} (camera) to {} (reference)",
@@ -109,28 +112,22 @@ void CameraToMapAligner::AddFixedCoordinateSystems() {
 
   // add reference coordinate frame
   BEAM_INFO("Adding reference frame coordinate system to viewer");
-  Eigen::Affine3f T_reference_map(
-      beam::InvertTransform(T_map_reference_).cast<float>());
-  Eigen::Vector3f t_reference_map = T_reference_map.translation();
-  viewer_->addText3D(
-      "RefFrame",
-      pcl::PointXYZ(t_reference_map[0], t_reference_map[1], t_reference_map[2]),
-      text_scale_);
-  viewer_->addCoordinateSystem(coordinateFrameScale_, T_reference_map,
+  pcl::PointXYZ t(T_map_reference_(0, 3), T_map_reference_(1, 3),
+                  T_map_reference_(2, 3));
+  viewer_->addText3D("RefFrame", t, text_scale_);
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               Eigen::Affine3f(T_map_reference_.cast<float>()),
                                inputs_.reference_frame + " (Ref)");
 
   // add original camera coordinate frame
   BEAM_INFO("Adding initial camera frame coordinate system to viewer");
   Eigen::Matrix4d T_map_camera = T_map_reference_ * T_reference_camera_;
-  Eigen::Affine3f T_camera_map(
-      beam::InvertTransform(T_map_camera).cast<float>());
-  Eigen::Vector3f t_camera_map = T_camera_map.translation();
-  viewer_->addText3D(
-      "CamFrameInit",
-      pcl::PointXYZ(t_camera_map[0], t_camera_map[1], t_camera_map[2]),
-      text_scale_);
-  viewer_->addCoordinateSystem(coordinateFrameScale_, T_camera_map,
+  t = pcl::PointXYZ(T_map_camera(0, 3), T_map_camera(1, 3), T_map_camera(2, 3));
+  viewer_->addText3D("CamFrameInit", t, text_scale_);
+  viewer_->addCoordinateSystem(coordinateFrameScale_,
+                               Eigen::Affine3f(T_map_camera.cast<float>()),
                                inputs_.reference_frame + "CameraFrameOrig");
+
   BEAM_INFO("Done adding coordinate frames to viewer");
 }
 
@@ -245,6 +242,9 @@ void CameraToMapAligner::UpdateMap() {
   Eigen::Affine3d TA_camera_map(beam::InvertTransform(T_map_camera));
   colorizer_->SetTransform(TA_camera_map);
   map_colored_ = colorizer_->ColorizePointCloud();
+  beam::SavePointCloud<pcl::PointXYZRGB>("/home/nick/map_colored.pcd",
+                                         *map_colored_);
+  beam::SavePointCloud<pcl::PointXYZ>("/home/nick/map.pcd", *map_);
 }
 
 void CameraToMapAligner::UpdateViewer() {
@@ -252,7 +252,7 @@ void CameraToMapAligner::UpdateViewer() {
   // add point cloud
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
       map_colored_);
-  viewer_->removeAllPointClouds();
+  viewer_->removePointCloud("Map");
   viewer_->addPointCloud<PointTypeCol>(map_colored_, rgb, "Map");
   viewer_->setPointCloudRenderingProperties(
       pcl::visualization::PCL_VISUALIZER_POINT_SIZE, point_size_, "Map");
@@ -264,7 +264,7 @@ void CameraToMapAligner::UpdateViewer() {
       (T_map_reference_ * T_reference_camera_).cast<float>();
   viewer_->removeCoordinateSystem("CameraFrameUpdated");
   viewer_->addCoordinateSystem(coordinateFrameScale_,
-                               Eigen::Affine3f(T_map_camera).inverse(),
+                               Eigen::Affine3f(T_map_camera),
                                "CameraFrameUpdated");
   viewer_->initCameraParameters();
 }
