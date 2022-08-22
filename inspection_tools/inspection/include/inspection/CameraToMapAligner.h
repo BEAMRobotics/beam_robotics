@@ -59,6 +59,7 @@ private:
   Inputs inputs_;
 
   pcl::visualization::PCLVisualizer::Ptr viewer_;
+  std::shared_ptr<beam_calibration::CameraModel> camera_model_;
   beam_calibration::TfTree poses_tree_;
   beam_containers::ImageBridge image_container_;
   std::unique_ptr<beam_colorize::Colorizer> colorizer_;
@@ -67,6 +68,7 @@ private:
   PointCloud::Ptr map_ = std::make_shared<PointCloud>();
   PointCloudCol::Ptr map_colored_ = std::make_shared<PointCloudCol>();
   Eigen::Matrix4d T_map_reference_;
+  bool quit_{false};
 
   /** @brief this is the transform that we are going to be editing. Note that
    * this transform may break the tree if the user doesn't input a valid

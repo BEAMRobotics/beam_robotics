@@ -43,8 +43,9 @@ void CameraToMapAligner::FillTfTrees() {
   ros::Time start_time = timestamps.front();
   poses_tree_.start_time = start_time;
   for (int i = 0; i < poses.size(); i++) {
-    poses_tree_.AddTransform(Eigen::Affine3d(poses[i]), poses_fixed_frame_,
-                             poses_moving_frame_, timestamps[i]);
+    Eigen::Affine3d T(poses[i]);
+    poses_tree_.AddTransform(T, poses_fixed_frame_, poses_moving_frame_,
+                             timestamps[i]);
   }
 
   BEAM_INFO("Filling TF tree with extrinsic from {}", inputs_.extrinsics);
@@ -98,13 +99,15 @@ void CameraToMapAligner::SetupColorizer() {
     BEAM_ERROR("image container does not have a BGR image, cannot run app.");
     throw std::runtime_error("invalid image container");
   }
+  colorizer_->SetPointCloud(map_);
 }
 
 void CameraToMapAligner::AddFixedCoordinateSystems() {
   // add map coordinate frame
   BEAM_INFO("Adding map coordinate system to viewer");
   viewer_->addText3D("MapFrame", pcl::PointXYZ(), text_scale_);
-  viewer_->addCoordinateSystem(coordinateFrameScale_, Eigen::Affine3f(),
+  Eigen::Affine3f T_identity(Eigen::Matrix4f::Identity());
+  viewer_->addCoordinateSystem(coordinateFrameScale_, T_identity,
                                poses_fixed_frame_ + " (Map)");
 
   // add reference coordinate frame
@@ -138,7 +141,13 @@ void CameraToMapAligner::Run() {
   UpdateMap();
   UpdateViewer();
   PrintIntructions();
-  while (!viewer_->wasStopped()) { viewer_->spinOnce(10); }
+  while (!viewer_->wasStopped()) {
+    viewer_->spinOnce(10);
+    if (quit_) {
+      BEAM_INFO("CameraToMapAligner complete.");
+      break;
+    }
+  }
 }
 
 void CameraToMapAligner::keyboardEventOccurred(
@@ -193,7 +202,7 @@ void CameraToMapAligner::keyboardEventOccurred(
   } else if (event.getKeySym() == "End" && event.keyDown()) {
     OutputUpdatedTransform();
     update_trans = false;
-    BEAM_INFO("You can now exit using 'ctrl + c'");
+    quit_ = true;
   }
 
   if (update_trans) {
@@ -208,7 +217,10 @@ void CameraToMapAligner::UpdateExtrinsics(const Eigen::Vector3d& trans,
   Eigen::Matrix4d T_pert = Eigen::Matrix4d::Identity();
   T_pert.block(0, 0, 3, 3) = beam::LieAlgebraToR(rot);
   T_pert.block(0, 3, 3, 1) = trans;
+  std::cout << "T_reference_camera_: \n" << T_reference_camera_ << "\n";
   T_reference_camera_ = T_reference_camera_ * T_pert;
+  std::cout << "T_pert: \n" << T_pert << "\n";
+  std::cout << "T_reference_camera_updated: \n" << T_reference_camera_ << "\n";
 }
 
 void CameraToMapAligner::PrintIntructions() {
@@ -234,10 +246,9 @@ void CameraToMapAligner::PrintIntructions() {
 
 void CameraToMapAligner::UpdateMap() {
   BEAM_INFO("Updating map");
-  colorizer_->SetPointCloud(map_);
   Eigen::Matrix4d T_map_camera = T_map_reference_ * T_reference_camera_;
-  Eigen::Affine3d TA_camera_map(beam::InvertTransform(T_map_camera));
-  colorizer_->SetTransform(TA_camera_map);
+  Eigen::Matrix4d T_camera_map = beam::InvertTransform(T_map_camera);
+  colorizer_->SetTransform(T_camera_map);
   map_colored_ = colorizer_->ColorizePointCloud();
 }
 
