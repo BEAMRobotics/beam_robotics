@@ -39,8 +39,6 @@ private:
 
   void FillTfTrees();
 
-  void SetupColorizer();
-
   void AddFixedCoordinateSystems();
 
   void keyboardEventOccurred(const pcl::visualization::KeyboardEvent& event);
@@ -62,7 +60,6 @@ private:
   std::shared_ptr<beam_calibration::CameraModel> camera_model_;
   beam_calibration::TfTree poses_tree_;
   beam_containers::ImageBridge image_container_;
-  std::unique_ptr<beam_colorize::Colorizer> colorizer_;
   std::string poses_moving_frame_;
   std::string poses_fixed_frame_;
   PointCloud::Ptr map_ = std::make_shared<PointCloud>();
@@ -80,8 +77,9 @@ private:
   double sensitivity_r_ = 3; // can be tuned by user
   double sensitivity_t_ = 5; // can be tuned by user
   int point_size_{3};
-  double text_scale_{0.1};
-  std::vector<double> backgound_col_{0.8, 0.8, 0.8};
+  double text_scale_{0.05};
+  std::vector<double> backgound_rgb_{0.8, 0.8, 0.8};
+  std::vector<double> text_rgb_{0, 0, 1};
 };
 
 } // namespace inspection
