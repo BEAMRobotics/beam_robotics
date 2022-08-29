@@ -80,6 +80,7 @@ void CameraToMapAligner::FillTfTrees() {
                             .GetTransformEigen(inputs_.reference_frame,
                                                image_container_.GetBGRFrameId())
                             .matrix();
+  T_reference_camera_original_ = T_reference_camera_;
 }
 
 void CameraToMapAligner::AddFixedCoordinateSystems() {
@@ -136,8 +137,8 @@ void CameraToMapAligner::Run() {
 void CameraToMapAligner::keyboardEventOccurred(
     const pcl::visualization::KeyboardEvent& event) {
   bool update_trans = true;
-  Eigen::Vector3d trans;
-  Eigen::Vector3d rot;
+  Eigen::Vector3d trans{0,0,0};
+  Eigen::Vector3d rot{0,0,0};
   if (event.getKeySym() == "a" && event.keyDown()) {
     trans[0] = sensitivity_t_ / 1000;
   } else if (event.getKeySym() == "s" && event.keyDown()) {
@@ -165,23 +166,24 @@ void CameraToMapAligner::keyboardEventOccurred(
   } else if (event.getKeySym() == "Up" && event.keyDown()) {
     sensitivity_t_ += 0.1;
     std::cout << "increasing translational sensitivity\n";
-    PrintIntructions();
     update_trans = false;
   } else if (event.getKeySym() == "Down" && event.keyDown()) {
     sensitivity_t_ -= 0.1;
     std::cout << "decreasing translational sensitivity\n";
-    PrintIntructions();
     update_trans = false;
   } else if (event.getKeySym() == "Right" && event.keyDown()) {
     sensitivity_r_ += 0.1;
     std::cout << "increasing rotation sensitivity\n";
-    PrintIntructions();
     update_trans = false;
   } else if (event.getKeySym() == "Left" && event.keyDown()) {
     sensitivity_r_ -= 0.1;
     std::cout << "decreasing rotation sensitivity\n";
-    PrintIntructions();
     update_trans = false;
+  } else if (event.getKeySym() == "r" && event.keyDown()) {
+    T_reference_camera_ = T_reference_camera_original_;
+    update_trans = false;
+    UpdateMap();
+    UpdateViewer();
   } else if (event.getKeySym() == "End" && event.keyDown()) {
     OutputUpdatedTransform();
     update_trans = false;
@@ -195,6 +197,7 @@ void CameraToMapAligner::keyboardEventOccurred(
     UpdateMap();
     UpdateViewer();
   }
+  PrintIntructions();
 }
 
 void CameraToMapAligner::UpdateExtrinsics(const Eigen::Vector3d& trans,
@@ -206,24 +209,18 @@ void CameraToMapAligner::UpdateExtrinsics(const Eigen::Vector3d& trans,
 }
 
 void CameraToMapAligner::PrintIntructions() {
-  std::cout
-      << "Current sensitivity [trans - mm, rot - deg]: [" << sensitivity_t_
-      << ", " << sensitivity_r_ << "]"
-      << "\n"
-      << "Press up/down arrow keys to increase/decrease translation sensitivity"
-      << "\n"
-      << "Press right/left arrow keys to increase/decrease rotation sensitivity"
-      << "\n"
-      << "Press buttons 'a/s/d' to increase translational DOF in x/y/z"
-      << "\n"
-      << "Press buttons 'z/x/v' to decrease translational DOF in x/y/z"
-      << "\n"
-      << "Press buttons 'k/l/;' to increase rotational DOF about x/y/z"
-      << "\n"
-      << "Press buttons 'm/,/.' to decrease rotational DOF about x/y/z"
-      << "\n"
-      << "Press 'End' button to save final transform."
-      << "\n";
+  std::cout << "Current sensitivity [trans - mm, rot - deg]: ["
+            << sensitivity_t_ << ", " << sensitivity_r_ << "]\n"
+            << "Press up/down arrow keys to increase/decrease translation "
+               "sensitivity\n"
+            << "Press right/left arrow keys to increase/decrease rotation "
+               "sensitivity\n"
+            << "Press buttons 'a/s/d' to increase translational DOF in x/y/z\n"
+            << "Press buttons 'z/x/v' to decrease translational DOF in x/y/z\n"
+            << "Press buttons 'k/l/;' to increase rotational DOF about x/y/z\n"
+            << "Press buttons 'm/,/.' to decrease rotational DOF about x/y/z\n"
+            << "Press 'r' to reset extrinsics\n"
+            << "Press 'End' button to save final transform\n";
 }
 
 void CameraToMapAligner::UpdateMap() {
@@ -255,10 +252,11 @@ void CameraToMapAligner::UpdateMap() {
       colorizer->ColorizePointCloud();
   pcl::transformPointCloud(*map_colored_in_camera_frame, *map_colored_,
                            Eigen::Affine3d(T_map_camera));
+  BEAM_INFO("Done updating map");
 }
 
 void CameraToMapAligner::UpdateViewer() {
-  BEAM_INFO("updating viewer");
+  BEAM_INFO("Updating viewer");
   // add point cloud
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
       map_colored_);
@@ -276,6 +274,7 @@ void CameraToMapAligner::UpdateViewer() {
   viewer_->addCoordinateSystem(coordinateFrameScale_,
                                Eigen::Affine3f(T_map_camera),
                                "CameraFrameUpdated");
+  BEAM_INFO("Done updating viewer");
 }
 
 void CameraToMapAligner::OutputUpdatedTransform() {

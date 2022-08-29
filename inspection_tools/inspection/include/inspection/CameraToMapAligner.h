@@ -71,6 +71,7 @@ private:
    * this transform may break the tree if the user doesn't input a valid
    * reference_frame */
   Eigen::Matrix4d T_reference_camera_;
+  Eigen::Matrix4d T_reference_camera_original_;
 
   // params
   double coordinateFrameScale_{0.5};
