@@ -137,8 +137,8 @@ void CameraToMapAligner::Run() {
 void CameraToMapAligner::keyboardEventOccurred(
     const pcl::visualization::KeyboardEvent& event) {
   bool update_trans = true;
-  Eigen::Vector3d trans{0,0,0};
-  Eigen::Vector3d rot{0,0,0};
+  Eigen::Vector3d trans{0, 0, 0};
+  Eigen::Vector3d rot{0, 0, 0};
   if (event.getKeySym() == "a" && event.keyDown()) {
     trans[0] = sensitivity_t_ / 1000;
   } else if (event.getKeySym() == "s" && event.keyDown()) {
@@ -279,17 +279,20 @@ void CameraToMapAligner::UpdateViewer() {
 
 void CameraToMapAligner::OutputUpdatedTransform() {
   BEAM_INFO("Saving final transform to {}", inputs_.output);
-  const auto& T = T_reference_camera_;
-  double T1 = T(0, 0), T2 = T(0, 1), T3 = T(0, 2), T4 = T(0, 3), T5 = T(1, 0),
-         T6 = T(1, 1), T7 = T(1, 2), T8 = T(1, 3), T9 = T(2, 0), T10 = T(2, 1),
-         T11 = T(2, 2), T12 = T(2, 3), T13 = T(3, 0), T14 = T(3, 1),
-         T15 = T(3, 2), T16 = T(3, 3);
+  const Eigen::Matrix4d& T = T_reference_camera_;
+  Eigen::Matrix4d TINV = beam::InvertTransform(T);
 
-  nlohmann::json J = {{"to_frame", inputs_.reference_frame},
-                      {"from_frame", image_container_.GetBGRFrameId()},
-                      {"transform",
-                       {T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13,
-                        T14, T15, T16}}};
+  nlohmann::json J = {
+      {"to_frame", inputs_.reference_frame},
+      {"from_frame", image_container_.GetBGRFrameId()},
+      {"transform",
+       {T(0, 0), T(0, 1), T(0, 2), T(0, 3), T(1, 0), T(1, 1), T(1, 2), T(1, 3),
+        T(2, 0), T(2, 1), T(2, 2), T(2, 3), 0, 0, 0, 1}},
+      {"transform_inverse",
+       {TINV(0, 0), TINV(0, 1), TINV(0, 2), TINV(0, 3), TINV(1, 0), TINV(1, 1),
+        TINV(1, 2), TINV(1, 3), TINV(2, 0), TINV(2, 1), TINV(2, 2), TINV(2, 3),
+        0, 0, 0, 1}}};
+
   std::ofstream file(inputs_.output);
   file << std::setw(4) << J << std::endl;
 }
