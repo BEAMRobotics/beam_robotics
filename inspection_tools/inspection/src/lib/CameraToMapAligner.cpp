@@ -111,7 +111,6 @@ void CameraToMapAligner::AddFixedCoordinateSystems() {
   viewer_->addCoordinateSystem(coordinateFrameScale_,
                                Eigen::Affine3f(T_map_camera.cast<float>()),
                                inputs_.reference_frame + "CameraFrameOrig");
-
   BEAM_INFO("Done adding coordinate frames to viewer");
 }
 
