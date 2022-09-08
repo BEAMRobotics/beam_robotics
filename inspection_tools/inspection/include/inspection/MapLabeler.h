@@ -23,6 +23,14 @@ using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 
+struct DefectCloudStats {
+  int size;
+  int cracks;
+  int delams;
+  int spalls;
+  int corrosions;
+};
+
 /**
  * @brief class for labeling/coloring a SLAM map given beam image containers
  */
@@ -81,12 +89,20 @@ public:
   void SaveImages(const std::string& output_folder);
 
   /**
+   * @brief save a summary json file including camera info and their labeled
+   * clouds
+   */
+  void OutputSummary(const std::string& output_folder);
+
+  /**
+   * @brief copy config to output directory
+   */
+  void OutputConfig(const std::string& output_folder);
+
+  /**
    * @brief Draw the final labeled map in the PCL viewer
    */
   void DrawFinalMap();
-
-  pcl::visualization::PCLVisualizer::Ptr viewer =
-      std::make_shared<pcl::visualization::PCLVisualizer>();
 
 private:
   /**
@@ -116,6 +132,13 @@ private:
    * that were labeled with this image
    */
   DefectCloud::Ptr ProjectImgToMap(const Image& image, const Camera& camera);
+
+  /**
+   * @brief Get the stats (count of features) of a defect cloud
+   * @param cloud input defect cloud
+   * @return DefectCloudStats
+   */
+  DefectCloudStats GetDefectCloudStats(const DefectCloud::Ptr& cloud);
 
   Inputs inputs_;
 

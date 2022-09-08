@@ -59,7 +59,6 @@ struct Camera {
                  const std::string& poses_fixed_frame = "Map");
 
   std::string name;
-  std::string images_metadata_path;
   std::string intrinsics_path;
   std::shared_ptr<beam_calibration::CameraModel> cam_model;
   std::vector<Image> images;

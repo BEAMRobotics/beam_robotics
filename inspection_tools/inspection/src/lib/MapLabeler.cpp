@@ -2,8 +2,8 @@
 
 #include <inspection/MapLabeler.h>
 
-#include <thread>
 #include <boost/filesystem.hpp>
+#include <thread>
 
 #include <tf2_eigen/tf2_eigen.h>
 
@@ -85,7 +85,6 @@ void MapLabeler::PrintConfiguration() {
   for (const auto& cam : cameras_) {
     BEAM_INFO("Camera: {} info...", counter++);
     BEAM_INFO("   Cam Name: {}", cam.name);
-    BEAM_INFO("   Images metadata path: {}", cam.images_metadata_path);
     BEAM_INFO("   Intrinsics path: {}", cam.intrinsics_path);
     BEAM_INFO("   Camera frame: {}", cam.cam_model->GetFrameID());
     BEAM_INFO("   Number of images: {}", cam.images.size());
@@ -96,12 +95,16 @@ void MapLabeler::PrintConfiguration() {
 }
 
 void MapLabeler::DrawFinalMap() {
+  using namespace std::literals::chrono_literals;
+
   PointCloudXYZRGB::Ptr rgb_pc = std::make_shared<PointCloudXYZRGB>();
   pcl::copyPointCloud(*cloud_combiner_.GetCombinedCloud(), *rgb_pc);
 
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(
       rgb_pc);
 
+  pcl::visualization::PCLVisualizer::Ptr viewer =
+      std::make_shared<pcl::visualization::PCLVisualizer>();
   viewer->addPointCloud<pcl::PointXYZRGB>(rgb_pc, rgb, "Final");
   viewer->setPointCloudRenderingProperties(
       pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Final");
@@ -109,6 +112,11 @@ void MapLabeler::DrawFinalMap() {
   viewer->setBackgroundColor(1, 1, 1);
   viewer->addCoordinateSystem(1.0);
   viewer->initCameraParameters();
+
+  while (!viewer->wasStopped()) {
+    viewer->spinOnce(100);
+    std::this_thread::sleep_for(100ms);
+  }
 }
 
 void MapLabeler::ProcessJSONConfig() {
@@ -291,14 +299,13 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
 
   camera.colorizer->SetPointCloud(map_in_camera_frame);
 
+  // Color point cloud with BGR images
   DefectCloud::Ptr labeled_cloud_in_camera_frame =
       std::make_shared<DefectCloud>();
-
-  // Color point cloud with BGR images
   const auto& image_container = image.image_container;
   if (image_container.IsBGRImageSet()) {
     BEAM_DEBUG("Setting BGR image in colorizer");
-    camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted()); 
+    camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted());
     camera.colorizer->SetImage(image_container.GetBGRImage());
 
     // Get colored cloud & remove uncolored points
@@ -314,7 +321,6 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
         xyzrgb_cloud->points.end());
     xyzrgb_cloud->width = xyzrgb_cloud->points.size();
     BEAM_DEBUG("Labeled cloud size: {}", xyzrgb_cloud->points.size());
-
     pcl::copyPointCloud(*xyzrgb_cloud, *labeled_cloud_in_camera_frame);
   }
 
@@ -413,6 +419,75 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
   pcl::transformPointCloud(*labeled_cloud_in_camera_frame,
                            *labeled_cloud_in_map_frame, image.T_MAP_CAMERA);
   return labeled_cloud_in_map_frame;
+}
+
+void MapLabeler::OutputSummary(const std::string& output_folder) {
+  std::string json_file_name = output_folder + "/summary.json";
+  BEAM_INFO("Saving labeling summary to: {}", json_file_name);
+  std::vector<nlohmann::json> cameraJsons;
+  for (int cam_iter = 0; cam_iter < cameras_.size(); cam_iter++) {
+    const Camera& camera = cameras_[cam_iter];
+    // fill image jsons
+    std::vector<nlohmann::json> imageJsons;
+    for (int img_iter = 0; img_iter < cameras_[cam_iter].images.size();
+         img_iter++) {
+      DefectCloud::Ptr defect_cloud = defect_clouds_.at(cam_iter).at(img_iter);
+      DefectCloudStats stats = GetDefectCloudStats(defect_cloud);
+      nlohmann::json statsJson;
+      statsJson["size"] = stats.size;
+      statsJson["cracks"] = stats.cracks;
+      statsJson["delams"] = stats.delams;
+      statsJson["spalls"] = stats.spalls;
+      statsJson["corrosions"] = stats.corrosions;
+
+      nlohmann::json imageJson;
+      imageJson["defect_statistics"] = statsJson;
+
+      const Image& image = camera.images[img_iter];
+      imageJson["image_info_path"] = image.image_info_path;
+      imageJson["bgr_image_set"] = image.image_container.IsBGRImageSet();
+      imageJson["bgr_mask_set"] = image.image_container.IsBGRMaskSet();
+      imageJson["ir_image_set"] = image.image_container.IsIRImageSet();
+      imageJson["ir_mask_set"] = image.image_container.IsIRMaskSet();
+      imageJson["timestamp_in_s"] = image.image_container.GetRosTime().toSec();
+      imageJsons.push_back(imageJson);
+    }
+
+    // fill camera json
+    nlohmann::json cameraJson;
+    cameraJson["name"] = camera.name;
+    cameraJson["intrinsics_path"] = camera.intrinsics_path;
+    cameraJson["frame_id"] = camera.cam_model->GetFrameID();
+    cameraJson["images"] = imageJsons;
+    cameraJsons.push_back(cameraJson);
+  }
+
+  nlohmann::json J;
+  J["cameras"] = cameraJsons;
+  std::ofstream filejson(json_file_name);
+  filejson << std::setw(4) << J << std::endl;
+}
+
+DefectCloudStats
+    MapLabeler::GetDefectCloudStats(const DefectCloud::Ptr& cloud) {
+  DefectCloudStats stats;
+  stats.size = cloud->size();
+  for (auto cloud_iter = cloud->begin(); cloud_iter != cloud->end();
+       cloud_iter++) {
+    if (cloud_iter->crack > 0) { stats.cracks++; }
+    if (cloud_iter->corrosion > 0) { stats.corrosions++; }
+    if (cloud_iter->spall > 0) { stats.spalls++; }
+    if (cloud_iter->delam > 0) { stats.delams++; }
+  }
+  return stats;
+}
+
+void MapLabeler::OutputConfig(const std::string& output_folder) {
+  std::string config_file_output = output_folder + "/config_copy.json";
+  BEAM_INFO("Saving config to: {}", config_file_output);
+  std::ifstream src(inputs_.config_file_location, std::ios::binary);
+  std::ofstream dst(config_file_output, std::ios::binary);
+  dst << src.rdbuf();
 }
 
 } // end namespace inspection
