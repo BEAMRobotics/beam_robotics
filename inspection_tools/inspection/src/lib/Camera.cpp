@@ -6,6 +6,7 @@ namespace inspection {
 
 Image::Image(const std::string& image_directory) {
   image_container.LoadFromJSON(image_directory);
+  image_info_path = image_directory;
 }
 
 Camera::Camera(const std::string& camera_name,
