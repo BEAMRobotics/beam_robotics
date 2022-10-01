@@ -47,6 +47,9 @@ Camera::Camera(const std::string& camera_name,
   } else if (colorizer_type == "RayTrace") {
     colorizer = beam_colorize::Colorizer::Create(
         beam_colorize::ColorizerType::RAY_TRACE);
+  } else if (colorizer_type == "Projection2") {
+    colorizer = beam_colorize::Colorizer::Create(
+        beam_colorize::ColorizerType::PROJECTION_OCCLUSION_SAFE);
   }
   colorizer->SetIntrinsics(cam_model);
 }
