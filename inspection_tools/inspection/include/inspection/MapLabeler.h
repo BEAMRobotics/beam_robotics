@@ -23,6 +23,9 @@ using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
 using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 
+// map: image timestamp in Ns -> defect cloud in map frame
+using DefectCloudsMapType = std::unordered_map<int64_t, DefectCloud::Ptr>;
+
 struct DefectCloudStats {
   int size;
   int cracks;
@@ -55,9 +58,48 @@ public:
   ~MapLabeler() = default;
 
   /**
-   * @brief Main method to kick off execution
+   * @brief calls LabelColor -> LabelDefects -> CombineClouds and then outputs
+   * all information
    */
-  void Run();
+  RunFullPipeline() const;
+
+  /**
+   * @brief Adds RGB color from RGB image in container. If a defect cloud
+   * doesn't exist for any image of any camera, this will create one. Otherwise
+   * it will fill RGB data of that defect cloud
+   * IMPORTANT: if the defect cloud already exists and isn't empty, we will only
+   * try to colorize the points in this defect cloud. So make sure the cloud
+   * wasn't colored with a different image, or else the kept colored points
+   * won't project to the image. This is meant to be used in combination with
+   * LabelDefects which are both called on the same image for each defect cloud
+   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud
+   */
+  void LabelColor(std::unordered_map<std::string, DefectCloudsMapType>&
+                      defect_clouds) const;
+
+  /**
+   * @brief Adds defect mask information color from RGB Masks in container. If a
+   * defect cloud doesn't exist for any image of any camera, this will create
+   * one. Otherwise it will fill defect data of that defect cloud
+   * IMPORTANT: if the defect cloud already exists and isn't empty, we will only
+   * try to label the points in this defect cloud. So make sure the cloud wasn't
+   * colored with a different image, or else the kept colored points won't
+   * project to the image. This is meant to be used in combination with
+   * LabelColor which are both called on the same image for each defect cloud
+   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud
+   */
+  void LabelDefects(std::unordered_map<std::string, DefectCloudsMapType>&
+                        defect_clouds) const;
+
+  /**
+   * @brief Combine clouds into a final map
+   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud
+   */
+  void CombineClouds(const std::unordered_map<std::string, DefectCloudsMapType>&
+                         defect_clouds) const;
 
   /**
    * @brief Print current configuration
@@ -126,12 +168,25 @@ private:
 
   /**
    * @brief Labels point cloud map with image specified
+   * @param defect_cloud cloud to add results to
    * @param image
    * @param camera
    * @return Labeled point cloud map in map frame containing only map points
    * that were labeled with this image
    */
-  DefectCloud::Ptr ProjectImgToMap(const Image& image, const Camera& camera);
+  ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud, const Image& image,
+                     const Camera& camera) const;
+
+  /**
+   * @brief Labels point cloud map with image specified
+   * @param defect_cloud cloud to add results to
+   * @param image
+   * @param camera
+   * @return Labeled point cloud map in map frame containing only map points
+   * that were labeled with this image
+   */
+  ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud, const Image& image,
+                         const Camera& camera) const;
 
   /**
    * @brief Get the stats (count of features) of a defect cloud
@@ -159,7 +214,6 @@ private:
   std::string poses_moving_frame_;
   std::string poses_fixed_frame_;
   PointCloud::Ptr map_ = std::make_shared<PointCloud>();
-  std::vector<std::vector<DefectCloud::Ptr>> defect_clouds_;
   std::vector<Camera> cameras_;
   inspection::CloudCombiner cloud_combiner_;
 };

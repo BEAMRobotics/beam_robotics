@@ -40,24 +40,73 @@ MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
   FillCameraPoses();
 }
 
-void MapLabeler::Run() {
-  int num_cams = cameras_.size();
-  defect_clouds_.resize(num_cams);
-  for (size_t cam_index = 0; cam_index < num_cams; cam_index++) {
-    const Camera& cam = cameras_[cam_index];
-    int num_images = cam.images.size();
-    for (size_t img_index = 0; img_index < num_images; img_index++) {
-      const Image& img = cam.images[img_index];
-      beam::HighResolutionTimer timer;
-      DefectCloud::Ptr labeled_cloud = ProjectImgToMap(img, cam);
-      defect_clouds_[cam_index].push_back(labeled_cloud);
+void MapLabeler::RunFullPipeline() const {
+  // map cameral_name -> DefectCloudsMap
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds;
+  LabelColor(defect_clouds);
+  LabelDefects(defect_clouds);
+  CombineClouds(defect_clouds);
+}
 
+void MapLabeler::LabelColor(
+    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds) const {
+  for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
+    // get defects for this camera
+    const Camera& cam = cameras_[cam_index];
+    if (defect_clouds.find(cam.name) == defect_clouds.end()) {
+      defect_clouds.emplace(cam.name, DefectCloudsMapType());
+    }
+    const DefectCloudsMapType& camera_defects = defect_clouds.at(cam.name);
+
+    // color each image for this camera
+    for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
+      const Image& img = cam.images[img_index];
+      int64_t img_time_ns =
+          static_cast<int64_t>(img.image_container.GetRosTime().toNSec());
+      beam::HighResolutionTimer timer;
+      if (camera_defects.find(img_time_ns) == camera_defects.end()) {
+        DefectCloud::Ptr labeled_cloud = std::make_shared<DefectCloud>();
+        camera_defects.emplace(img_time_ns, labeled_cloud);
+      }
+      ProjectImgRGBToMap(camera_defects.at(img_time_ns), img, cam);
       BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
-                cam_index + 1, num_cams, img_index + 1, num_images,
-                timer.elapsed());
+                cam_index + 1, cameras_.size(), img_index + 1,
+                cam.images.size(), timer.elapsed());
     }
   }
+}
 
+void MapLabeler::LabelDefects(
+    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds) const {
+  for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
+    // get defects for this camera
+    const Camera& cam = cameras_[cam_index];
+    if (defect_clouds.find(cam.name) == defect_clouds.end()) {
+      defect_clouds.emplace(cam.name, DefectCloudsMapType());
+    }
+    const DefectCloudsMapType& camera_defects = defect_clouds.at(cam.name);
+
+    // color each image for this camera
+    for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
+      const Image& img = cam.images[img_index];
+      int64_t img_time_ns =
+          static_cast<int64_t>(img.image_container.GetRosTime().toNSec());
+      beam::HighResolutionTimer timer;
+      if (camera_defects.find(img_time_ns) == camera_defects.end()) {
+        DefectCloud::Ptr labeled_cloud = std::make_shared<DefectCloud>();
+        camera_defects.emplace(img_time_ns, labeled_cloud);
+      }
+      ProjectImgRGBMaskToMap(camera_defects.at(img_time_ns), img, cam);
+      BEAM_INFO(
+          "[Cam: {}/{}, Image: {}/{}] Finished labeling mask in {} seconds.",
+          cam_index + 1, cameras_.size(), img_index + 1, cam.images.size(),
+          timer.elapsed());
+    }
+  }
+}
+void MapLabeler::CombineClouds(
+    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds)
+    const {
   std::vector<std::vector<Eigen::Affine3d>> all_transforms;
   for (auto& camera : cameras_) {
     std::vector<Eigen::Affine3d> camera_transforms;
@@ -66,7 +115,7 @@ void MapLabeler::Run() {
     }
     all_transforms.push_back(camera_transforms);
   }
-  cloud_combiner_.CombineClouds(defect_clouds_, all_transforms);
+  cloud_combiner_.CombineClouds(defect_clouds, all_transforms);
 }
 
 void MapLabeler::PrintConfiguration() {
@@ -285,19 +334,20 @@ void MapLabeler::FillCameraPoses() {
   }
 }
 
-DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
-                                             const Camera& camera) {
+void MapLabeler::ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud,
+                                    const Image& image, const Camera& camera) {
+  if (!image.image_container.IsBGRImageSet()) {
+    BEAM_DEBUG("no BGR image available for cam {}, image time: {}s",
+               camera.name, image.image_container.GetRosTime().toSec());
+    return;
+  }
   BEAM_DEBUG("Projecting image to map");
 
   // Get map in camera frame
-  PointCloud::Ptr map_in_camera_frame = std::make_shared<PointCloud>();
-  pcl::transformPointCloud(*map_, *map_in_camera_frame,
+  DefectCloud::Ptr map_in_camera_frame = std::make_shared<DefectCloud>();
+  pcl::transformPointCloud(*defect_cloud, *map_in_camera_frame,
                            image.T_MAP_CAMERA.inverse());
 
-  // Set up the camera colorizer with the point cloud which is being labeled
-  BEAM_DEBUG("Setting map cloud in colorizer");
-
-  camera.colorizer->SetPointCloud(map_in_camera_frame);
 
   // Color point cloud with BGR images
   DefectCloud::Ptr labeled_cloud_in_camera_frame =
@@ -311,7 +361,7 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
     // Get colored cloud & remove uncolored points
     BEAM_DEBUG("Coloring point cloud");
 
-    auto xyzrgb_cloud = camera.colorizer->ColorizePointCloud();
+    auto xyzrgb_cloud = camera.colorizer->ColorizePointCloud(map_in_camera_frame);
     BEAM_DEBUG("Finished colorizing point cloud");
     xyzrgb_cloud->points.erase(
         std::remove_if(xyzrgb_cloud->points.begin(), xyzrgb_cloud->points.end(),
@@ -323,9 +373,20 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
     BEAM_DEBUG("Labeled cloud size: {}", xyzrgb_cloud->points.size());
     pcl::copyPointCloud(*xyzrgb_cloud, *labeled_cloud_in_camera_frame);
   }
+}
 
+void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
+                                        const Image& image,
+                                        const Camera& camera) {
+  if (image.image_container.IsBGRMaskSet()) {
+    BEAM_DEBUG("no BGR image mask available for cam {}, image time: {}s",
+               camera.name, image.image_container.GetRosTime().toSec());
+    return;
+  }
+
+  BEAM_DEBUG("Projecting image mask to map");
   // Enhance defects with depth completion
-  if (image_container.IsBGRMaskSet() && depth_enhancement_) {
+  if (depth_enhancement_) {
     BEAM_DEBUG("Performing depth map extraction.");
     beam::HighResolutionTimer timer;
     std::shared_ptr<beam_depth::DepthMap> dm =
@@ -380,37 +441,34 @@ DefectCloud::Ptr MapLabeler::ProjectImgToMap(const Image& image,
   }
 
   // Color point cloud with Mask
-  if (image_container.IsBGRMaskSet()) {
-    camera.colorizer->SetImage(image_container.GetBGRMask());
+  camera.colorizer->SetImage(image_container.GetBGRMask());
 
-    // Get labeled cloud & remove unlabeled points
-    DefectCloud::Ptr labeled_cloud = camera.colorizer->ColorizeMask();
-    labeled_cloud->points.erase(std::remove_if(labeled_cloud->points.begin(),
-                                               labeled_cloud->points.end(),
-                                               [](auto& point) {
-                                                 return (point.crack == 0 &&
-                                                         point.delam == 0 &&
-                                                         point.corrosion == 0);
-                                               }),
-                                labeled_cloud->points.end());
-    labeled_cloud->width = labeled_cloud->points.size();
+  // Get labeled cloud & remove unlabeled points
+  DefectCloud::Ptr labeled_cloud = camera.colorizer->ColorizeMask();
+  labeled_cloud->points.erase(
+      std::remove_if(labeled_cloud->points.begin(), labeled_cloud->points.end(),
+                     [](auto& point) {
+                       return (point.crack == 0 && point.delam == 0 &&
+                               point.corrosion == 0);
+                     }),
+      labeled_cloud->points.end());
+  labeled_cloud->width = labeled_cloud->points.size();
 
-    // Now we need to go back into the final defect cloud and
-    // label the points that have defects
-    pcl::search::KdTree<BridgePoint> kdtree;
-    kdtree.setInputCloud(labeled_cloud_in_camera_frame);
-    for (const auto& search_point : *labeled_cloud) {
-      std::vector<int> nn_point_ids(1);
-      std::vector<float> nn_point_distances(1);
-      if (kdtree.nearestKSearch(search_point, 1, nn_point_ids,
-                                nn_point_distances) > 0) {
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].crack +=
-            search_point.crack;
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].delam +=
-            search_point.delam;
-        labeled_cloud_in_camera_frame->points[nn_point_ids[0]].corrosion +=
-            search_point.corrosion;
-      }
+  // Now we need to go back into the final defect cloud and
+  // label the points that have defects
+  pcl::search::KdTree<BridgePoint> kdtree;
+  kdtree.setInputCloud(labeled_cloud_in_camera_frame);
+  for (const auto& search_point : *labeled_cloud) {
+    std::vector<int> nn_point_ids(1);
+    std::vector<float> nn_point_distances(1);
+    if (kdtree.nearestKSearch(search_point, 1, nn_point_ids,
+                              nn_point_distances) > 0) {
+      labeled_cloud_in_camera_frame->points[nn_point_ids[0]].crack +=
+          search_point.crack;
+      labeled_cloud_in_camera_frame->points[nn_point_ids[0]].delam +=
+          search_point.delam;
+      labeled_cloud_in_camera_frame->points[nn_point_ids[0]].corrosion +=
+          search_point.corrosion;
     }
   }
 
