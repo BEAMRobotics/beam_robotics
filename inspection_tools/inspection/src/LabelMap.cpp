@@ -55,48 +55,33 @@ int main(int argc, char* argv[]) {
       .extrinsics = FLAGS_extrinsics,
       .config_file_location = config_path,
       .poses_moving_frame_override = FLAGS_frame_override};
-  BEAM_INFO("Instantiating MapLabler");
   inspection::MapLabeler mapper(inputs);
-  BEAM_INFO("Done instantiating MapLabler");
-  BEAM_INFO("Printing MapLabeler configuration");
   mapper.PrintConfiguration();
-  BEAM_INFO("Running MapLabler");
-  mapper.Run();
-  BEAM_INFO("MapLabler run complete, saving final map");
+  mapper.RunFullPipeline();
   mapper.SaveFinalMap(FLAGS_output);
-  BEAM_INFO("Done saving final map");
-
   mapper.OutputSummary(FLAGS_output);
   mapper.OutputConfig(FLAGS_output);
 
   if (FLAGS_output_individual_clouds) {
-    std::string dir = FLAGS_output + "/labelled_clouds/";
+    std::string dir = beam::CombinePaths(FLAGS_output, "labelled_clouds");
     boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving labeled clouds");
     mapper.SaveLabeledClouds(dir);
-    BEAM_INFO("Done saving labeled clouds");
   }
 
   if (FLAGS_output_camera_poses) {
-    std::string dir = FLAGS_output + "/camera_poses/";
+    std::string dir = beam::CombinePaths(FLAGS_output, "camera_poses");
     boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving camera poses");
     mapper.SaveCameraPoses(dir);
-    BEAM_INFO("Done saving camera poses");
   }
 
   if (FLAGS_output_images) {
-    std::string dir = FLAGS_output + "/images/";
+    std::string dir = beam::CombinePaths(FLAGS_output, "images");
     boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving images used for colorization");
     mapper.SaveImages(dir);
-    BEAM_INFO("Done saving images used for colorization");
   }
 
   if (FLAGS_draw_final_map) {
-    BEAM_INFO("Drawing final map in viewer");
     mapper.DrawFinalMap();
-    BEAM_INFO("Map viewer closed");
   }
 
   BEAM_INFO("LabelMap binary finished successfully!");
