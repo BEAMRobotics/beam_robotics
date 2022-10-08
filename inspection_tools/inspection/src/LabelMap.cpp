@@ -57,16 +57,11 @@ int main(int argc, char* argv[]) {
       .poses_moving_frame_override = FLAGS_frame_override};
   inspection::MapLabeler mapper(inputs);
   mapper.PrintConfiguration();
-  mapper.RunFullPipeline();
-  mapper.SaveFinalMap(FLAGS_output);
+  DefectCloud::Ptr final_map = mapper.RunFullPipeline(
+      FLAGS_output, FLAGS_output_individual_clouds, true);
+  mapper.SaveFinalMap(final_map, FLAGS_output);
   mapper.OutputSummary(FLAGS_output);
   mapper.OutputConfig(FLAGS_output);
-
-  if (FLAGS_output_individual_clouds) {
-    std::string dir = beam::CombinePaths(FLAGS_output, "labelled_clouds");
-    boost::filesystem::create_directories(dir);
-    mapper.SaveLabeledClouds(dir);
-  }
 
   if (FLAGS_output_camera_poses) {
     std::string dir = beam::CombinePaths(FLAGS_output, "camera_poses");
@@ -80,9 +75,7 @@ int main(int argc, char* argv[]) {
     mapper.SaveImages(dir);
   }
 
-  if (FLAGS_draw_final_map) {
-    mapper.DrawFinalMap();
-  }
+  if (FLAGS_draw_final_map) { mapper.DrawFinalMap(); }
 
   BEAM_INFO("LabelMap binary finished successfully!");
   return 0;

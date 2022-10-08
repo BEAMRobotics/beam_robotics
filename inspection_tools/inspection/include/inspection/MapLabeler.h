@@ -10,6 +10,7 @@
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
 
+#include <beam_colorize/Projection.h>
 #include <beam_containers/PointBridge.h>
 #include <beam_utils/pointclouds.h>
 
@@ -59,8 +60,15 @@ public:
   /**
    * @brief calls LabelColor -> LabelDefects -> CombineClouds and then outputs
    * all information
+   * @param output_folder where to save labeled clouds and summary if not set to
+   * false
+   * @param save_labeled_clouds save the individual clouds produced by each
+   * image
+   * @param output_summary output summary of defect clouds
    */
-  void RunFullPipeline() const;
+  DefectCloud::Ptr RunFullPipeline(const std::string& output_folder = "",
+                                   bool save_labeled_clouds = false,
+                                   bool output_summary = false) const;
 
   /**
    * @brief get the defect clouds by projecting all map points into each image
@@ -100,8 +108,9 @@ public:
    * @param defect_clouds map cameral_name -> DefectCloudsMap, where
    * DefectCloudsMap: map image timestamp -> defect cloud
    */
-  void CombineClouds(const std::unordered_map<std::string, DefectCloudsMapType>&
-                         defect_clouds) const;
+  DefectCloud::Ptr CombineClouds(
+      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds)
+      const;
 
   /**
    * @brief Print current configuration
@@ -111,21 +120,22 @@ public:
   /**
    * @brief Draw the final labeled map in the PCL viewer
    */
-  void DrawFinalMap(const DefectCloud::Ptr& map);
+  void DrawFinalMap(const DefectCloud::Ptr& map) const;
 
   /**
    * @brief Saves each of the labeled defect clouds in a clouds folder inside
    * the images folder. This also saves trajectories and camera poses for each
    * image drawn
    */
-  void SaveLabeledClouds(const std::string& output_folder);
+  void SaveLabeledClouds(
+      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+      const std::string& output_folder) const;
 
   /**
    * @brief save  the final labeled map as pcd
    */
-  void SaveFinalMap(
-      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
-      const std::string& output_folder) const;
+  void SaveFinalMap(const DefectCloud::Ptr& map,
+                    const std::string& output_folder) const;
 
   /**
    * @brief save calculated camera poses for each images used in the labeling.
@@ -143,7 +153,9 @@ public:
    * @brief save a summary json file including camera info and their labeled
    * clouds
    */
-  void OutputSummary(const std::string& output_folder) const;
+  void OutputSummary(
+      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+      const std::string& output_folder) const;
 
   /**
    * @brief copy config to output directory
@@ -190,8 +202,8 @@ private:
    * @return Labeled point cloud map in map frame containing only map points
    * that were labeled with this image
    */
-  ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud, const Image& image,
-                     const Camera& camera, bool remove_unlabeled) const;
+  void ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud, const Image& image,
+                          const Camera& camera, bool remove_unlabeled) const;
 
   /**
    * @brief Labels point cloud map with image specified
@@ -201,8 +213,9 @@ private:
    * @return Labeled point cloud map in map frame containing only map points
    * that were labeled with this image
    */
-  ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud, const Image& image,
-                         const Camera& camera, bool remove_unlabeled) const;
+  void ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
+                              const Image& image, const Camera& camera,
+                              bool remove_unlabeled) const;
 
   /**
    * @brief Get the stats (count of features) of a defect cloud
@@ -229,7 +242,7 @@ private:
   beam_calibration::TfTree poses_tree_;
   std::string poses_moving_frame_;
   std::string poses_fixed_frame_;
-  PointCloud::Ptr map_ = std::make_shared<PointCloud>();
+  DefectCloud::Ptr input_map_ = std::make_shared<DefectCloud>();
   std::vector<Camera> cameras_;
 };
 
