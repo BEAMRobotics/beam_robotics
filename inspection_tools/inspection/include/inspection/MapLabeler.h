@@ -60,7 +60,7 @@ public:
    * @brief calls LabelColor -> LabelDefects -> CombineClouds and then outputs
    * all information
    */
-  RunFullPipeline() const;
+  void RunFullPipeline() const;
 
   /**
    * @brief get the defect clouds by projecting all map points into each image
