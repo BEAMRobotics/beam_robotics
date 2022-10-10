@@ -26,6 +26,9 @@ using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 // map: image timestamp in Ns -> defect cloud in map frame
 using DefectCloudsMapType = std::unordered_map<int64_t, DefectCloud::Ptr>;
 
+// map: image timestamp in Ns -> T_MAP_CAMERA
+using TransformMapType = std::unordered_map<int64_t, Eigen::Affine3d>;
+
 struct DefectCloudStats {
   int size;
   int cracks;
@@ -47,8 +50,12 @@ public:
     std::string extrinsics;
     std::string config_file_location;
     std::string poses_moving_frame_override;
+    float crack_detector_precision{0.7};
+    float corrosion_detector_precision{0.7};
+    float spall_detector_precision{0.7};
+    float delam_detector_precision{0.7};
 
-    void Print();
+    void Print() const;
   };
 
   explicit MapLabeler(const Inputs& inputs);
@@ -109,8 +116,8 @@ public:
    * DefectCloudsMap: map image timestamp -> defect cloud
    */
   DefectCloud::Ptr CombineClouds(
-      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds)
-      const;
+      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+      const std::string& output_dir = "") const;
 
   /**
    * @brief Print current configuration

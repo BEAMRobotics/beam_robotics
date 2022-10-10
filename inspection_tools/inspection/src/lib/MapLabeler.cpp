@@ -16,7 +16,7 @@
 
 namespace inspection {
 
-void MapLabeler::Inputs::Print() {
+void MapLabeler::Inputs::Print() const {
   BEAM_INFO("Images directory: {}", images_directory);
   BEAM_INFO("Map file path: {}", map);
   BEAM_INFO("Poses file path: {}", poses);
@@ -24,6 +24,10 @@ void MapLabeler::Inputs::Print() {
   BEAM_INFO("Extrinsics file path: {}", extrinsics);
   BEAM_INFO("Config file path: {}", config_file_location);
   BEAM_INFO("Poses moving frame override: {}", poses_moving_frame_override);
+  BEAM_INFO(
+      "Defect detector precisions: crack {}, corrosion {}, spall {} delam {}",
+      crack_detector_precision, corrosion_detector_precision,
+      spall_detector_precision, delam_detector_precision);
 }
 
 MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
@@ -40,13 +44,14 @@ MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
 }
 
 DefectCloud::Ptr MapLabeler::RunFullPipeline(const std::string& output_folder,
-                                             bool save_labeled_clouds, bool output_summary) const {
+                                             bool save_labeled_clouds,
+                                             bool output_summary) const {
   BEAM_INFO("Running full MapLabeler pipeline");
   std::unordered_map<std::string, DefectCloudsMapType> defect_clouds =
       GetDefectClouds();
   LabelColor(defect_clouds, false);
   LabelDefects(defect_clouds, true);
-  DefectCloud::Ptr final_map = CombineClouds(defect_clouds);
+  DefectCloud::Ptr final_map = CombineClouds(defect_clouds, output_folder);
   if (save_labeled_clouds && !output_folder.empty()) {
     SaveLabeledClouds(defect_clouds, output_folder);
   }
@@ -54,7 +59,6 @@ DefectCloud::Ptr MapLabeler::RunFullPipeline(const std::string& output_folder,
     OutputSummary(defect_clouds, output_folder);
   }
 
-  
   BEAM_INFO("Done running MapLabeler pipeline");
   return final_map;
 }
@@ -177,20 +181,25 @@ void MapLabeler::LabelDefects(
 }
 
 DefectCloud::Ptr MapLabeler::CombineClouds(
-    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds)
-    const {
+    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    const std::string& output_dir) const {
   BEAM_INFO("Combining maps");
-  std::vector<std::vector<Eigen::Affine3d>> all_transforms;
-  for (auto& camera : cameras_) {
-    std::vector<Eigen::Affine3d> camera_transforms;
+  std::unordered_map<std::string, TransformMapType> transforms;
+  for (const auto& camera : cameras_) {
+    TransformMapType camera_transforms;
     for (const Image& image : camera.images) {
-      camera_transforms.push_back(image.T_MAP_CAMERA);
+      int64_t time_in_ns = image.image_container.GetRosTime().toNSec();
+      camera_transforms.emplace(time_in_ns, image.T_MAP_CAMERA);
     }
-    all_transforms.push_back(camera_transforms);
+    transforms.emplace(camera.name, camera_transforms);
   }
-  inspection::CloudCombiner cloud_combiner;
-  cloud_combiner.CombineClouds(defect_clouds, all_transforms);
+  inspection::CloudCombiner cloud_combiner(
+      inputs_.crack_detector_precision, inputs_.corrosion_detector_precision,
+      inputs_.spall_detector_precision, inputs_.delam_detector_precision);
+  cloud_combiner.CombineClouds(defect_clouds, transforms);
   BEAM_INFO("Done combining maps");
+  cloud_combiner.OutputStatistics(
+      beam::CombinePaths(output_dir, "cloud_combiner_stats.json"));
   return cloud_combiner.GetCombinedCloud();
 }
 
@@ -553,7 +562,9 @@ void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
   return labeled_cloud_in_map_frame;
 }
 
-void MapLabeler::OutputSummary(const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds, const std::string& output_folder) const {
+void MapLabeler::OutputSummary(
+    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    const std::string& output_folder) const {
   std::string json_file_name =
       beam::CombinePaths(output_folder, "summary.json");
   BEAM_INFO("Saving labeling summary to: {}", json_file_name);
