@@ -37,17 +37,20 @@ DEFINE_bool(
 DEFINE_bool(draw_final_map, true,
             "set to true to draw final map in a PCL viewer");
 
+using namespace beam;
+using namespace inspection;
+
 int main(int argc, char* argv[]) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  ::gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   std::string config_path;
   if (FLAGS_config.empty()) {
-    config_path = inspection::utils::GetConfigFilePath("MapLabelerConfig.json");
+    config_path = utils::GetConfigFilePath("MapLabelerConfig.json");
   } else {
     config_path = FLAGS_config;
   }
 
-  inspection::MapLabeler::Inputs inputs{
+  MapLabeler::Inputs inputs{
       .images_directory = FLAGS_images,
       .map = FLAGS_map,
       .poses = FLAGS_poses,
@@ -55,12 +58,11 @@ int main(int argc, char* argv[]) {
       .extrinsics = FLAGS_extrinsics,
       .config_file_location = config_path,
       .poses_moving_frame_override = FLAGS_frame_override};
-  inspection::MapLabeler mapper(inputs);
+  MapLabeler mapper(inputs);
   mapper.PrintConfiguration();
   DefectCloud::Ptr final_map = mapper.RunFullPipeline(
       FLAGS_output, FLAGS_output_individual_clouds, true);
   mapper.SaveFinalMap(final_map, FLAGS_output);
-  mapper.OutputSummary(FLAGS_output);
   mapper.OutputConfig(FLAGS_output);
 
   if (FLAGS_output_camera_poses) {
@@ -75,7 +77,7 @@ int main(int argc, char* argv[]) {
     mapper.SaveImages(dir);
   }
 
-  if (FLAGS_draw_final_map) { mapper.DrawFinalMap(); }
+  if (FLAGS_draw_final_map) { mapper.DrawFinalMap(final_map); }
 
   BEAM_INFO("LabelMap binary finished successfully!");
   return 0;

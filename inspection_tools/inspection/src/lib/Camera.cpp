@@ -112,4 +112,15 @@ std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
   return cameras;
 }
 
+const Image& Camera::GetImageByTimestamp(int64_t timestamp_in_Ns) const {
+  for (const Image& img : images) {
+    if (img.image_container.GetRosTime().toNSec() == timestamp_in_Ns) {
+      return img;
+    }
+  }
+  BEAM_CRITICAL("no image found with timestamp {}Ns for camera {}",
+                timestamp_in_Ns, name);
+  throw std::runtime_error{"no image found"};
+}
+
 } // end namespace inspection

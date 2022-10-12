@@ -58,6 +58,13 @@ struct Camera {
                  const std::string& poses_moving_frame,
                  const std::string& poses_fixed_frame = "Map");
 
+  /**
+   * @brief iterates through all images and returns the image with matching
+   * timestamp. Will throw error if no matching stamp exists
+   * @param timestamp_in_Ns
+   * @return const Image&
+   */
+  const Image& GetImageByTimestamp(int64_t timestamp_in_Ns) const;
   std::string name;
   std::string intrinsics_path;
   std::shared_ptr<beam_calibration::CameraModel> cam_model;

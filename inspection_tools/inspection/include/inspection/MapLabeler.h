@@ -231,6 +231,14 @@ private:
    */
   DefectCloudStats GetDefectCloudStats(const DefectCloud::Ptr& cloud) const;
 
+  /**
+   * @brief Iterates through cameras and returns a const ref to the camera with
+   * the matching name. Will throw exception if no cameras exist with that name
+   * @param camera_name
+   * @return const Camera&
+   */
+  const Camera& GetCameraByName(const std::string& camera_name) const;
+
   Inputs inputs_;
 
   // from config file
@@ -242,7 +250,6 @@ private:
   // params only tunable here
   double frustum_lengh_{1};
   double draw_points_increment_{0.01};
-  float depth_map_extraction_thresh_{0.025};
 
   // data
   beam_calibration::TfTree extinsics_tree_;
