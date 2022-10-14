@@ -3,9 +3,10 @@
 #include <inspection/MapLabeler.h>
 
 #include <boost/filesystem.hpp>
-#include <thread>
-
-#include <tf2_eigen/tf2_eigen.h>
+#include <pcl/common/transforms.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include <beam_depth/DepthCompletion.h>
 #include <beam_depth/DepthMap.h>
@@ -34,8 +35,14 @@ MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
   BEAM_INFO("Initializing MapLabeler");
   ProcessJSONConfig();
 
-  if (pcl::io::loadPCDFile<BridgePoint>(inputs_.map, *input_map_) == -1) {
-    PCL_ERROR("Couldn't read file test_pcd.pcd \n");
+  if (!inputs_.map.empty()) {
+    if (pcl::io::loadPCDFile<BridgePoint>(inputs_.map, *input_map_) == -1) {
+      BEAM_CRITICAL("Couldn't read input map: {}", inputs_.map);
+      throw std::runtime_error{"unable to read input map"};
+    } else {
+      BEAM_WARN("No input map provided, you must call "
+                "GetDefectClouds(path_to_clouds)");
+    }
   }
 
   FillTFTrees();
@@ -47,16 +54,17 @@ DefectCloud::Ptr MapLabeler::RunFullPipeline(const std::string& output_folder,
                                              bool save_labeled_clouds,
                                              bool output_summary) const {
   BEAM_INFO("Running full MapLabeler pipeline");
-  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds =
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds_in_cam =
       GetDefectClouds();
-  LabelColor(defect_clouds, false);
-  LabelDefects(defect_clouds, true);
-  DefectCloud::Ptr final_map = CombineClouds(defect_clouds, output_folder);
+  LabelColor(defect_clouds_in_cam, false);
+  LabelDefects(defect_clouds_in_cam, true);
+  DefectCloud::Ptr final_map =
+      CombineClouds(defect_clouds_in_cam, output_folder);
   if (save_labeled_clouds && !output_folder.empty()) {
-    SaveLabeledClouds(defect_clouds, output_folder);
+    SaveLabeledClouds(defect_clouds_in_cam, output_folder);
   }
   if (output_summary && !output_folder.empty()) {
-    OutputSummary(defect_clouds, output_folder);
+    OutputSummary(defect_clouds_in_cam, output_folder);
   }
 
   BEAM_INFO("Done running MapLabeler pipeline");
@@ -64,8 +72,51 @@ DefectCloud::Ptr MapLabeler::RunFullPipeline(const std::string& output_folder,
 }
 
 std::unordered_map<std::string, DefectCloudsMapType>
+    MapLabeler::ReadDefectClouds(const std::string& defect_clouds_json) const {
+  nlohmann::json J;
+  if (!beam::ReadJson(defect_clouds_json, J)) {
+    BEAM_CRITICAL("Cannot read json, exiting");
+    throw std::runtime_error{"Cannot read json"};
+  }
+
+  boost::filesystem::path path(defect_clouds_json);
+  std::string clouds_dir = path.parent_path().string();
+
+  std::unordered_map<std::string, std::vector<nlohmann::json>> cameras_map = J;
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds_in_cam;
+  for (const auto& [cam_name, map_info_jsons] : cameras_map) {
+    const Camera& cam = GetCameraByName(cam_name);
+    DefectCloudsMapType camera_clouds;
+    for (const nlohmann::json& map_info_json : map_info_jsons) {
+      std::string filename = map_info_json["filename"];
+      int64_t timestamp_ns = map_info_json["timestamp_ns"];
+      std::string filepath = beam::CombinePaths(clouds_dir, filename);
+      DefectCloud cloud_in_map;
+      if (pcl::io::loadPCDFile<BridgePoint>(filepath, cloud_in_map) == -1) {
+        BEAM_CRITICAL("Couldn't read input cloud: {}", filepath);
+        throw std::runtime_error{"unable to read input cloud"};
+      }
+
+      const Eigen::Affine3d& T_MAP_CAMERA =
+          cam.GetImageByTimestamp(timestamp_ns).T_MAP_CAMERA;
+      DefectCloud::Ptr cloud_in_cam = std::make_shared<DefectCloud>();
+      pcl::transformPointCloud(cloud_in_map, *cloud_in_cam,
+                               T_MAP_CAMERA.inverse());
+      camera_clouds.emplace(timestamp_ns, cloud_in_cam);
+    }
+    defect_clouds_in_cam.emplace(cam_name, camera_clouds);
+  }
+  return defect_clouds_in_cam;
+}
+
+std::unordered_map<std::string, DefectCloudsMapType>
     MapLabeler::GetDefectClouds() const {
-  std::unordered_map<std::string, DefectCloudsMapType> defects_cloud;
+  if (input_map_->empty()) {
+    BEAM_CRITICAL("Cannot get defect clouds with empty map");
+    throw std::runtime_error("empty map");
+  }
+
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds_in_cam;
   for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
     const Camera& cam = cameras_[cam_index];
 
@@ -80,18 +131,23 @@ std::unordered_map<std::string, DefectCloudsMapType>
       projection_colorizer.SetDistortion(image_container.GetBGRIsDistorted());
 
       int64_t time_in_ns = image_container.GetRosTime().toNSec();
-      DefectCloud::Ptr cloud = GetMapVisibleByCam(projection_colorizer,
-                                                  image.T_MAP_CAMERA.inverse());
-      camera_defects.emplace(time_in_ns, cloud);
+      DefectCloud::Ptr cloud_in_cam = GetMapVisibleByCam(
+          projection_colorizer, image.T_MAP_CAMERA.inverse());
+      camera_defects.emplace(time_in_ns, cloud_in_cam);
     }
-    defects_cloud.emplace(cam.name, camera_defects);
+    defect_clouds_in_cam.emplace(cam.name, camera_defects);
   }
-  return defects_cloud;
+  return defect_clouds_in_cam;
 }
 
 DefectCloud::Ptr
     MapLabeler::GetMapVisibleByCam(const beam_colorize::Projection& projection,
                                    const Eigen::Affine3d& T_CAMERA_MAP) const {
+  if (input_map_->empty()) {
+    BEAM_CRITICAL("cannot call GetMapVisibleByCam with empty input map");
+    throw std::runtime_error{"cannot call function"};
+  }
+
   // Get map in camera frame
   DefectCloud::Ptr map_in_camera_frame = std::make_shared<DefectCloud>();
   pcl::transformPointCloud<BridgePoint>(*input_map_, *map_in_camera_frame,
@@ -102,28 +158,29 @@ DefectCloud::Ptr
       projection.CreateProjectionMap(map_in_camera_frame);
 
   // create visible map
-  DefectCloud::Ptr visible_map = std::make_shared<DefectCloud>();
+  DefectCloud::Ptr visible_map_in_cam = std::make_shared<DefectCloud>();
   for (auto v_iter = projection_map.VBegin(); v_iter != projection_map.VEnd();
        v_iter++) {
     for (auto u_iter = v_iter->second.begin(); u_iter != v_iter->second.end();
          u_iter++) {
-      visible_map->push_back(map_in_camera_frame->at(u_iter->second.id));
+      visible_map_in_cam->push_back(map_in_camera_frame->at(u_iter->second.id));
     }
   }
-  return visible_map;
+
+  return visible_map_in_cam;
 }
 
 void MapLabeler::LabelColor(
-    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds_in_cam,
     bool remove_unlabeled) const {
   for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
     // get defects for this camera
     const Camera& cam = cameras_[cam_index];
-    if (defect_clouds.find(cam.name) == defect_clouds.end()) {
+    if (defect_clouds_in_cam.find(cam.name) == defect_clouds_in_cam.end()) {
       BEAM_ERROR("no camera with the name \"{}\" in defect clouds", cam.name);
       continue;
     }
-    DefectCloudsMapType& camera_defects = defect_clouds.at(cam.name);
+    DefectCloudsMapType& camera_defects = defect_clouds_in_cam.at(cam.name);
 
     // color each image for this camera
     for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
@@ -147,16 +204,16 @@ void MapLabeler::LabelColor(
 }
 
 void MapLabeler::LabelDefects(
-    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds_in_cam,
     bool remove_unlabeled) const {
   for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
     // get defects for this camera
     const Camera& cam = cameras_[cam_index];
-    if (defect_clouds.find(cam.name) == defect_clouds.end()) {
+    if (defect_clouds_in_cam.find(cam.name) == defect_clouds_in_cam.end()) {
       BEAM_ERROR("no camera with the name \"{}\" in defect clouds", cam.name);
       continue;
     }
-    DefectCloudsMapType& camera_defects = defect_clouds.at(cam.name);
+    DefectCloudsMapType& camera_defects = defect_clouds_in_cam.at(cam.name);
 
     // color each image for this camera
     for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
@@ -181,7 +238,8 @@ void MapLabeler::LabelDefects(
 }
 
 DefectCloud::Ptr MapLabeler::CombineClouds(
-    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    const std::unordered_map<std::string, DefectCloudsMapType>&
+        defect_clouds_in_cam,
     const std::string& output_dir) const {
   BEAM_INFO("Combining maps");
   std::unordered_map<std::string, TransformMapType> transforms;
@@ -196,7 +254,7 @@ DefectCloud::Ptr MapLabeler::CombineClouds(
   inspection::CloudCombiner cloud_combiner(
       inputs_.crack_detector_precision, inputs_.corrosion_detector_precision,
       inputs_.spall_detector_precision, inputs_.delam_detector_precision);
-  cloud_combiner.CombineClouds(defect_clouds, transforms);
+  cloud_combiner.CombineClouds(defect_clouds_in_cam, transforms);
   BEAM_INFO("Done combining maps");
   cloud_combiner.OutputStatistics(
       beam::CombinePaths(output_dir, "cloud_combiner_stats.json"));
@@ -213,7 +271,7 @@ void MapLabeler::PrintConfiguration() const {
   BEAM_INFO("Saving final map to: {}", final_map_name_);
   BEAM_INFO("Run depth enhancement: {}", depth_enhancement_ ? "True" : "False");
 
-  BEAM_INFO("Map number of points: {}", input_map_->size());
+  BEAM_INFO("Map number of input map points: {}", input_map_->size());
   BEAM_INFO("Number of cameras: {}", cameras_.size());
   int counter = 0;
   for (const auto& cam : cameras_) {
@@ -320,22 +378,50 @@ void MapLabeler::FillTFTrees() {
 }
 
 void MapLabeler::SaveLabeledClouds(
-    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    const std::unordered_map<std::string, DefectCloudsMapType>&
+        defect_clouds_in_cam,
     const std::string& output_folder) const {
-  BEAM_INFO("Saving labeled individual clouds to: {}", output_folder);
+  std::string save_path = beam::CombinePaths(output_folder, "labeled_clouds");
+  boost::filesystem::create_directories(save_path);
+  BEAM_INFO("Saving labeled individual clouds to: {}", save_path);
+  std::string json_file_name =
+      beam::CombinePaths(save_path, "labeled_clouds_info.json");
 
-  for (const auto& [cam_name, cam_defects] : defect_clouds) {
-    for (const auto& [timestamp, cloud] : cam_defects) {
+  nlohmann::json J;
+  for (const auto& [cam_name, cam_defects] : defect_clouds_in_cam) {
+    nlohmann::json camera_json;
+    const Camera& cam = GetCameraByName(cam_name);
+    for (const auto& [timestamp, cloud_in_cam] : cam_defects) {
+      if (cloud_in_cam->empty()) {
+        BEAM_WARN("empty cloud detected (cam: {}, timestamp: {}) not "
+                  "outputting cloud");
+        continue;
+      }
+
+      // transform pointcloud into map frame
+      const Eigen::Affine3d& T_MAP_CAMERA =
+          cam.GetImageByTimestamp(timestamp).T_MAP_CAMERA;
+      DefectCloud::Ptr cloud_in_map = std::make_shared<DefectCloud>();
+      pcl::transformPointCloud(*cloud_in_cam, *cloud_in_map, T_MAP_CAMERA);
+
+      // save cloud
       std::string file_name =
           cam_name + "_" + std::to_string(timestamp) + ".pcd";
-      if (cloud->points.size() > 0) {
-        std::string filepath = beam::CombinePaths(output_folder, file_name);
-        pcl::io::savePCDFileBinary(filepath, *cloud);
-      }
+      std::string filepath = beam::CombinePaths(save_path, file_name);
+      nlohmann::json cloud_json;
+      cloud_json["timestamp_ns"] = timestamp;
+      cloud_json["filename"] = file_name;
+      camera_json.push_back(cloud_json);
+      pcl::io::savePCDFileBinary(filepath, *cloud_in_map);
     }
-
-    BEAM_DEBUG("Saved {} labeled clouds from Camera: {}", cam_name);
+    J[cam_name] = camera_json;
+    BEAM_DEBUG("Saved {} labeled clouds from Camera: {}",
+               defect_clouds_in_cam.size(), cam_name);
   }
+
+  BEAM_DEBUG("Saving labeled clouds info json to: {}", json_file_name);
+  std::ofstream filejson(json_file_name);
+  filejson << std::setw(4) << J << std::endl;
 }
 
 void MapLabeler::SaveFinalMap(const DefectCloud::Ptr& map,
@@ -423,7 +509,7 @@ void MapLabeler::FillCameraPoses() {
   }
 }
 
-void MapLabeler::ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud,
+void MapLabeler::ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud_in_cam,
                                     const Image& image, const Camera& camera,
                                     bool remove_unlabeled) const {
   const auto& image_container = image.image_container;
@@ -437,22 +523,23 @@ void MapLabeler::ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud,
   // Color point cloud with BGR images
   camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted());
   camera.colorizer->SetImage(image_container.GetBGRImage());
-  camera.colorizer->ColorizePointCloud(defect_cloud);
+  camera.colorizer->ColorizePointCloud(defect_cloud_in_cam);
 
   if (!remove_unlabeled) { return; }
 
-  defect_cloud->points.erase(
-      std::remove_if(defect_cloud->points.begin(), defect_cloud->points.end(),
+  defect_cloud_in_cam->points.erase(
+      std::remove_if(defect_cloud_in_cam->points.begin(),
+                     defect_cloud_in_cam->points.end(),
                      [](auto& point) {
                        return (point.r == 0 && point.g == 0 && point.b == 0,
                                point.crack == 0, point.spall == 0,
                                point.corrosion == 0, point.delam == 0,
                                point.thermal == 0);
                      }),
-      defect_cloud->points.end());
+      defect_cloud_in_cam->points.end());
 }
 
-void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
+void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud_in_cam,
                                         const Image& image,
                                         const Camera& camera,
                                         bool remove_unlabeled) const {
@@ -467,16 +554,14 @@ void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
   // Enhance defects with depth completion
   if (depth_enhancement_) {
     // copy point cloud and transform to camera frame
-    PointCloud::Ptr map_in_camera_frame = std::make_shared<PointCloud>();
-    pcl::copyPointCloud(*defect_cloud, *map_in_camera_frame);
-    pcl::transformPointCloud(*map_in_camera_frame, *map_in_camera_frame,
-                             image.T_MAP_CAMERA.inverse());
+    PointCloud::Ptr xyz_cloud_in_cam = std::make_shared<PointCloud>();
+    pcl::copyPointCloud(*defect_cloud_in_cam, *xyz_cloud_in_cam);
 
     BEAM_DEBUG("Performing depth map extraction.");
     beam::HighResolutionTimer timer;
     std::shared_ptr<beam_depth::DepthMap> dm =
         std::make_shared<beam_depth::DepthMap>(camera.cam_model,
-                                               map_in_camera_frame);
+                                               xyz_cloud_in_cam);
     dm->ExtractDepthMapProjectionNoOcclusions();
     cv::Mat depth_image = dm->GetDepthImage();
     BEAM_DEBUG("Time elapsed: {}", timer.elapsed());
@@ -498,46 +583,47 @@ void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud,
         continue;
       }
       beam_containers::PointBridge point_bridge;
-      Eigen::Vector3d p_in_map = image.T_MAP_CAMERA * p_in_cam;
-      point_bridge.x = p_in_map[0];
-      point_bridge.y = p_in_map[1];
-      point_bridge.z = p_in_map[2];
-      defect_cloud->push_back(point_bridge);
+      point_bridge.x = p_in_cam[0];
+      point_bridge.y = p_in_cam[1];
+      point_bridge.z = p_in_cam[2];
+      defect_cloud_in_cam->push_back(point_bridge);
     }
   }
 
   // Color point cloud with Mask
   camera.colorizer->SetDistortion(image_container.GetBGRIsDistorted());
   camera.colorizer->SetImage(image_container.GetBGRMask());
-  camera.colorizer->ColorizeMask(defect_cloud);
+  camera.colorizer->ColorizeMask(defect_cloud_in_cam);
 
   if (!remove_unlabeled) { return; }
 
-  defect_cloud->points.erase(
-      std::remove_if(defect_cloud->points.begin(), defect_cloud->points.end(),
+  defect_cloud_in_cam->points.erase(
+      std::remove_if(defect_cloud_in_cam->points.begin(),
+                     defect_cloud_in_cam->points.end(),
                      [](auto& point) {
                        return (point.r == 0 && point.g == 0 && point.b == 0,
                                point.crack == 0, point.spall == 0,
                                point.corrosion == 0, point.delam == 0,
                                point.thermal == 0);
                      }),
-      defect_cloud->points.end());
+      defect_cloud_in_cam->points.end());
 }
 
 void MapLabeler::OutputSummary(
-    const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+    const std::unordered_map<std::string, DefectCloudsMapType>&
+        defect_clouds_in_cam,
     const std::string& output_folder) const {
   std::string json_file_name =
       beam::CombinePaths(output_folder, "summary.json");
   BEAM_INFO("Saving labeling summary to: {}", json_file_name);
   std::vector<nlohmann::json> cameraJsons;
-  for (const auto& [cam_name, cam_defects] : defect_clouds) {
+  for (const auto& [cam_name, cam_defects] : defect_clouds_in_cam) {
     const Camera& camera = GetCameraByName(cam_name);
 
     // fill image jsons
     std::vector<nlohmann::json> imageJsons;
-    for (const auto& [timestamp, defect_cloud] : cam_defects) {
-      DefectCloudStats stats = GetDefectCloudStats(defect_cloud);
+    for (const auto& [timestamp, defect_cloud_in_cam] : cam_defects) {
+      DefectCloudStats stats = GetDefectCloudStats(defect_cloud_in_cam);
       nlohmann::json statsJson;
       statsJson["size"] = stats.size;
       statsJson["cracks"] = stats.cracks;

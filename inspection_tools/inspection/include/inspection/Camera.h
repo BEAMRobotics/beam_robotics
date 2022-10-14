@@ -65,6 +65,7 @@ struct Camera {
    * @return const Image&
    */
   const Image& GetImageByTimestamp(int64_t timestamp_in_Ns) const;
+
   std::string name;
   std::string intrinsics_path;
   std::shared_ptr<beam_calibration::CameraModel> cam_model;

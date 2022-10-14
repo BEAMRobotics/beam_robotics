@@ -1,11 +1,10 @@
 #pragma once
 
+#include <pcl/point_cloud.h>
+
 #include <beam_containers/PointBridge.h>
 #include <beam_utils/math.h>
 #include <beam_utils/time.h>
-
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_cloud.h>
 
 namespace inspection {
 
@@ -65,11 +64,12 @@ public:
   /**
    * @brief Main function for combining clouds. This fills in the internal cloud
    * which can then be retrieved with GetCombinedCloud()
-   * @param clouds: map cam name -> [map timestamp -> defect cloud]
+   * @param clouds_in_cam: map cam name -> [map timestamp -> defect cloud (in
+   * camera frame)]
    * @param Ts_MAP_CAMERA: map cam name -> [map timestamp -> T_MAP_CAMERA]
    */
   void CombineClouds(
-      const std::unordered_map<std::string, DefectCloudsMapType>& clouds,
+      const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
       const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA);
 
   /**
@@ -87,12 +87,12 @@ public:
 protected:
   /**
    * @brief adds all points from the first cloud in clouds to the map
-   * @param clouds
+   * @param clouds_in_cam
    * @param Ts_MAP_CAMERA
    * @return std::vector<float>
    */
   std::vector<float> AddFirstCloud(
-      const std::unordered_map<std::string, DefectCloudsMapType>& clouds,
+      const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
       const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA);
 
   /**

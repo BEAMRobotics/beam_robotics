@@ -1,5 +1,8 @@
 #define PCL_NO_PRECOMPILE
 
+#include <fstream>
+
+#include <pcl/common/transforms.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/point_cloud.h>
 #include <pcl/search/impl/kdtree.hpp>
@@ -27,19 +30,20 @@ CloudCombiner::CloudCombiner(float crack_detector_precision,
 }
 
 void CloudCombiner::CombineClouds(
-    const std::unordered_map<std::string, DefectCloudsMapType>& clouds,
+    const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
     const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA) {
   combined_cloud_ = std::make_shared<DefectCloud>();
   pcl::search::KdTree<BridgePoint> kdtree;
 
   // store distance from each point its camera used to label
-  std::vector<float> distances_to_cam = AddFirstCloud(clouds, Ts_MAP_CAMERA);
+  std::vector<float> distances_to_cam =
+      AddFirstCloud(clouds_in_cam, Ts_MAP_CAMERA);
 
   // iterate through all cameras
-  for (const auto& [cam_name, cam_defects] : clouds) {
+  for (const auto& [cam_name, cam_defects_in_cam] : clouds_in_cam) {
     // get current camera transforms and check it exists
-    auto img_Ts_iter = Ts_MAP_CAMERA.find(cam_name);
-    if (img_Ts_iter == Ts_MAP_CAMERA.end()) {
+    auto cam_Ts_iter = Ts_MAP_CAMERA.find(cam_name);
+    if (cam_Ts_iter == Ts_MAP_CAMERA.end()) {
       BEAM_ERROR("cannot find image transforms for camera name {}, not "
                  "combining clouds",
                  cam_name);
@@ -48,13 +52,13 @@ void CloudCombiner::CombineClouds(
 
     // iterate through all images for this camera
     StatsMapType camera_stats;
-    for (const auto& [timestamp, img_cloud] : cam_defects) {
+    for (const auto& [timestamp, img_cloud_in_cam] : cam_defects_in_cam) {
       // skip first cloud that we've already added
-      if (cam_name == clouds.begin()->first) {
-        if (timestamp == clouds.begin()->second.begin()->first) {
+      if (cam_name == clouds_in_cam.begin()->first) {
+        if (timestamp == clouds_in_cam.begin()->second.begin()->first) {
           CloudStats first_stats;
-          first_stats.points_total = img_cloud->size();
-          first_stats.points_new = img_cloud->size();
+          first_stats.points_total = img_cloud_in_cam->size();
+          first_stats.points_new = img_cloud_in_cam->size();
           first_stats.points_updated = 0;
           first_stats.points_blank = 0;
           camera_stats.emplace(timestamp, first_stats);
@@ -63,15 +67,21 @@ void CloudCombiner::CombineClouds(
       }
 
       // get current image transform and check it exists
-      auto img_T_iter = img_Ts_iter->second.find(timestamp);
-      if (img_T_iter == img_Ts_iter->second.end()) {
+      auto img_T_iter = cam_Ts_iter->second.find(timestamp);
+      if (img_T_iter == cam_Ts_iter->second.end()) {
         BEAM_ERROR("cannot find image timestamp {} for camera name {}, not "
                    "adding image cloud",
                    timestamp, cam_name);
         continue;
       }
 
-      Eigen::Vector3d img_origin = img_T_iter->second.translation();
+      // convert image cloud to map frame
+      const Eigen::Affine3d& T_MAP_CAMERA = img_T_iter->second;
+      DefectCloud img_cloud_in_map;
+      pcl::transformPointCloud(*img_cloud_in_cam, img_cloud_in_map,
+                               T_MAP_CAMERA);
+
+      Eigen::Vector3d img_origin = T_MAP_CAMERA.translation();
 
       kdtree.setInputCloud(combined_cloud_);
       int points_updated = 0;
@@ -79,7 +89,7 @@ void CloudCombiner::CombineClouds(
       int points_blank = 0;
 
       // iterate through all points in the cloud
-      for (const auto& search_point : *img_cloud) {
+      for (const auto& search_point : img_cloud_in_map) {
         Eigen::Vector3d search_point_eig(search_point.x, search_point.y,
                                          search_point.z);
         float cur_distance = beam::distance(search_point_eig, img_origin);
@@ -126,7 +136,7 @@ void CloudCombiner::CombineClouds(
 
       // add stats
       CloudStats stats;
-      stats.points_total = img_cloud->size();
+      stats.points_total = img_cloud_in_map.size();
       stats.points_new = points_new;
       stats.points_updated = points_updated;
       stats.points_blank = points_blank;
@@ -141,12 +151,12 @@ void CloudCombiner::CombineClouds(
 }
 
 std::vector<float> CloudCombiner::AddFirstCloud(
-    const std::unordered_map<std::string, DefectCloudsMapType>& clouds,
+    const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
     const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA) {
   std::vector<float> distances_to_cam;
-  std::string first_cam_name = clouds.begin()->first;
-  const DefectCloudsMapType& first_cam_map = clouds.begin()->second;
-  DefectCloud::Ptr first_cloud = first_cam_map.begin()->second;
+  std::string first_cam_name = clouds_in_cam.begin()->first;
+  const DefectCloudsMapType& first_cam_map = clouds_in_cam.begin()->second;
+  DefectCloud::Ptr first_cloud_in_cam = first_cam_map.begin()->second;
   int64_t first_cloud_time = first_cam_map.begin()->first;
 
   if (Ts_MAP_CAMERA.find(first_cam_name) == Ts_MAP_CAMERA.end()) {
@@ -163,16 +173,15 @@ std::vector<float> CloudCombiner::AddFirstCloud(
     throw std::runtime_error{"cannot find timestamp"};
   }
 
-  Eigen::Affine3d first_camera_pose =
+  const Eigen::Affine3d& T_MAP_IMG1 =
       Ts_MAP_CAMERA.at(first_cam_name).at(first_cloud_time);
-  Eigen::Vector3d first_camera_position = first_camera_pose.translation();
+  Eigen::Vector3d t_MAP_IMG1 = T_MAP_IMG1.translation();
 
   // iterate through map
-  for (const auto& p : *first_cloud) {
-    combined_cloud_->push_back(p);
+  for (const BridgePoint& p : *first_cloud_in_cam) {
+    combined_cloud_->push_back(pcl::transformPoint<BridgePoint>(p, T_MAP_IMG1));
     Eigen::Vector3d search_point(p.x, p.y, p.z);
-    distances_to_cam.push_back(
-        beam::distance(search_point, first_camera_position));
+    distances_to_cam.push_back(beam::distance(search_point, t_MAP_IMG1));
   }
 
   return distances_to_cam;

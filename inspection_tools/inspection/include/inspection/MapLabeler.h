@@ -1,15 +1,5 @@
 #pragma once
 
-#include <pcl/io/pcd_io.h>
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/point_cloud.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl_ros/impl/transforms.hpp>
-#include <pcl_ros/transforms.h>
-#include <tf/tf.h>
-#include <tf_conversions/tf_eigen.h>
-
 #include <beam_colorize/Projection.h>
 #include <beam_containers/PointBridge.h>
 #include <beam_utils/pointclouds.h>
@@ -20,7 +10,6 @@ namespace inspection {
 
 using BridgePoint = beam_containers::PointBridge;
 using DefectCloud = pcl::PointCloud<beam_containers::PointBridge>;
-using PCLViewer = pcl::visualization::PCLVisualizer::Ptr;
 using PointCloudXYZRGB = pcl::PointCloud<pcl::PointXYZRGB>;
 
 // map: image timestamp in Ns -> defect cloud in map frame
@@ -80,44 +69,52 @@ public:
   /**
    * @brief get the defect clouds by projecting all map points into each image
    * and keeping only the points that land in the image plane.
-   * @param defect_clouds reference to defect cloud maps: camera name -> [image
-   * timestamp -> cloud]
+   * [image timestamp -> cloud]
    */
   std::unordered_map<std::string, DefectCloudsMapType> GetDefectClouds() const;
+
+  /**
+   * @brief Read defect clouds from a folder containing a defect clouds metadata
+   * json file
+   * @param defect_clouds_json path to json metadata file to load defect clouds
+   */
+  std::unordered_map<std::string, DefectCloudsMapType>
+      ReadDefectClouds(const std::string& defect_clouds_json) const;
 
   /**
    * @brief Adds color information from RGB image in container. Each defect
    * cloud needs to contain only points that project into that image. These
    * clouds can be retrieved using GetDefectClouds function
-   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
-   * DefectCloudsMap: map image timestamp -> defect cloud
+   * @param defect_clouds_in_cam map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud (in camera frame)
    * @param remove_unlabeled will remove all points that have no label on any of
    * the point fields
    */
-  void LabelColor(
-      std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
-      bool remove_unlabeled) const;
+  void LabelColor(std::unordered_map<std::string, DefectCloudsMapType>&
+                      defect_clouds_in_cam,
+                  bool remove_unlabeled) const;
 
   /**
    * @brief Adds defect mask information from RGB Masks in container. Each
    * defect cloud needs to contain only points that project into that image
-   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
-   * DefectCloudsMap: map image timestamp -> defect cloud
+   * @param defect_clouds_in_cam map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud (in cam frame)
    * @param remove_unlabeled will remove all points that have no label on any of
    * the point fields
    */
-  void LabelDefects(
-      std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
-      bool remove_unlabeled) const;
+  void LabelDefects(std::unordered_map<std::string, DefectCloudsMapType>&
+                        defect_clouds_in_cam,
+                    bool remove_unlabeled) const;
 
   /**
    * @brief Combine clouds into a final map
-   * @param defect_clouds map cameral_name -> DefectCloudsMap, where
-   * DefectCloudsMap: map image timestamp -> defect cloud
+   * @param defect_clouds_in_cam map cameral_name -> DefectCloudsMap, where
+   * DefectCloudsMap: map image timestamp -> defect cloud (in camera frame)
    */
-  DefectCloud::Ptr CombineClouds(
-      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
-      const std::string& output_dir = "") const;
+  DefectCloud::Ptr
+      CombineClouds(const std::unordered_map<std::string, DefectCloudsMapType>&
+                        defect_clouds_in_cam,
+                    const std::string& output_dir = "") const;
 
   /**
    * @brief Print current configuration
@@ -131,11 +128,11 @@ public:
 
   /**
    * @brief Saves each of the labeled defect clouds in a clouds folder inside
-   * the images folder. This also saves trajectories and camera poses for each
-   * image drawn
+   * the images folder. All clouds are saved in the map frame
    */
   void SaveLabeledClouds(
-      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
+      const std::unordered_map<std::string, DefectCloudsMapType>&
+          defect_clouds_in_cam,
       const std::string& output_folder) const;
 
   /**
@@ -160,9 +157,9 @@ public:
    * @brief save a summary json file including camera info and their labeled
    * clouds
    */
-  void OutputSummary(
-      const std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds,
-      const std::string& output_folder) const;
+  void OutputSummary(const std::unordered_map<std::string, DefectCloudsMapType>&
+                         defect_clouds_in_cam,
+                     const std::string& output_folder) const;
 
   /**
    * @brief copy config to output directory
