@@ -314,33 +314,37 @@ void MapLabeler::DrawFinalMap(const DefectCloud::Ptr& map) const {
 }
 
 void MapLabeler::ProcessJSONConfig() {
-  BEAM_DEBUG("Processing MapLabeler json config file from : {} ...",
-             inputs_.config_file_location);
-  nlohmann::json J;
-  if (!beam::ReadJson(inputs_.config_file_location, J)) {
-    throw std::runtime_error{"invalid config file path"};
+  if (inputs_.config_file_location.empty()) {
+    BEAM_INFO("empty config file location, using defaults");
+  } else {
+    BEAM_INFO("Processing MapLabeler json config file from : {} ...",
+              inputs_.config_file_location);
+    nlohmann::json J;
+    if (!beam::ReadJson(inputs_.config_file_location, J)) {
+      throw std::runtime_error{"invalid config file path"};
+    }
+
+    nlohmann::json cameras_json;
+    try {
+      depth_enhancement_ = J.at("depth_enhancement");
+      final_map_name_ = J.at("final_map_name");
+      cloud_combiner_type_ = J.at("cloud_combiner");
+      colorizer_type_ = J.at("colorizer");
+      nlohmann::json tmp = J.at("cameras");
+      cameras_json = tmp;
+    } catch (nlohmann::json::exception& e) {
+      BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
+                    e.id);
+    }
   }
 
-  nlohmann::json cameras_json;
-  try {
-    depth_enhancement_ = J.at("depth_enhancement");
-    final_map_name_ = J.at("final_map_name");
-    cloud_combiner_type_ = J.at("cloud_combiner");
-    colorizer_type_ = J.at("colorizer");
-    nlohmann::json tmp = J.at("cameras");
-    cameras_json = tmp;
-  } catch (nlohmann::json::exception& e) {
-    BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
-                  e.id);
-  }
-
-  BEAM_DEBUG("Images path: {}", inputs_.images_directory);
-  BEAM_DEBUG("Map path: {}", inputs_.map);
-  BEAM_DEBUG("Poses path: {}", inputs_.poses);
-  BEAM_DEBUG("Extrinsics: {}", inputs_.extrinsics);
-  BEAM_DEBUG("Intrinsics folder: {}", inputs_.intrinsics_directory);
-  BEAM_DEBUG("Colorizer type: {}", colorizer_type_);
-  BEAM_DEBUG("Creating {} camera objects for labeling...", cameras_json.size());
+  BEAM_INFO("Images path: {}", inputs_.images_directory);
+  BEAM_INFO("Map path: {}", inputs_.map);
+  BEAM_INFO("Poses path: {}", inputs_.poses);
+  BEAM_INFO("Extrinsics: {}", inputs_.extrinsics);
+  BEAM_INFO("Intrinsics folder: {}", inputs_.intrinsics_directory);
+  BEAM_INFO("Colorizer type: {}", colorizer_type_);
+  BEAM_INFO("Creating {} camera objects for labeling...", cameras_json.size());
 
   cameras_ = LoadCameras(cameras_json, inputs_.images_directory,
                          inputs_.intrinsics_directory, colorizer_type_);
