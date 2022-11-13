@@ -314,28 +314,24 @@ void MapLabeler::DrawFinalMap(const DefectCloud::Ptr& map) const {
 }
 
 void MapLabeler::ProcessJSONConfig() {
-  if (inputs_.config_file_location.empty()) {
-    BEAM_INFO("empty config file location, using defaults");
-  } else {
-    BEAM_INFO("Processing MapLabeler json config file from : {} ...",
-              inputs_.config_file_location);
-    nlohmann::json J;
-    if (!beam::ReadJson(inputs_.config_file_location, J)) {
-      throw std::runtime_error{"invalid config file path"};
-    }
+  BEAM_INFO("Processing MapLabeler json config file from : {} ...",
+            inputs_.config_file_location);
+  nlohmann::json J;
+  if (!beam::ReadJson(inputs_.config_file_location, J)) {
+    throw std::runtime_error{"invalid config file path"};
+  }
 
-    nlohmann::json cameras_json;
-    try {
-      depth_enhancement_ = J.at("depth_enhancement");
-      final_map_name_ = J.at("final_map_name");
-      cloud_combiner_type_ = J.at("cloud_combiner");
-      colorizer_type_ = J.at("colorizer");
-      nlohmann::json tmp = J.at("cameras");
-      cameras_json = tmp;
-    } catch (nlohmann::json::exception& e) {
-      BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
-                    e.id);
-    }
+  nlohmann::json cameras_json;
+  try {
+    depth_enhancement_ = J.at("depth_enhancement");
+    final_map_name_ = J.at("final_map_name");
+    cloud_combiner_type_ = J.at("cloud_combiner");
+    colorizer_type_ = J.at("colorizer");
+    nlohmann::json tmp = J.at("cameras");
+    cameras_json = tmp;
+  } catch (nlohmann::json::exception& e) {
+    BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
+                  e.id);
   }
 
   BEAM_INFO("Images path: {}", inputs_.images_directory);

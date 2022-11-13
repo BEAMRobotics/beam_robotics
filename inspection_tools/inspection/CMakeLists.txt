@@ -70,33 +70,6 @@ target_link_libraries(${PROJECT_NAME}_label_map
 	gflags
 	beam::utils
 )
-add_executable(${PROJECT_NAME}_label_defects
-	src/LabelDefects.cpp
-)
-target_link_libraries(${PROJECT_NAME}_label_defects
-	${PROJECT_NAME}
-	${pcl_ros_LIBRARIES}
-	gflags
-	beam::utils
-)
-add_executable(${PROJECT_NAME}_extract_defect_clouds
-	src/ExtractDefectClouds.cpp
-)
-target_link_libraries(${PROJECT_NAME}_extract_defect_clouds
-	${PROJECT_NAME}
-	${pcl_ros_LIBRARIES}
-	gflags
-	beam::utils
-)
-add_executable(${PROJECT_NAME}_color_map
-	src/ColorMap.cpp
-)
-target_link_libraries(${PROJECT_NAME}_color_map
-	${PROJECT_NAME}
-	${pcl_ros_LIBRARIES}
-	gflags
-	beam::utils
-)
 
 # OdomTopicToPosesFile
 add_executable(${PROJECT_NAME}_odom_topic_to_poses_file

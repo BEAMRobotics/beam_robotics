@@ -22,11 +22,19 @@ DEFINE_validator(extrinsics, &beam::gflags::ValidateJsonFileMustExist);
 DEFINE_string(config, "",
               "Full path to json config file. If none provided, it will use "
               "the file inspection/config/MapLabeler.json");
+DEFINE_string(
+    defect_clouds, "",
+    "Full path to json enumerating all defect clouds. If empty, it will "
+    "extract these clouds automatically from the map and images");
 DEFINE_string(frame_override, "",
               "Set this to override the moving frame id in the poses file.");
 DEFINE_bool(output_individual_clouds, true,
             "set to true to output the cloud portion labeled by each image as "
             "a separate pcd file");
+DEFINE_bool(color_map, true, "set to true to color map with RGB images");
+DEFINE_bool(label_defects, true, "set to true to label maps with defect masks");
+DEFINE_bool(remove_unlabeled, false,
+            "set to true to remove all points that have no label.");
 DEFINE_bool(
     output_camera_poses, true,
     "set to true to output camera pose (in baselink and camera frame) for each "
@@ -50,20 +58,44 @@ int main(int argc, char* argv[]) {
     config_path = FLAGS_config;
   }
 
-  MapLabeler::Inputs inputs{
-      .images_directory = FLAGS_images,
-      .map = FLAGS_map,
-      .poses = FLAGS_poses,
-      .intrinsics_directory = FLAGS_intrinsics,
-      .extrinsics = FLAGS_extrinsics,
-      .config_file_location = config_path,
-      .poses_moving_frame_override = FLAGS_frame_override};
+  MapLabeler::Inputs inputs{.images_directory = FLAGS_images,
+                            .map = FLAGS_map,
+                            .poses = FLAGS_poses,
+                            .intrinsics_directory = FLAGS_intrinsics,
+                            .extrinsics = FLAGS_extrinsics,
+                            .config_file_location = config_path,
+                            .poses_moving_frame_override =
+                                FLAGS_frame_override};
   MapLabeler mapper(inputs);
   mapper.PrintConfiguration();
-  DefectCloud::Ptr final_map = mapper.RunFullPipeline(
-      FLAGS_output, FLAGS_output_individual_clouds, true);
+
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds;
+  if (!FLAGS_defect_clouds.empty()) {
+    defect_clouds = mapper.ReadDefectClouds(FLAGS_defect_clouds);
+  } else {
+    defect_clouds = mapper.GetDefectClouds();
+  }
+
+  if (FLAGS_color_map) {
+    bool remove_unlabeled = FLAGS_remove_unlabeled;
+
+    // do not remove unlabeled if we still need to label defects
+    if (FLAGS_label_defects) { remove_unlabeled = false; }
+
+    mapper.LabelColor(defect_clouds, remove_unlabeled);
+  }
+
+  if (FLAGS_label_defects) {
+    mapper.LabelDefects(defect_clouds, FLAGS_remove_unlabeled);
+  }
+
+  DefectCloud::Ptr final_map = mapper.CombineClouds(defect_clouds, FLAGS_output);
   mapper.SaveFinalMap(final_map, FLAGS_output);
   mapper.OutputConfig(FLAGS_output);
+
+  if (FLAGS_output_individual_clouds) {
+    mapper.SaveLabeledClouds(defect_clouds, FLAGS_output);
+  }
 
   if (FLAGS_output_camera_poses) {
     std::string dir = beam::CombinePaths(FLAGS_output, "camera_poses");
