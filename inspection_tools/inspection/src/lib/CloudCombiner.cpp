@@ -268,6 +268,7 @@ void CloudCombiner::OutputStatistics(const std::string& output_file) {
 
   std::ofstream filejson(output_file);
   filejson << std::setw(4) << cam_jsons << std::endl;
+  BEAM_INFO("Done saving summary");
 }
 
 } // end namespace inspection
