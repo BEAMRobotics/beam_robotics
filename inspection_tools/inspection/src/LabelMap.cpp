@@ -42,7 +42,9 @@ DEFINE_bool(
 DEFINE_bool(
     output_images, true,
     "set to true to output all image containers used in the labeling process");
-DEFINE_bool(draw_final_map, true,
+DEFINE_bool(save_final_map, true,
+            "set to true to save final map to output directory");
+DEFINE_bool(draw_final_map, false,
             "set to true to draw final map in a PCL viewer");
 
 using namespace beam;
@@ -89,10 +91,6 @@ int main(int argc, char* argv[]) {
     mapper.LabelDefects(defect_clouds, FLAGS_remove_unlabeled);
   }
 
-  DefectCloud::Ptr final_map = mapper.CombineClouds(defect_clouds, FLAGS_output);
-  mapper.SaveFinalMap(final_map, FLAGS_output);
-  mapper.OutputConfig(FLAGS_output);
-
   if (FLAGS_output_individual_clouds) {
     mapper.SaveLabeledClouds(defect_clouds, FLAGS_output);
   }
@@ -109,7 +107,14 @@ int main(int argc, char* argv[]) {
     mapper.SaveImages(dir);
   }
 
-  if (FLAGS_draw_final_map) { mapper.DrawFinalMap(final_map); }
+  mapper.OutputConfig(FLAGS_output);
+
+  if (FLAGS_save_final_map || FLAGS_draw_final_map) {
+    DefectCloud::Ptr final_map =
+        mapper.CombineClouds(defect_clouds, FLAGS_output);
+    if (FLAGS_save_final_map) { mapper.SaveFinalMap(final_map, FLAGS_output); }
+    if (FLAGS_draw_final_map) { mapper.DrawFinalMap(final_map); }
+  }
 
   BEAM_INFO("LabelMap binary finished successfully!");
   return 0;
