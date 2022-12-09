@@ -45,6 +45,11 @@ MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
     }
   }
 
+  // fill point ids in cloud
+  for (uint64_t id = 0; id < input_map_->size(); id++){
+    input_map_->at(id).map_point_id = id;
+  }
+
   FillTFTrees();
   FillCameraPoses();
   BEAM_INFO("Done initializing MapLabeler");

@@ -1,17 +1,10 @@
-#define PCL_NO_PRECOMPILE
+#include "inspection/CloudCombiner.h"
 
 #include <fstream>
 
 #include <pcl/common/transforms.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/point_cloud.h>
-#include <pcl/search/impl/kdtree.hpp>
-#include <pcl/search/kdtree.h>
-
-/* must include after kdtree include
-   explanation: OpenCV headers must be included after flann headers. kdtree uses
-   flann and CloudCombiner has OpenCV somewhere in the chain. */
-#include "inspection/CloudCombiner.h"
 
 #include <beam_utils/filesystem.h>
 #include <beam_utils/math.h>
@@ -33,11 +26,12 @@ void CloudCombiner::CombineClouds(
     const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
     const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA) {
   combined_cloud_ = std::make_shared<DefectCloud>();
-  pcl::search::KdTree<BridgePoint> kdtree;
 
-  // store distance from each point its camera used to label
-  std::vector<float> distances_to_cam =
-      AddFirstCloud(clouds_in_cam, Ts_MAP_CAMERA);
+  // store each point id added back to the final map and its associated distance to camera
+  std::unordered_map<uint64_t, double> mapIdToCamDistance;
+  
+  // store link between original map ID, and new combined map ID
+  std::unordered_map<uint64_t, double> origMapIdToCombMapId;
 
   // iterate through all cameras
   for (const auto& [cam_name, cam_defects_in_cam] : clouds_in_cam) {
@@ -53,19 +47,6 @@ void CloudCombiner::CombineClouds(
     // iterate through all images for this camera
     StatsMapType camera_stats;
     for (const auto& [timestamp, img_cloud_in_cam] : cam_defects_in_cam) {
-      // skip first cloud that we've already added
-      if (cam_name == clouds_in_cam.begin()->first) {
-        if (timestamp == clouds_in_cam.begin()->second.begin()->first) {
-          CloudStats first_stats;
-          first_stats.points_total = img_cloud_in_cam->size();
-          first_stats.points_new = img_cloud_in_cam->size();
-          first_stats.points_updated = 0;
-          first_stats.points_blank = 0;
-          camera_stats.emplace(timestamp, first_stats);
-          continue;
-        }
-      }
-
       // get current image transform and check it exists
       auto img_T_iter = cam_Ts_iter->second.find(timestamp);
       if (img_T_iter == cam_Ts_iter->second.end()) {
@@ -75,71 +56,50 @@ void CloudCombiner::CombineClouds(
         continue;
       }
 
-      // convert image cloud to map frame
       const Eigen::Affine3d& T_MAP_CAMERA = img_T_iter->second;
-      DefectCloud img_cloud_in_map;
-      pcl::transformPointCloud(*img_cloud_in_cam, img_cloud_in_map,
-                               T_MAP_CAMERA);
 
-      Eigen::Vector3d img_origin = T_MAP_CAMERA.translation();
-
-      kdtree.setInputCloud(combined_cloud_);
       int points_updated = 0;
       int points_new = 0;
-      int points_blank = 0;
-
-      // iterate through all points in the cloud
-      for (const auto& search_point : img_cloud_in_map) {
-        Eigen::Vector3d search_point_eig(search_point.x, search_point.y,
-                                         search_point.z);
-        float cur_distance = beam::distance(search_point_eig, img_origin);
-
-        // find closest point (k = 1) in the combined cloud to each point in the
-        // current image cloud
-        std::vector<int> pointIdxNKNSearch(1);
-        std::vector<float> pointNKNSquaredDistance(1);
-        if (kdtree.nearestKSearch(search_point, 1, pointIdxNKNSearch,
-                                  pointNKNSquaredDistance) == 0) {
-          // if none found, go add point and move to next point
-          combined_cloud_->push_back(search_point);
-          distances_to_cam.push_back(cur_distance);
+      int points_ignored = 0;
+      for (const auto& pt_in_cam : *img_cloud_in_cam) {
+        Eigen::Vector3d pt_in_cam_eig(pt_in_cam.x, pt_in_cam.y, pt_in_cam.z);
+        double dist_cam_to_pt = pt_in_cam_eig.norm();
+        auto iter = mapIdToCamDistance.find(pt_in_cam.map_point_id); 
+        
+        // if point ID hasn't been added to map, then add it
+        if(iter == mapIdToCamDistance.end()){
+          combined_cloud_->push_back(pcl::transformPoint<BridgePoint>(pt_in_cam, T_MAP_CAMERA));
+          mapIdToCamDistance.emplace(pt_in_cam.map_point_id, dist_cam_to_pt);
+          origMapIdToCombMapId.emplace(pt_in_cam.map_point_id, combined_cloud_->size() - 1);
           points_new++;
           continue;
-        }
-
-        // else, add the point if it's not in the combined map
-        if (pointNKNSquaredDistance[0] > point_distance_threshold_) {
-          combined_cloud_->push_back(search_point);
-          distances_to_cam.push_back(cur_distance);
-          points_new++;
-          continue;
-        }
-
-        // if the point is closer to the current camera, then update color and
-        // defects, otherwise update defects only
+        } 
+        
+        // else, check if new distance to camera is less than the previous stored point
         bool point_updated;
-        if (cur_distance < distances_to_cam[pointIdxNKNSearch[0]]) {
-          distances_to_cam[pointIdxNKNSearch[0]] = cur_distance;
-          point_updated = UpdatePoint(pointIdxNKNSearch[0], search_point, true);
-
+        if(dist_cam_to_pt < iter->second){
+          // if the point is closer to the current camera, then update color and
+          // defects
+          point_updated = UpdatePoint(origMapIdToCombMapId.at(pt_in_cam.map_point_id), pt_in_cam, true);
+          iter->second = dist_cam_to_pt;
         } else {
-          point_updated =
-              UpdatePoint(pointIdxNKNSearch[0], search_point, false);
+          // if point is farther from this camera, update defects only
+          point_updated = UpdatePoint(origMapIdToCombMapId.at(pt_in_cam.map_point_id), pt_in_cam, false);
         }
 
         if (point_updated) {
           points_updated++;
         } else {
-          points_blank++;
+          points_ignored++;
         }
       }
 
       // add stats
       CloudStats stats;
-      stats.points_total = img_cloud_in_map.size();
+      stats.points_total = img_cloud_in_cam->size();
       stats.points_new = points_new;
       stats.points_updated = points_updated;
-      stats.points_blank = points_blank;
+      stats.points_ignored = points_ignored;
       camera_stats.emplace(timestamp, stats);
     }
 
@@ -148,43 +108,6 @@ void CloudCombiner::CombineClouds(
 
   BEAM_INFO("Finished combining point clouds - final map is: {} points",
             combined_cloud_->points.size());
-}
-
-std::vector<float> CloudCombiner::AddFirstCloud(
-    const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
-    const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA) {
-  std::vector<float> distances_to_cam;
-  std::string first_cam_name = clouds_in_cam.begin()->first;
-  const DefectCloudsMapType& first_cam_map = clouds_in_cam.begin()->second;
-  DefectCloud::Ptr first_cloud_in_cam = first_cam_map.begin()->second;
-  int64_t first_cloud_time = first_cam_map.begin()->first;
-
-  if (Ts_MAP_CAMERA.find(first_cam_name) == Ts_MAP_CAMERA.end()) {
-    BEAM_CRITICAL("cannot find camera {} in transform map, exiting",
-                  first_cam_name);
-    throw std::runtime_error{"cannot find camera"};
-  }
-
-  if (Ts_MAP_CAMERA.at(first_cam_name).find(first_cloud_time) ==
-      Ts_MAP_CAMERA.at(first_cam_name).end()) {
-    BEAM_CRITICAL("cannot find image timestamp {} for camera {} in transform "
-                  "map, exiting",
-                  first_cloud_time, first_cam_name);
-    throw std::runtime_error{"cannot find timestamp"};
-  }
-
-  const Eigen::Affine3d& T_MAP_IMG1 =
-      Ts_MAP_CAMERA.at(first_cam_name).at(first_cloud_time);
-  Eigen::Vector3d t_MAP_IMG1 = T_MAP_IMG1.translation();
-
-  // iterate through map
-  for (const BridgePoint& p : *first_cloud_in_cam) {
-    combined_cloud_->push_back(pcl::transformPoint<BridgePoint>(p, T_MAP_IMG1));
-    Eigen::Vector3d search_point(p.x, p.y, p.z);
-    distances_to_cam.push_back(beam::distance(search_point, t_MAP_IMG1));
-  }
-
-  return distances_to_cam;
 }
 
 bool CloudCombiner::UpdatePoint(int point_id_to_update,
@@ -220,22 +143,15 @@ bool CloudCombiner::UpdatePoint(int point_id_to_update,
 
   if (!update_color) { return point_updated; }
 
-  if (new_point.x + new_point.y + new_point.z != 0) {
-    p_to_update.x = new_point.x;
-    p_to_update.y = new_point.y;
-    p_to_update.z = new_point.z;
-    p_to_update.r = new_point.r;
-    p_to_update.g = new_point.g;
-    p_to_update.b = new_point.b;
-    point_updated = true;
-  }
+  p_to_update.r = new_point.r;
+  p_to_update.g = new_point.g;
+  p_to_update.b = new_point.b;
 
   if (new_point.thermal != 0) {
     p_to_update.thermal = new_point.thermal;
-    point_updated = true;
   }
 
-  return point_updated;
+  return true;
 }
 
 void CloudCombiner::OutputStatistics(const std::string& output_file) {
@@ -251,17 +167,17 @@ void CloudCombiner::OutputStatistics(const std::string& output_file) {
     return;
   }
 
-  std::unordered_map<std::string, std::unordered_map<int, nlohmann::json>>
+  std::unordered_map<std::string, std::unordered_map<std::string, nlohmann::json>>
       cam_jsons;
   for (const auto& [cam_name, cam_stats] : stats_) {
-    std::unordered_map<int, nlohmann::json> img_jsons;
+    std::unordered_map<std::string, nlohmann::json> img_jsons;
     for (const auto& [timestamp, img_stats] : cam_stats) {
       nlohmann::json stats_json;
       stats_json["points_total"] = img_stats.points_total;
       stats_json["points_new"] = img_stats.points_new;
       stats_json["points_updated"] = img_stats.points_updated;
-      stats_json["points_blank"] = img_stats.points_blank;
-      img_jsons.emplace(timestamp, stats_json);
+      stats_json["points_ignored"] = img_stats.points_ignored;
+      img_jsons.emplace(std::to_string(timestamp), stats_json);
     }
     cam_jsons.emplace(cam_name, img_jsons);
   }

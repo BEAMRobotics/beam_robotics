@@ -22,10 +22,17 @@ using DefectCloudsMapType = std::unordered_map<int64_t, DefectCloud::Ptr>;
 using TransformMapType = std::unordered_map<int64_t, Eigen::Affine3d>;
 
 struct CloudStats {
+  /** total points in image cloud */
   int points_total;
+
+  /** new points added from this cloud */
   int points_new;
+
+  /** point that were updated using this image */
   int points_updated;
-  int points_blank;
+
+  /** points in the cloud that were ignored */
+  int points_ignored;
 };
 
 // map: image timestamp in Ns -> CloudStats
@@ -85,16 +92,6 @@ public:
   void OutputStatistics(const std::string& output_file);
 
 protected:
-  /**
-   * @brief adds all points from the first cloud in clouds to the map
-   * @param clouds_in_cam
-   * @param Ts_MAP_CAMERA
-   * @return std::vector<float>
-   */
-  std::vector<float> AddFirstCloud(
-      const std::unordered_map<std::string, DefectCloudsMapType>& clouds_in_cam,
-      const std::unordered_map<std::string, TransformMapType>& Ts_MAP_CAMERA);
-
   /**
    * @brief update contents of one point with new point. This takes into
    * account that some points may have different labels than others. The
