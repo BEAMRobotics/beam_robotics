@@ -6,7 +6,7 @@
 #include <inspection/InspectionUtils.h>
 #include <inspection/MapLabeler.h>
 
-DEFINE_string(images, "", "Full path to root folder of images. (Required)");
+DEFINE_string(images, "", "Full path cameras json listing each camera image list to read. (Required)");
 DEFINE_validator(images, &beam::gflags::ValidateDirMustExist);
 DEFINE_string(output, "", "Full path to output folder of labeled. (Required)");
 DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);

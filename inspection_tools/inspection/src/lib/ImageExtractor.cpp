@@ -8,6 +8,7 @@
 #include <beam_cv/OpenCVConversions.h>
 #include <beam_mapping/Poses.h>
 #include <beam_utils/angles.h>
+#include <beam_utils/filesystem.h>
 #include <beam_utils/log.h>
 #include <beam_utils/math.h>
 #include <beam_utils/time.h>
@@ -178,8 +179,8 @@ void ImageExtractor::OutputImages() {
   // iterate over all cameras
   for (uint8_t cam_count = 0; cam_count < image_topics_.size(); cam_count++) {
     BEAM_INFO("Saving images for Camera {}.", cam_count);
-    std::string camera_dir =
-        save_directory_ + "/camera" + std::to_string(cam_count);
+    std::string camera_dir = beam::CombinePaths(
+        save_directory_, "camera" + std::to_string(cam_count));
 
     boost::filesystem::create_directories(camera_dir);
     camera_list_.push_back("camera" + std::to_string(cam_count));
@@ -219,8 +220,8 @@ void ImageExtractor::OutputImages() {
         image_object_list_.push_back(image_container_type_ +
                                      std::to_string(image_count));
       } else if (image_container_type_ == "None") {
-        std::string output_file =
-            camera_dir + "/Image" + std::to_string(image_count) + ".jpg";
+        std::string output_file = beam::CombinePaths(
+            camera_dir, "Image" + std::to_string(image_count) + ".jpg");
         cv::imwrite(output_file, image);
         image_object_list_.push_back(output_file);
       } else {
@@ -237,12 +238,19 @@ void ImageExtractor::OutputImages() {
     }
 
     if (image_object_list_.size() > 0) {
-      OutputJSONList(camera_dir + "/ImagesList.json", image_object_list_);
+      nlohmann::json J;
+      J["Images"] = image_object_list_;
+      std::ofstream file(beam::CombinePaths(camera_dir, "ImagesList.json"));
+      file << std::setw(4) << J << std::endl;
     }
   }
 
   if (camera_list_.size() > 0) {
-    OutputJSONList(save_directory_ + "/CamerasList.json", camera_list_);
+    nlohmann::json J;
+    J["Cameras"] = camera_list_;
+    J["ImagesFilename"] = "ImagesList.json";
+    std::ofstream file(beam::CombinePaths(save_directory_, "CamerasList.json"));
+    file << std::setw(4) << J << std::endl;
   }
 }
 
@@ -276,7 +284,7 @@ cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,
     image_time = img_msg->header.stamp;
     last_image_time_ = img_msg->header.stamp;
     if (first_image) { frame_ids_.push_back(img_msg->header.frame_id); }
-    
+
     cv::Mat image_raw;
     if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
       image_raw = beam_cv::OpenCVConversions::RosImgToMat(*img_msg);
@@ -434,18 +442,6 @@ cv::Mat ImageExtractor::ROSConvertColor(
               const_cast<uint8_t*>(&image_raw->data[0]), image_raw->step);
   cv::cvtColor(raw, image_color, code);
   return image_color;
-}
-
-void ImageExtractor::OutputJSONList(const std::string& file_name,
-                                    const std::vector<std::string>& list) {
-  std::string JSONString = "{ \"Items\": [";
-  for (uint32_t i = 0; i < list.size() - 1; i++) {
-    JSONString = JSONString + "\"" + list[i] + "\", ";
-  }
-  JSONString = JSONString + "\"" + list[list.size() - 1] + "\"]}";
-  auto J = nlohmann::json::parse(JSONString);
-  std::ofstream file(file_name);
-  file << std::setw(4) << J << std::endl;
 }
 
 } // end namespace inspection

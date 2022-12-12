@@ -386,11 +386,11 @@ void MapLabeler::SaveLabeledClouds(
     const std::unordered_map<std::string, DefectCloudsMapType>&
         defect_clouds_in_cam,
     const std::string& output_folder) const {
-  std::string save_path = beam::CombinePaths(output_folder, "labeled_clouds");
+  std::string save_path = beam::CombinePaths(output_folder, "clouds");
   boost::filesystem::create_directories(save_path);
-  BEAM_INFO("Saving labeled individual clouds to: {}", save_path);
+  BEAM_INFO("Saving individual clouds to: {}", save_path);
   std::string json_file_name =
-      beam::CombinePaths(save_path, "labeled_clouds_info.json");
+      beam::CombinePaths(save_path, "clouds_info.json");
 
   nlohmann::json J;
   for (const auto& [cam_name, cam_defects] : defect_clouds_in_cam) {
