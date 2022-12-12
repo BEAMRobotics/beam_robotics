@@ -3,8 +3,8 @@
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
-#include <sensor_msgs/Image.h>
 #include <rosbag/bag.h>
+#include <sensor_msgs/Image.h>
 
 #include <beam_calibration/ConvertCameraModel.h>
 
@@ -70,8 +70,6 @@ private:
   std::string save_directory_;
   std::string image_container_type_;
   std::vector<std::string> image_topics_;
-  std::vector<std::string> image_object_list_;
-  std::vector<std::string> camera_list_;
   std::vector<std::string> frame_ids_;
   std::vector<std::string> intrinsics_;
   std::vector<double> distance_between_images_;
