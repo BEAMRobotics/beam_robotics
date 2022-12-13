@@ -80,9 +80,9 @@ std::vector<ImageTransform>
       params.push_back(transform["crop_height"].get<double>());
       params.push_back(transform["crop_width"].get<double>());
     } else if (type == "HISTOGRAM") {
-      BEAM_ERROR("HISTOGRAM FILTER NOT YET IMPLEMENTED! Skipping")
+      BEAM_ERROR("HISTOGRAM FILTER NOT YET IMPLEMENTED! Skipping");
     } else if (type == "CLAHE") {
-      BEAM_ERROR("CLAHE FILTER NOT YET IMPLEMENTED! Skipping")
+      BEAM_ERROR("CLAHE FILTER NOT YET IMPLEMENTED! Skipping");
     } else {
       BEAM_ERROR("Invalid image_transform type in config file. Options: "
                  "LINEAR, HISTOGRAM, UNDISTORT");
@@ -192,11 +192,11 @@ void ImageExtractor::OutputImages() {
           GetImageFromBag(image_time, cam_count, (image_count == 0));
       image_db.AddImage(camera_name, image, image_time,
                         are_output_images_distorted_[cam_count],
-                        is_ir_camera_[cam_count], frame_ids_[cam_count],
+                        frame_ids_[cam_count], is_ir_camera_[cam_count],
                         bag_file_);
     }
   }
-  image_db.WriteMetadata()
+  image_db.WriteMetadata();
 }
 
 cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,

@@ -1,5 +1,12 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <opencv2/opencv.hpp>
+#include <ros/time.h>
+
 namespace inspection {
 
 /**
@@ -40,18 +47,18 @@ public:
 
   void SetImagesFilename(const std::string& images_filename);
 
-  std::string GetImagesFilename();
+  std::string GetImagesFilename() const;
 
-  std::string GetCamerasListPath();
+  std::string GetCamerasListPath() const;
 
-  void LoadMetadata(const std::string& cameras_list_path);
+  void LoadMetadata();
 
   /**
    * @brief write all metadata to disk. This creates a json file for each
    * camera, listing each image name, and creates a json file describing all
    * cameras
    */
-  void WriteMetadata();
+  void WriteMetadata() const;
 
   /**
    * @brief add an image to the image container. This will immediately save the
@@ -62,6 +69,8 @@ public:
                 const ros::Time& time = ros::Time(0), bool is_distorted = true,
                 const std::string& frame_id = "", bool is_ir_image = false,
                 const std::string& dataset_name = "");
+
+  ImagesList ReadImagesList(const std::string& image_list_path) const;
 
 private:
   CamerasList cameras_list_;
