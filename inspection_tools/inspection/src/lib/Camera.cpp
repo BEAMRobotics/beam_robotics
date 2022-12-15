@@ -26,19 +26,19 @@ Camera::Camera(const std::string& camera_name,
     throw std::runtime_error{"invalid images list metadata file path"};
   }
 
-  std::vector<std::string> images_list;
+  std::vector<std::string> image_list;
   if (selected_images.empty()) {
     std::vector<std::string> tmp = J.at("Images");
-    images_list = tmp;
-    BEAM_INFO("loading all {} images in metadata file", images_list.size());
+    image_list = tmp;
+    BEAM_INFO("loading all {} images in metadata file", image_list.size());
   } else {
-    images_list = selected_images;
-    BEAM_INFO("loading selected {} image IDs", images_list.size());
+    image_list = selected_images;
+    BEAM_INFO("loading selected {} image IDs", image_list.size());
   }
 
   boost::filesystem::path p(images_filepath);
   std::string save_path = p.parent_path().string();
-  for (const std::string& image_name : images_list) {
+  for (const std::string& image_name : image_list) {
     images.push_back(Image(beam::CombinePaths(save_path, image_name)));
   }
 

@@ -113,7 +113,7 @@ def main(data_path, config_path, crack, delam, corrosion, spall, visualize, verb
 
 
     # get cameras and iterate through them
-    with open(data_path + "CamerasList.json") as camera_json:
+    with open(data_path + "CameraList.json") as camera_json:
         j = json.load(camera_json)
         camera_list = j["Cameras"]
         images_filename = j["ImagesFilename"]

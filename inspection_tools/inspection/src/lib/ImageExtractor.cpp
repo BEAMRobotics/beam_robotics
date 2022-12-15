@@ -175,9 +175,9 @@ void ImageExtractor::OutputImages() {
     BEAM_INFO("Creating output directory: {}", save_directory_);
     boost::filesystem::create_directories(save_directory_);
   }
-  std::string cameras_list_path =
-      beam::CombinePaths(save_directory_, "CamerasList.json");
-  ImageDatabase image_db(cameras_list_path);
+  std::string camera_list_path =
+      beam::CombinePaths(save_directory_, "CameraList.json");
+  ImageDatabase image_db(camera_list_path);
 
   // iterate over all cameras
   for (uint8_t cam_count = 0; cam_count < image_topics_.size(); cam_count++) {
