@@ -28,14 +28,14 @@ struct Camera {
    * @param camera_name ID of camera being instantiated (e.g., "F1",
    * @param intrinsics_filename Path to folder containing all camera
    * intrinsics files (e.g., .../calibrations/)
-   * @param images_directory Path to root folder containing CamerasList.json
+   * @param images_directory Path to root folder containing CameraList.json
    * (e.g.,
    * .../inspection/images)
    * @param colorizer_type type of colorizer to use (e.g., Override)
    * @param selected_images vector of image names to use for map labeling. These
    * filenames must match the image container folder name. (e.g., ImageBridge1,
    * ImageBridge2, ...). If none are provided, it wll use all images contained
-   * in the ImagesList.json
+   * in the ImageList.json
    */
   Camera(const std::string& camera_name, const std::string& intrinsics_filename,
          const std::string& images_directory, const std::string& colorizer_type,

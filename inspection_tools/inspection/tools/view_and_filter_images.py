@@ -43,7 +43,7 @@ def parse_args():
         '--new_camera_list_filename',
         dest='new_camera_list_filename',
         required=False,
-        default="CamerasListNew",
+        default="CameraListNew",
         type=str,
         help=
         'set the name for the new cameras list filename. '
@@ -142,7 +142,7 @@ def show_camera_images(camera_data_dir, images_filename):
         json.dump(output_image_list, f)
 
 
-def read_cameras_list():
+def read_camera_list():
     global camera_list_
     global new_camera_list_filename_
     global new_image_list_filename_
@@ -174,7 +174,7 @@ def main(args):
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     logging.info("running view_and_filter_images tool")
     parse_args()
-    read_cameras_list()
+    read_camera_list()
 
 
 if __name__ == "__main__":

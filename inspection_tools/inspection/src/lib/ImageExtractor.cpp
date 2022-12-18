@@ -13,6 +13,8 @@
 #include <beam_utils/math.h>
 #include <beam_utils/time.h>
 
+#include <inspection/ImageDatabase.h>
+
 namespace inspection {
 
 ImageExtractor::ImageExtractor(const std::string& bag_file,
@@ -78,9 +80,9 @@ std::vector<ImageTransform>
       params.push_back(transform["crop_height"].get<double>());
       params.push_back(transform["crop_width"].get<double>());
     } else if (type == "HISTOGRAM") {
-      // null
+      BEAM_ERROR("HISTOGRAM FILTER NOT YET IMPLEMENTED! Skipping");
     } else if (type == "CLAHE") {
-      // null
+      BEAM_ERROR("CLAHE FILTER NOT YET IMPLEMENTED! Skipping");
     } else {
       BEAM_ERROR("Invalid image_transform type in config file. Options: "
                  "LINEAR, HISTOGRAM, UNDISTORT");
@@ -169,22 +171,18 @@ void ImageExtractor::GetTimeStamps() {
 }
 
 void ImageExtractor::OutputImages() {
-  /**
-   * @todo add_image_container_abstract
-   * @body update this once we have created an abstract class for the image
-   * containers
-   */
-  boost::filesystem::create_directories(save_directory_);
+  if (!boost::filesystem::exists(save_directory_)) {
+    BEAM_INFO("Creating output directory: {}", save_directory_);
+    boost::filesystem::create_directories(save_directory_);
+  }
+  std::string camera_list_path =
+      beam::CombinePaths(save_directory_, "CameraList.json");
+  ImageDatabase image_db(camera_list_path);
 
   // iterate over all cameras
   for (uint8_t cam_count = 0; cam_count < image_topics_.size(); cam_count++) {
     BEAM_INFO("Saving images for Camera {}.", cam_count);
-    std::string camera_dir = beam::CombinePaths(
-        save_directory_, "camera" + std::to_string(cam_count));
-
-    boost::filesystem::create_directories(camera_dir);
-    camera_list_.push_back("camera" + std::to_string(cam_count));
-    image_object_list_.clear();
+    std::string camera_name = "camera" + std::to_string(cam_count);
 
     // iterate over all poses for this camera
     for (uint32_t image_count = 0;
@@ -192,66 +190,13 @@ void ImageExtractor::OutputImages() {
       ros::Time image_time = image_time_stamps_[cam_count][image_count];
       cv::Mat image =
           GetImageFromBag(image_time, cam_count, (image_count == 0));
-
-      if (image_container_type_ == "ImageBridge") {
-        beam_containers::ImageBridge image_container;
-        std::string image_container_dir = camera_dir + "/" +
-                                          image_container_type_ +
-                                          std::to_string(image_count);
-        boost::filesystem::create_directories(image_container_dir);
-
-        if (is_ir_camera_[cam_count]) {
-          image_container.SetIRImage(image);
-          image_container.SetIRIsDistorted(
-              are_output_images_distorted_[cam_count]);
-          image_container.SetIRFrameId(frame_ids_[cam_count]);
-        } else {
-          image_container.SetBGRImage(image);
-          image_container.SetBGRIsDistorted(
-              are_output_images_distorted_[cam_count]);
-          image_container.SetBGRFrameId(frame_ids_[cam_count]);
-        }
-
-        beam::TimePoint image_timepoint = beam::RosTimeToChrono(image_time);
-        image_container.SetTimePoint(image_timepoint);
-        image_container.SetImageSeq(image_count);
-        image_container.SetBagName(bag_file_);
-        image_container.Write(image_container_dir);
-        image_object_list_.push_back(image_container_type_ +
-                                     std::to_string(image_count));
-      } else if (image_container_type_ == "None") {
-        std::string output_file = beam::CombinePaths(
-            camera_dir, "Image" + std::to_string(image_count) + ".jpg");
-        cv::imwrite(output_file, image);
-        image_object_list_.push_back(output_file);
-      } else {
-        BEAM_ERROR("Invalid image container type. Options are: ImageBridge. "
-                   "Check that your image_container_type parameter in "
-                   "ImageExtractorConfig.json and check that the image "
-                   "container header is included in ImageExtractor.h");
-        throw std::invalid_argument{
-            "Invalid image container type. Options are: ImageBridge. Check "
-            "that your image_container_type parameter in "
-            "ImageExtractorConfig.json and check that the image container "
-            "header is included in ImageExtractor.h"};
-      }
-    }
-
-    if (image_object_list_.size() > 0) {
-      nlohmann::json J;
-      J["Images"] = image_object_list_;
-      std::ofstream file(beam::CombinePaths(camera_dir, "ImagesList.json"));
-      file << std::setw(4) << J << std::endl;
+      image_db.AddImage(camera_name, image, image_time,
+                        are_output_images_distorted_[cam_count],
+                        frame_ids_[cam_count], is_ir_camera_[cam_count],
+                        bag_file_);
     }
   }
-
-  if (camera_list_.size() > 0) {
-    nlohmann::json J;
-    J["Cameras"] = camera_list_;
-    J["ImagesFilename"] = "ImagesList.json";
-    std::ofstream file(beam::CombinePaths(save_directory_, "CamerasList.json"));
-    file << std::setw(4) << J << std::endl;
-  }
+  image_db.WriteMetadata();
 }
 
 cv::Mat ImageExtractor::GetImageFromBag(ros::Time& image_time, int cam_number,

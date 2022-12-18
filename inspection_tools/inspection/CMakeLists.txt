@@ -39,6 +39,16 @@ target_link_libraries(${PROJECT_NAME}_extract_images
 	beam::utils
 )
 
+# view and filter images binary
+add_executable(${PROJECT_NAME}_view_and_filter_images
+	src/ViewAndFilterImages.cpp
+)
+target_link_libraries(${PROJECT_NAME}_view_and_filter_images
+	${PROJECT_NAME}
+	gflags
+	beam::utils
+)
+
 # Image Labeller
 add_executable(${PROJECT_NAME}_label_images
         src/LabelImages.cpp
