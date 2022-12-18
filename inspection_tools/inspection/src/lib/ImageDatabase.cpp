@@ -18,11 +18,11 @@ ImageDatabase::ImageDatabase(const std::string& camera_list_path,
   root_directory_ = p.parent_path().string();
 }
 
-CameraList::iterator ImageDatabase::CamerasBegin() const {
+CameraList::iterator ImageDatabase::CamerasBegin() {
   return camera_list_.begin();
 }
 
-CameraList::iterator ImageDatabase::CamerasEnd() const {
+CameraList::iterator ImageDatabase::CamerasEnd() {
   return camera_list_.end();
 }
 
@@ -34,8 +34,27 @@ std::string ImageDatabase::GetImagesFilename() const {
   return images_filename_;
 }
 
+std::string ImageDatabase::GetImagePath(const std::string& camera_name,
+                                        const std::string& image_name) const {
+  std::string camera_dir = beam::CombinePaths(root_directory_, camera_name);
+  std::string image_path = beam::CombinePaths(camera_dir, image_name);
+  if (image_container_type_ == ImageContainerType::IMAGE_BRIDGE) {
+    return image_path;
+  } else if (image_container_type_ == ImageContainerType::NONE) {
+    return beam::CombinePaths(camera_dir, image_name + ".jpg");
+  } else {
+    BEAM_CRITICAL("image container type not yet implemented. Options: "
+                  "NONE, IMAGE_BRIDGE");
+    throw std::runtime_error{"image container type not yet implemented"};
+  }
+}
+
 std::string ImageDatabase::GetCameraListPath() const {
   return camera_list_path_;
+}
+
+std::string ImageDatabase::GetCameraListRootPath() const {
+  return root_directory_;
 }
 
 void ImageDatabase::LoadMetadata() {
@@ -129,10 +148,30 @@ void ImageDatabase::AddImage(const std::string& camera_name,
     image_container.Write(image_container_dir);
     image_list.push_back(image_name);
   } else if (image_container_type_ == ImageContainerType::NONE) {
-    std::string image_name =
-        "ImageBridge" + std::to_string(image_list.size()) + ".jpg";
-    std::string output_file = beam::CombinePaths(camera_dir, image_name);
+    std::string image_name = "ImageBridge" + std::to_string(image_list.size());
+    std::string output_file =
+        beam::CombinePaths(camera_dir, image_name + ".jpg");
     cv::imwrite(output_file, image);
+    image_list.push_back(image_name);
+  } else {
+    BEAM_CRITICAL(
+        "Invalid image container type. Options are: IMAGE_BRIDGE and NONE");
+    throw std::invalid_argument{"Invalid image container type"};
+  }
+}
+
+void ImageDatabase::AddImageMetadata(const std::string& camera_name,
+                                     const std::string& image_name) {
+  auto iter = camera_list_.find(camera_name);
+  if (iter == camera_list_.end()) {
+    camera_list_.emplace(camera_name, ImageList());
+    iter = camera_list_.find(camera_name);
+  }
+
+  ImageList& image_list = iter->second;
+  if (image_container_type_ == ImageContainerType::IMAGE_BRIDGE) {
+    image_list.push_back(image_name);
+  } else if (image_container_type_ == ImageContainerType::NONE) {
     image_list.push_back(image_name);
   } else {
     BEAM_CRITICAL(

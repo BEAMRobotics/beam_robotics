@@ -79,15 +79,22 @@ public:
                 const ImageContainerType& image_container_type =
                     ImageContainerType::IMAGE_BRIDGE);
 
-  CameraList::iterator CamerasBegin() const;
+  CameraList::iterator CamerasBegin();
 
-  CameraList::iterator CamerasEnd() const;
+  CameraList::iterator CamerasEnd();
 
   void SetImagesFilename(const std::string& images_filename);
 
   std::string GetImagesFilename() const;
 
+  /** @brief Get pull path to an image. If it's an ImageBridge, it will return
+   * the directory containing the ImageInfo.json file */
+  std::string GetImagePath(const std::string& camera_name,
+                           const std::string& image_name) const;
+
   std::string GetCameraListPath() const;
+
+  std::string GetCameraListRootPath() const;
 
   void LoadMetadata();
 
@@ -107,6 +114,13 @@ public:
                 const ros::Time& time = ros::Time(0), bool is_distorted = true,
                 const std::string& frame_id = "", bool is_ir_image = false,
                 const std::string& dataset_name = "");
+
+  /**
+   * @brief add an image to the image container metadata files. This essentially
+   * does everything AddImage() does, without writting anything to disk.
+   */
+  void AddImageMetadata(const std::string& camera_name,
+                        const std::string& image_name);
 
   ImageList ReadImageList(const std::string& image_list_path) const;
 
