@@ -10,6 +10,7 @@
 
 #include <beam_depth/DepthCompletion.h>
 #include <beam_depth/DepthMap.h>
+#include <beam_depth/Utils.h>
 #include <beam_mapping/Poses.h>
 #include <beam_utils/pointclouds.h>
 #include <beam_utils/time.h>
@@ -46,7 +47,7 @@ MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
   }
 
   // fill point ids in cloud
-  for (uint64_t id = 0; id < input_map_->size(); id++){
+  for (uint64_t id = 0; id < input_map_->size(); id++) {
     input_map_->at(id).map_point_id = id;
   }
 
