@@ -1,6 +1,7 @@
 #include <gflags/gflags.h>
 
 #include <beam_containers/ImageBridge.h>
+#include <beam_cv/Utils.h>
 #include <beam_utils/filesystem.h>
 #include <beam_utils/gflags.h>
 
@@ -54,7 +55,13 @@ int main(int argc, char* argv[]) {
 
   image_db_out.SetImagesFilename(FLAGS_images_filename);
 
-  BEAM_INFO("Displaying images. Press y to keep or n to discard");
+  // get screen dims for displaying image
+  int screen_width;
+  int screen_height;
+  beam_cv::GetScreenResolution(screen_width, screen_height);
+
+  BEAM_INFO("Displaying images. Press y to keep or n to discard, or s to skip "
+            "camera");
   for (CameraList::iterator iter = image_db_orig.CamerasBegin();
        iter != image_db_orig.CamerasEnd(); iter++) {
     const std::string& cam_name = iter->first;
@@ -62,9 +69,7 @@ int main(int argc, char* argv[]) {
 
     BEAM_INFO("Displaying images for camera: {}", cam_name);
     for (const std::string& image_name : image_list) {
-      std::cout << "\n\nImage name: " << image_name << "\n";
       std::string image_path = image_db_orig.GetImagePath(cam_name, image_name);
-      std::cout << "\n\nImage path: " << image_path << "\n";
       cv::Mat image;
       if (image_type == ImageContainerType::IMAGE_BRIDGE) {
         beam_containers::ImageBridge img;
@@ -86,24 +91,41 @@ int main(int argc, char* argv[]) {
         throw std::runtime_error{"image container type not yet implemented"};
       }
 
-      cv::imshow(image_name, image);
-      bool valid_key{false};
-      while (!valid_key) {
+      std::string window_name = cam_name + " - " + image_name;
+      cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+      cv::imshow(window_name, image);
+      cv::resizeWindow(window_name, screen_width, screen_height);
+
+      bool skip_cam{false};
+      while (true) {
         int key = cv::waitKey();
         if (key == 121) {
           BEAM_INFO("Keeping image: {}", image_name);
-          valid_key = true;
           image_db_out.AddImageMetadata(cam_name, image_name);
+          break;
         } else if (key == 110) {
           BEAM_INFO("Rejecting image: {}", image_name);
-          valid_key = true;
+          break;
+        } else if (key == 115) {
+          BEAM_INFO(
+              "Rejecting image {} and remainder of images from camera: {}",
+              image_name, cam_name);
+          skip_cam = true;
+          break;
         } else {
-          BEAM_INFO("Invalid key, enter y/n to keep/reject image");
+          std::cout << "\nkey: " << key << "\n\n";
+          BEAM_INFO("Invalid key, enter y/n to keep/reject image, or s to skip "
+                    "camera");
         }
       }
+      cv::destroyWindow(window_name);
+
+      if (skip_cam) { break; }
     }
-    image_db_out.WriteMetadata();
   }
 
+  BEAM_INFO("Saving metadata");
+  image_db_out.WriteMetadata();
+  BEAM_INFO("Viewer complete.");
   return 0;
 }
