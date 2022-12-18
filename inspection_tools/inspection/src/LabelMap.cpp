@@ -6,7 +6,7 @@
 #include <inspection/InspectionUtils.h>
 #include <inspection/MapLabeler.h>
 
-DEFINE_string(images, "", "Full path to root folder of images. (Required)");
+DEFINE_string(images, "", "Full path cameras json listing each camera image list to read. (Required)");
 DEFINE_validator(images, &beam::gflags::ValidateDirMustExist);
 DEFINE_string(output, "", "Full path to output folder of labeled. (Required)");
 DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);
@@ -22,11 +22,19 @@ DEFINE_validator(extrinsics, &beam::gflags::ValidateJsonFileMustExist);
 DEFINE_string(config, "",
               "Full path to json config file. If none provided, it will use "
               "the file inspection/config/MapLabeler.json");
+DEFINE_string(
+    defect_clouds, "",
+    "Full path to json enumerating all defect clouds. If empty, it will "
+    "extract these clouds automatically from the map and images");
 DEFINE_string(frame_override, "",
               "Set this to override the moving frame id in the poses file.");
 DEFINE_bool(output_individual_clouds, true,
             "set to true to output the cloud portion labeled by each image as "
             "a separate pcd file");
+DEFINE_bool(color_map, true, "set to true to color map with RGB images");
+DEFINE_bool(label_defects, true, "set to true to label maps with defect masks");
+DEFINE_bool(remove_unlabeled, false,
+            "set to true to remove all points that have no label.");
 DEFINE_bool(
     output_camera_poses, true,
     "set to true to output camera pose (in baselink and camera frame) for each "
@@ -34,69 +42,78 @@ DEFINE_bool(
 DEFINE_bool(
     output_images, true,
     "set to true to output all image containers used in the labeling process");
-DEFINE_bool(draw_final_map, true,
+DEFINE_bool(save_final_map, true,
+            "set to true to save final map to output directory");
+DEFINE_bool(draw_final_map, false,
             "set to true to draw final map in a PCL viewer");
 
+using namespace beam;
+using namespace inspection;
+
 int main(int argc, char* argv[]) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  ::gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   std::string config_path;
   if (FLAGS_config.empty()) {
-    config_path = inspection::utils::GetConfigFilePath("MapLabelerConfig.json");
+    config_path = utils::GetConfigFilePath("MapLabelerConfig.json");
   } else {
     config_path = FLAGS_config;
   }
 
-  inspection::MapLabeler::Inputs inputs{
-      .images_directory = FLAGS_images,
-      .map = FLAGS_map,
-      .poses = FLAGS_poses,
-      .intrinsics_directory = FLAGS_intrinsics,
-      .extrinsics = FLAGS_extrinsics,
-      .config_file_location = config_path,
-      .poses_moving_frame_override = FLAGS_frame_override};
-  BEAM_INFO("Instantiating MapLabler");
-  inspection::MapLabeler mapper(inputs);
-  BEAM_INFO("Done instantiating MapLabler");
-  BEAM_INFO("Printing MapLabeler configuration");
+  MapLabeler::Inputs inputs{.images_directory = FLAGS_images,
+                            .map = FLAGS_map,
+                            .poses = FLAGS_poses,
+                            .intrinsics_directory = FLAGS_intrinsics,
+                            .extrinsics = FLAGS_extrinsics,
+                            .config_file_location = config_path,
+                            .poses_moving_frame_override =
+                                FLAGS_frame_override};
+  MapLabeler mapper(inputs);
   mapper.PrintConfiguration();
-  BEAM_INFO("Running MapLabler");
-  mapper.Run();
-  BEAM_INFO("MapLabler run complete, saving final map");
-  mapper.SaveFinalMap(FLAGS_output);
-  BEAM_INFO("Done saving final map");
 
-  mapper.OutputSummary(FLAGS_output);
-  mapper.OutputConfig(FLAGS_output);
+  std::unordered_map<std::string, DefectCloudsMapType> defect_clouds;
+  if (!FLAGS_defect_clouds.empty()) {
+    defect_clouds = mapper.ReadDefectClouds(FLAGS_defect_clouds);
+  } else {
+    defect_clouds = mapper.GetDefectClouds();
+  }
+
+  if (FLAGS_color_map) {
+    bool remove_unlabeled = FLAGS_remove_unlabeled;
+
+    // do not remove unlabeled if we still need to label defects
+    if (FLAGS_label_defects) { remove_unlabeled = false; }
+
+    mapper.LabelColor(defect_clouds, remove_unlabeled);
+  }
+
+  if (FLAGS_label_defects) {
+    mapper.LabelDefects(defect_clouds, FLAGS_remove_unlabeled);
+  }
 
   if (FLAGS_output_individual_clouds) {
-    std::string dir = FLAGS_output + "/labelled_clouds/";
-    boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving labeled clouds");
-    mapper.SaveLabeledClouds(dir);
-    BEAM_INFO("Done saving labeled clouds");
+    mapper.SaveLabeledClouds(defect_clouds, FLAGS_output);
   }
 
   if (FLAGS_output_camera_poses) {
-    std::string dir = FLAGS_output + "/camera_poses/";
+    std::string dir = beam::CombinePaths(FLAGS_output, "camera_poses");
     boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving camera poses");
     mapper.SaveCameraPoses(dir);
-    BEAM_INFO("Done saving camera poses");
   }
 
   if (FLAGS_output_images) {
-    std::string dir = FLAGS_output + "/images/";
+    std::string dir = beam::CombinePaths(FLAGS_output, "images");
     boost::filesystem::create_directories(dir);
-    BEAM_INFO("Saving images used for colorization");
     mapper.SaveImages(dir);
-    BEAM_INFO("Done saving images used for colorization");
   }
 
-  if (FLAGS_draw_final_map) {
-    BEAM_INFO("Drawing final map in viewer");
-    mapper.DrawFinalMap();
-    BEAM_INFO("Map viewer closed");
+  mapper.OutputConfig(FLAGS_output);
+
+  if (FLAGS_save_final_map || FLAGS_draw_final_map) {
+    DefectCloud::Ptr final_map =
+        mapper.CombineClouds(defect_clouds, FLAGS_output);
+    if (FLAGS_save_final_map) { mapper.SaveFinalMap(final_map, FLAGS_output); }
+    if (FLAGS_draw_final_map) { mapper.DrawFinalMap(final_map); }
   }
 
   BEAM_INFO("LabelMap binary finished successfully!");

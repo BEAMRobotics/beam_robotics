@@ -2,6 +2,7 @@
 add_library(${PROJECT_NAME}
   CloudCombiner.cpp
   ImageExtractor.cpp
+  ImageDatabase.cpp
   MapLabeler.cpp
   Camera.cpp
   QuantifyDefects.cpp

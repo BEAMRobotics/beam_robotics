@@ -5,6 +5,7 @@
   "image_width": 4096,
   "image_height": 3000,
   "frame_id": "F3_link",
+  "safe_projection_radius": 1960,
   "intrinsics": [
     2.341871717834548e+03,
     2.342000651969117e+03,

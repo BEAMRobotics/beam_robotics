@@ -1,5 +1,7 @@
 #include <inspection/Camera.h>
 
+#include <boost/filesystem.hpp>
+
 #include <beam_utils/filesystem.h>
 
 namespace inspection {
@@ -11,7 +13,7 @@ Image::Image(const std::string& image_directory) {
 
 Camera::Camera(const std::string& camera_name,
                const std::string& intrinsics_filename,
-               const std::string& images_directory,
+               const std::string& images_filepath,
                const std::string& colorizer_type,
                const std::vector<std::string>& selected_images)
     : name(camera_name), intrinsics_path(intrinsics_filename) {
@@ -19,23 +21,25 @@ Camera::Camera(const std::string& camera_name,
   cam_model = beam_calibration::CameraModel::Create(intrinsics_path);
 
   nlohmann::json J;
-  if (!beam::ReadJson(images_directory + "/" + camera_name + "/ImagesList.json",
-                      J)) {
+  if (!beam::ReadJson(images_filepath, J)) {
+    BEAM_CRITICAL("cannot images list file: {}", images_filepath);
     throw std::runtime_error{"invalid images list metadata file path"};
   }
-  std::vector<std::string> images_list;
+
+  std::vector<std::string> image_list;
   if (selected_images.empty()) {
-    std::vector<std::string> tmp = J.at("Items");
-    images_list = tmp;
-    BEAM_INFO("loading all {} images in metadata file", images_list.size());
+    std::vector<std::string> tmp = J.at("Images");
+    image_list = tmp;
+    BEAM_INFO("loading all {} images in metadata file", image_list.size());
   } else {
-    images_list = selected_images;
-    BEAM_INFO("loading selected {} image IDs", images_list.size());
+    image_list = selected_images;
+    BEAM_INFO("loading selected {} image IDs", image_list.size());
   }
 
-  for (const std::string& image_name : images_list) {
-    images.push_back(
-        Image(images_directory + "/" + camera_name + "/" + image_name));
+  boost::filesystem::path p(images_filepath);
+  std::string save_path = p.parent_path().string();
+  for (const std::string& image_name : image_list) {
+    images.push_back(Image(beam::CombinePaths(save_path, image_name)));
   }
 
   BEAM_DEBUG("Successfully constructed camera: {}!", name);
@@ -110,6 +114,17 @@ std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
   }
 
   return cameras;
+}
+
+const Image& Camera::GetImageByTimestamp(int64_t timestamp_in_Ns) const {
+  for (const Image& img : images) {
+    if (img.image_container.GetRosTime().toNSec() == timestamp_in_Ns) {
+      return img;
+    }
+  }
+  BEAM_CRITICAL("no image found with timestamp {}Ns for camera {}",
+                timestamp_in_Ns, name);
+  throw std::runtime_error{"no image found"};
 }
 
 } // end namespace inspection

@@ -246,9 +246,8 @@ void CameraToMapAligner::UpdateMap() {
   PointCloud::Ptr map_in_camera_frame = std::make_shared<PointCloud>();
   pcl::transformPointCloud(*map_, *map_in_camera_frame,
                            Eigen::Affine3d(T_camera_map));
-  colorizer->SetPointCloud(map_in_camera_frame);
   PointCloudCol::Ptr map_colored_in_camera_frame =
-      colorizer->ColorizePointCloud();
+      colorizer->ColorizePointCloud(map_in_camera_frame);
   pcl::transformPointCloud(*map_colored_in_camera_frame, *map_colored_,
                            Eigen::Affine3d(T_map_camera));
   BEAM_INFO("Done updating map");

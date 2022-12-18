@@ -5,6 +5,7 @@
   "image_width": 2048,
   "image_height": 1536,
   "frame_id": "F1_link",
+  "safe_projection_radius": 0,
   "intrinsics": [
     763.15899999999999181,
     762.40844040460251563,
