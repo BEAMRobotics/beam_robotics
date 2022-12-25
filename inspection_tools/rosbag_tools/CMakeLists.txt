@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.14)
 project(rosbag_tools)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
-find_package(Boost REQUIRED)
-find_package(gflags REQUIRED)
+find_package(
+  beam REQUIRED
+  COMPONENTS
+  utils
+)
+
 find_package(velodyne_pointcloud REQUIRED)
-find_package(beam REQUIRED utils)
 
 find_package(catkin REQUIRED
   COMPONENTS
