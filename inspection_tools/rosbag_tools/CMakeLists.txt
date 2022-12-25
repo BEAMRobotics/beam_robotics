@@ -7,6 +7,7 @@ find_package(
   beam REQUIRED
   COMPONENTS
   utils
+  cv
 )
 
 find_package(velodyne_pointcloud REQUIRED)
@@ -22,7 +23,8 @@ find_package(catkin REQUIRED
 
 # Unpack library
 add_library(${PROJECT_NAME}
-	src/UnpackVelodyneScans.cpp
+	src/lib/VelodyneTools.cpp
+  src/lib/RosBagIO.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
@@ -35,19 +37,28 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # executables
-add_executable(unpack_velodyne_scans_main
-  src/UnpackVelodyneScansMain.cpp
+
+add_executable(unpack_velodyne_scans
+  src/UnpackVelodyneScans.cpp
 )
-target_link_libraries(unpack_velodyne_scans_main
+target_link_libraries(unpack_velodyne_scans
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
 
-# executables
-add_executable(pose_stamped_to_odometry_main
+add_executable(process_bag
+  src/ProcessBag.cpp
+)
+target_link_libraries(process_bag
+  ${PROJECT_NAME}
+  beam::cv
+	${catkin_LIBRARIES}
+)
+
+add_executable(pose_stamped_to_odometry
   src/PoseStampedToOdometry.cpp
 )
-target_link_libraries(pose_stamped_to_odometry_main
+target_link_libraries(pose_stamped_to_odometry
   ${PROJECT_NAME}
 	${catkin_LIBRARIES}
 )
