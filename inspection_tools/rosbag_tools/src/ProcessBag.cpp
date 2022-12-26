@@ -10,6 +10,7 @@
 DEFINE_string(input, "", "Full path to input bag file (Required)");
 DEFINE_validator(input, &beam::gflags::ValidateBagFileMustExist);
 DEFINE_string(output, "", "Full path to output bag file (Required)");
+DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);
 DEFINE_bool(unpack_scans, true,
             "Set to true if you want to unpack velodyne scans. New topic will "
             "be the scan topic post-fixed with _unpacked");
