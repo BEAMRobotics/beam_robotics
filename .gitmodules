@@ -7,3 +7,6 @@
 [submodule "mapping/3d_map_builder"]
 	path = mapping/3d_map_builder
 	url = https://github.com/nickcharron/3d_map_builder.git
+[submodule "dependencies/velodyne"]
+	path = dependencies/velodyne
+	url = git@github.com:ros-drivers/velodyne.git
