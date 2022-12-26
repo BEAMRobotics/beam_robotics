@@ -9,7 +9,7 @@ class VelodyneTools {
 public:
   explicit VelodyneTools(const std::string& lidar_model);
   sensor_msgs::PointCloud2
-      UnpackScan(velodyne_msgs::VelodyneScan::ConstPtr& scan);
+      UnpackScan(const velodyne_msgs::VelodyneScan::ConstPtr& scan);
 
 private:
   std::string lidar_model_;

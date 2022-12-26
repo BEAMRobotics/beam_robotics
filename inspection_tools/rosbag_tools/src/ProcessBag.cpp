@@ -69,7 +69,6 @@ sensor_msgs::Image ProcessImage(const sensor_msgs::Image& msg,
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-
   using namespace rosbag_tools;
 
   // check inputs
@@ -77,7 +76,7 @@ int main(int argc, char* argv[]) {
     BEAM_CRITICAL("Invalid resize_multiplier params, must be in (0,1]");
     throw std::invalid_argument{"invalid resize_multiplier"};
   }
-
+  ros::Time::init();
   VelodyneTools velodyne_tools(FLAGS_lidar_model);
 
   boost::filesystem::path p(FLAGS_input);
@@ -92,14 +91,10 @@ int main(int argc, char* argv[]) {
     if (FLAGS_unpack_scans) {
       velodyne_msgs::VelodyneScan::ConstPtr maybe_lidar_msg =
           iter->instantiate<velodyne_msgs::VelodyneScan>();
-      std::cout << "TEST0.1\n";
       if (maybe_lidar_msg) {
-        std::cout << "TEST0.2\n";
         sensor_msgs::PointCloud2 cloud =
             velodyne_tools.UnpackScan(maybe_lidar_msg);
-        std::cout << "TEST0.3\n";
         writer.AddMsg(iter->getTopic() + "_unpacked", iter->getTime(), cloud);
-        std::cout << "TEST0.4\n";
         continue;
       }
     }
@@ -121,8 +116,9 @@ int main(int argc, char* argv[]) {
     // copy it
     writer.AddMsg(*iter);
   }
-  std::cout << "TEST1\n";
+
   writer.CloseBag();
-  std::cout << "TEST2\n";
+  BEAM_INFO("ProcessBag ran successfully!");
+  ros::Time::shutdown();
   return 0;
 }

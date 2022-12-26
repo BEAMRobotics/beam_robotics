@@ -25,6 +25,7 @@ find_package(catkin REQUIRED
 add_library(${PROJECT_NAME}
 	src/lib/VelodyneTools.cpp
   src/lib/RosBagIO.cpp
+  src/lib/PointcloudXYZIRT.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC

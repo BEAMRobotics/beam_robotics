@@ -3,10 +3,11 @@
 #include <boost/filesystem.hpp>
 #include <ros/console.h>
 #include <ros/package.h>
-#include <velodyne_pointcloud/pointcloudXYZIRT.h>
 
 #include <beam_utils/filesystem.h>
 #include <beam_utils/log.h>
+
+#include <rosbag_tools/PointcloudXYZIRT.h>
 
 namespace rosbag_tools {
 
@@ -52,24 +53,19 @@ VelodyneTools::VelodyneTools(const std::string& lidar_model)
 
   BEAM_INFO("Initializing Velodyne::RawData class for unpacking");
   data_->setParameters(min_range_, max_range_, view_direction_, view_width_);
-  container_ptr_ = std::make_shared<velodyne_pointcloud::PointcloudXYZIRT>(
+  container_ptr_ = std::make_shared<rosbag_tools::PointcloudXYZIRT>(
       max_range_, min_range_, "", "", data_->scansPerPacket());
   BEAM_INFO("Done initializing");
+
+  ros::Time::init();
 }
 
-sensor_msgs::PointCloud2
-    VelodyneTools::UnpackScan(velodyne_msgs::VelodyneScan::ConstPtr& scan) {
-  std::cout << "TEST0.2.1\n";
-  std::cout << "frame id: " << scan->header.frame_id << "\n";
-  std::cout << "TEST0.2.2\n";
+sensor_msgs::PointCloud2 VelodyneTools::UnpackScan(
+    const velodyne_msgs::VelodyneScan::ConstPtr& scan) {
   container_ptr_->setup(scan);
-  std::cout << "TEST0.2.3\n";
   for (size_t i = 0; i < scan->packets.size(); ++i) {
-    std::cout << "TEST0.2.3.1\n";
     data_->unpack(scan->packets[i], *container_ptr_, scan->header.stamp);
-    std::cout << "TEST0.2.3.2\n";
   }
-  std::cout << "TEST0.2.4\n";
   return container_ptr_->finishCloud();
 }
 
