@@ -1,6 +1,5 @@
-#pragma once
-
 #include <stdio.h>
+#include <iostream>
 #include <Python.h>
 #include <gflags/gflags.h>
 #include <beam_utils/gflags.h>
@@ -94,6 +93,10 @@ int main(int argc, char* argv[]){
 
   //run python code
   Py_Initialize();
+
+  
+  throw std::runtime_error{"this executable needs to be fixed!"};
+  /* TODO: make this work with both Ubuntu 18 and 20
   PySys_SetArgvEx(argc_py, const_cast<char**>(argv_py), 1);
 
   FILE* fp;
@@ -107,5 +110,6 @@ int main(int argc, char* argv[]){
     Py_Finalize();
     fclose(fp);
   }
+  */
   return 0;
 }
