@@ -10,3 +10,6 @@
 [submodule "dependencies/velodyne"]
 	path = dependencies/velodyne
 	url = git@github.com:ros-drivers/velodyne.git
+[submodule "mapping/scan_pose_gt_generation"]
+	path = mapping/scan_pose_gt_generation
+	url = git@github.com:nickcharron/scan_pose_gt_generation.git
