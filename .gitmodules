@@ -10,3 +10,6 @@
 [submodule "mapping/scan_pose_gt_generation"]
 	path = mapping/scan_pose_gt_generation
 	url = git@github.com:nickcharron/scan_pose_gt_generation.git
+[submodule "mapping/3d_map_builder"]
+	path = mapping/3d_map_builder
+	url = git@github.com:nickcharron/3d_map_builder.git
