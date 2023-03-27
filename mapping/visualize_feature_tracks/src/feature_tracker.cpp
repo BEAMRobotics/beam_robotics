@@ -3,17 +3,19 @@
 #include <iostream>
 #include <string>
 
-#include <beam_utils/log.h>
 #include <beam_cv/descriptors/Descriptors.h>
 #include <beam_cv/detectors/Detectors.h>
 #include <beam_cv/matchers/Matchers.h>
 #include <beam_cv/trackers/Trackers.h>
+#include <beam_utils/log.h>
 
 namespace visualize_feature_tracks {
 
 using namespace beam_cv;
 
-FeatureTracker::FeatureTracker() { Initialize(); }
+FeatureTracker::FeatureTracker() {
+  Initialize();
+}
 
 FeatureTracker::FeatureTracker(const Params& params) : params_(params) {
   Initialize();
@@ -40,9 +42,10 @@ cv::Mat FeatureTracker::DrawTracks(const std::vector<FeatureTrack>& tracks,
 
 std::shared_ptr<Detector> FeatureTracker::GetDetector() {
   std::shared_ptr<Detector> detector;
-  auto detector_type_iter = DetectorTypeStringMap.find(params_.detector_type);
+  auto detector_type_iter =
+      beam_cv::internal::DetectorStringTypeMap.find(params_.detector_type);
   DetectorType detector_type = DetectorType::ORB;
-  if (detector_type_iter == DetectorTypeStringMap.end()) {
+  if (detector_type_iter == beam_cv::internal::DetectorStringTypeMap.end()) {
     std::string options = GetDetectorTypes();
     BEAM_ERROR("Invalid detector type, using default: ORB. Options: {}",
                options);
@@ -54,8 +57,9 @@ std::shared_ptr<Detector> FeatureTracker::GetDetector() {
 
 std::shared_ptr<Descriptor> FeatureTracker::GetDescriptor() {
   if (params_.descriptor_type == "NONE") {
-    if(params_.tracker_type == "DESCMATCHING"){
-      BEAM_ERROR("Must supply descriptor for tracker of type DESCMATCHING. Using default: ORB.");
+    if (params_.tracker_type == "DESCMATCHING") {
+      BEAM_ERROR("Must supply descriptor for tracker of type DESCMATCHING. "
+                 "Using default: ORB.");
       params_.descriptor_type = "ORB";
     } else {
       return nullptr;
@@ -64,9 +68,10 @@ std::shared_ptr<Descriptor> FeatureTracker::GetDescriptor() {
 
   std::shared_ptr<Descriptor> descriptor;
   auto descriptor_type_iter =
-      DescriptorTypeStringMap.find(params_.descriptor_type);
+      beam_cv::internal::DescriptorStringTypeMap.find(params_.descriptor_type);
   DescriptorType descriptor_type = DescriptorType::ORB;
-  if (descriptor_type_iter == DescriptorTypeStringMap.end()) {
+  if (descriptor_type_iter ==
+      beam_cv::internal::DescriptorStringTypeMap.end()) {
     std::string options = GetDescriptorTypes();
     options += ", NONE";
     BEAM_ERROR("Invalid descriptor type, using default: ORB. Options: {}",
@@ -97,8 +102,7 @@ void FeatureTracker::InitTracker(std::shared_ptr<Detector> detector,
   TrackerType tracker_type = TrackerType::KL;
   if (tracker_type_iter == TrackerTypeStringMap.end()) {
     std::string options = GetTrackerTypes();
-    BEAM_ERROR("Invalid tracker type, using default: KL. Options: {}",
-               options);
+    BEAM_ERROR("Invalid tracker type, using default: KL. Options: {}", options);
   } else {
     tracker_type = tracker_type_iter->second;
   }
@@ -118,4 +122,4 @@ void FeatureTracker::InitTracker(std::shared_ptr<Detector> detector,
   }
 }
 
-}  // namespace visualize_feature_tracks
+} // namespace visualize_feature_tracks

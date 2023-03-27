@@ -1,13 +1,14 @@
 
+#include <boost/foreach.hpp>
+#include <geometry_msgs/PoseStamped.h>
+#include <gflags/gflags.h>
+#include <nav_msgs/Odometry.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <boost/foreach.hpp>
-#include <gflags/gflags.h>
 
 #include <beam_utils/gflags.h>
 #include <beam_utils/math.h>
+#include <beam_utils/se3.h>
 
 DEFINE_string(bag_in, "", "Full path to input bag file (Required)");
 DEFINE_validator(bag_in, &beam::gflags::ValidateBagFileMustExist);

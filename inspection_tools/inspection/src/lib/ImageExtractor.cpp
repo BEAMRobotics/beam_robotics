@@ -11,6 +11,7 @@
 #include <beam_utils/filesystem.h>
 #include <beam_utils/log.h>
 #include <beam_utils/math.h>
+#include <beam_utils/se3.h>
 #include <beam_utils/time.h>
 
 #include <inspection/ImageDatabase.h>

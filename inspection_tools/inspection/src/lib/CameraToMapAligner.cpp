@@ -3,6 +3,7 @@
 #include <pcl/common/transforms.h>
 
 #include <beam_mapping/Poses.h>
+#include <beam_utils/se3.h>
 
 namespace inspection {
 
