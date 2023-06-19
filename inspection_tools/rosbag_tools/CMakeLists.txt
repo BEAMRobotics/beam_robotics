@@ -8,6 +8,7 @@ find_package(
   COMPONENTS
   utils
   cv
+  calibration
 )
 
 find_package(velodyne_pointcloud REQUIRED)
@@ -53,6 +54,7 @@ add_executable(process_bag
 target_link_libraries(process_bag
   ${PROJECT_NAME}
   beam::cv
+  beam::calibration
 	${catkin_LIBRARIES}
 )
 
