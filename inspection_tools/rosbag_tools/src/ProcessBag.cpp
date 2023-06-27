@@ -53,8 +53,10 @@ sensor_msgs::Image ProcessImage(const sensor_msgs::Image& msg,
   // else, convert to cv::Mat which will automatically do the encoding
   cv::Mat mat = RosImgToMat(msg);
   cv::Mat mat_resized;
-  cv::resize(mat, mat_resized, cv::Size(), resize_multiplier, resize_multiplier,
-             cv::INTER_LINEAR);
+  cv::resize(
+      mat, mat_resized,
+      cv::Size(resize_multiplier * mat.cols, resize_multiplier * mat.rows),
+      cv::INTER_LINEAR);
   std::string encoding = msg.encoding;
   if (msg.encoding.find("bayer") != std::string::npos) {
     auto iter = bayer_decoding_map.find(encoding);
@@ -65,7 +67,7 @@ sensor_msgs::Image ProcessImage(const sensor_msgs::Image& msg,
     }
     encoding = iter->second;
   }
-  return MatToRosImg(mat, msg.header, encoding);
+  return MatToRosImg(mat_resized, msg.header, encoding);
 }
 
 int main(int argc, char* argv[]) {
