@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(example_package)
 
 ## c++11 feature
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-std=gnu++11 -Wall -Wextra ${CMAKE_CXX_FLAGS}")
 
 ## Need to dynamically link Boost's log library for loggers shared across multiple targets/libraries
