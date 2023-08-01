@@ -26,7 +26,7 @@ def preprocess_bag(input, output, calibration):
     bin_dir=os.path.join(os.path.expanduser("~"), 'catkin_ws/build/rosbag_tools/process_bag')
     cmd = bin_dir + ' --input ' + input + ' --output ' + output 
     cmd += ' --unpack_scans=1 --debayer_images=1 --rectify_images=0 --lidar_model VLP16 '
-    cmd += '--camera_model_path ' + calibration + ' --resize_multiplier 0.25'
+    cmd += '--camera_model_path ' + calibration + ' --resize_multiplier 0.4'
     print('running command: ', cmd)
     os.system(cmd)
 
