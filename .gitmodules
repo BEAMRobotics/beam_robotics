@@ -13,3 +13,6 @@
 [submodule "mapping/3d_map_builder"]
 	path = mapping/3d_map_builder
 	url = git@github.com:nickcharron/3d_map_builder.git
+[submodule "mapping/beam_slam"]
+	path = mapping/beam_slam
+	url = git@github.com:BEAMRobotics/beam_slam.git
