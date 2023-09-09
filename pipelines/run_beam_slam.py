@@ -28,6 +28,7 @@ def parse_args(args) -> Any:
     parser.add_argument('-s', help='start time in s', type=float, default=1)
     parser.add_argument('-e', help='end time in s', type=float)
     parser.add_argument('-r', help='rosbag play rate', type=float, default=1)
+    parser.add_argument('-slam_config', help='filename of slam config yaml file', type=str, default="lio.yaml")
     args = parser.parse_args()
     return args
 
@@ -75,12 +76,12 @@ def run_rosbag(bag_file: str, start_time: float, rate: float):
     process = launch.launch(rosbag_node)
     return process
 
-def run(bag_file: str, start_time: float, end_time: float, rate: float):
+def run(bag_file: str, start_time: float, end_time: float, rate: float, slam_params_filename: str):
     rospy.init_node('run_beam_slam_pipeline')
     # rosmaster = start_ros_master() # only needed if no launch file is used
     start_calibration_publisher()
     load_calibration_params()
-    load_slam_params("lio.yaml")
+    load_slam_params(slam_params_filename)
     slam_node_process = run_slam()
     rosbag_node_process = run_rosbag(bag_file, start_time, rate)
     
@@ -104,4 +105,4 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float):
 if __name__ == "__main__":
     setup_logger()
     args = parse_args(sys.argv[1:])
-    run(args.b, args.s, args.e, args.r)
+    run(args.b, args.s, args.e, args.r, args.slam_config)
