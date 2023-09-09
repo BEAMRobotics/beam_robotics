@@ -14,13 +14,18 @@ launch_files_path = os.path.join(beam_slam_launch_path, "launch")
 config_files_path = os.path.join(beam_slam_launch_path, "config")
 logger = logging.getLogger("RUN_BEAM_SLAM")
 
-def setup_logger():
+def setup_logger(output_file: str):
     logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
     formatter = logging.Formatter('[%(levelname)s] %(asctime)s-%(name)s: %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    handler1 = logging.StreamHandler(sys.stdout)
+    handler1.setLevel(logging.DEBUG)
+    handler1.setFormatter(formatter)
+    logger.addHandler(handler1)
+    if output_file:
+        handler2 = logging.FileHandler(output_file)
+        handler2.setLevel(logging.DEBUG)
+        handler2.setFormatter(formatter)
+        logger.addHandler(handler2)
 
 def parse_args(args) -> Any:
     parser = argparse.ArgumentParser(description='Run SLAM')
@@ -28,6 +33,7 @@ def parse_args(args) -> Any:
     parser.add_argument('-s', help='start time in s', type=float, default=1)
     parser.add_argument('-e', help='end time in s', type=float)
     parser.add_argument('-r', help='rosbag play rate', type=float, default=1)
+    parser.add_argument('-o', help='full path to output directory', type=str, default="")
     parser.add_argument('-slam_config', help='filename of slam config yaml file', type=str, default="lio.yaml")
     args = parser.parse_args()
     return args
@@ -77,8 +83,8 @@ def run_rosbag(bag_file: str, start_time: float, rate: float):
     return process
 
 def run(bag_file: str, start_time: float, end_time: float, rate: float, slam_params_filename: str):
+    rosmaster = start_ros_master() 
     rospy.init_node('run_beam_slam_pipeline')
-    # rosmaster = start_ros_master() # only needed if no launch file is used
     start_calibration_publisher()
     load_calibration_params()
     load_slam_params(slam_params_filename)
@@ -100,9 +106,17 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float, slam_par
     if  time_elapsed.to_sec() >= end_time_at_run_rate:
         logger.warning("time elapsed exceeded user input (%s), exiting", end_time)
 
-    logger.info("total runtime: %s s", time_elapsed.sec * rate)
+    logger.info("total runtime: %s s", time_elapsed.secs * rate)
 
 if __name__ == "__main__":
-    setup_logger()
     args = parse_args(sys.argv[1:])
+
+    if not args.o:
+        setup_logger(None)   
+        logger.warning("no output directory specified, not saving results") 
+    elif not os.path.exists(args.o):
+        logger.error("output path does not exist, exiting. Output directory: %s", args.o) 
+    else:
+        setup_logger(os.path.join(args.o, "run_beam_slam_pipeline.log"))
+
     run(args.b, args.s, args.e, args.r, args.slam_config)
