@@ -43,20 +43,42 @@ def export_raw_slam_poses(type: str, topic: str, bag_file: str, output_dir: str,
     os.system(cmd)
     if type == "PCD":
         p1 = os.path.join(output_dir, "poses.pcd")
-        if os.path.exists(p1):
-            logger.warn("no poses file generated for %s", prefix)
+        if not os.path.exists(p1):
+            logger.warning("no poses file generated for %s", prefix)
             return
         p2 = os.path.join(output_dir, prefix + "_poses.pcd")
         logger.info("renaming %s to %s", p1, p2)
         os.system("mv " + p1 + " " + p2)
     elif type == "JSON":
         p1 = os.path.join(output_dir, "poses.json")
-        if os.path.exists(p1):
-            logger.warn("no poses file generated for %s", prefix)
+        if not os.path.exists(p1):
+            logger.warning("no poses file generated for %s", prefix)
             return
         p2 = os.path.join(output_dir, prefix + "_poses.json")
         logger.info("renaming %s to %s", p1, p2)
         os.system("mv " + p1 + " " + p2)       
+
+def export_corrected_poses(type: str, poses_low_rate: str, poses_high_rate: str, output_dir: str, prefix: str):
+    bag_to_poses_bin = os.path.join(BIN_PATH, "map_builder_fill_in_trajectory")
+    cmd = "{} -output_path {} -poses_high_rate {} -poses_low_rate {} -output_type {}".format(bag_to_poses_bin, output_dir,  poses_high_rate, poses_low_rate, type)
+    logger.info("running command: %s", cmd)
+    os.system(cmd)
+    if type == "PCD":
+        p1 = os.path.join(output_dir, "poses.pcd")
+        if not os.path.exists(p1):
+            logger.warning("no poses file generated for %s", prefix)
+            return
+        p2 = os.path.join(output_dir, prefix + "_poses.pcd")
+        logger.info("renaming %s to %s", p1, p2)
+        os.system("mv " + p1 + " " + p2)
+    elif type == "JSON":
+        p1 = os.path.join(output_dir, "poses.json")
+        if not os.path.exists(p1):
+            logger.warning("no poses file generated for %s", prefix)
+            return
+        p2 = os.path.join(output_dir, prefix + "_poses.json")
+        logger.info("renaming %s to %s", p1, p2)
+        os.system("mv " + p1 + " " + p2)               
 
 def run(bag_file: str, slam_output_dir: str, output_dir: str):
     slam_bag_file = os.path.join(slam_output_dir, "slam_results.bag")
@@ -68,7 +90,11 @@ def run(bag_file: str, slam_output_dir: str, output_dir: str):
     export_raw_slam_poses("PCD", "/local_mapper/lidar_odometry/odometry", slam_bag_file, output_dir, "lidar_odometry")
     export_raw_slam_poses("JSON", "/local_mapper/visual_odometry/odometry", slam_bag_file, output_dir, "visual_odometry")
     export_raw_slam_poses("PCD", "/local_mapper/visual_odometry/odometry", slam_bag_file, output_dir, "visual_odometry")
-    
+
+    poses_high_rate = os.path.join(output_dir, "inertial_odometry_poses.json")
+    poses_low_rate = os.path.join(output_dir, "local_mapper_poses.json")
+    export_corrected_poses("PCD", poses_low_rate, poses_high_rate, output_dir, "final")
+    export_corrected_poses("JSON", poses_low_rate, poses_high_rate, output_dir, "final")
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
