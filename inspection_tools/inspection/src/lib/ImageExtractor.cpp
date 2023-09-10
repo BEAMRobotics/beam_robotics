@@ -112,8 +112,8 @@ void ImageExtractor::GetTimeStamps() {
   // load all poses
   beam_mapping::Poses p;
   p.LoadFromJSON(poses_file_);
-  std::vector<Eigen::Matrix4d, beam::AlignMat4d> poses = p.GetPoses();
-  std::vector<ros::Time> pose_time_stamps = p.GetTimeStamps();
+  const std::vector<Eigen::Matrix4d, beam::AlignMat4d>& poses = p.GetPoses();
+  const std::vector<ros::Time>& pose_time_stamps = p.GetTimeStamps();
   image_time_stamps_ =
       std::vector<std::vector<ros::Time>>(image_topics_.size());
 
