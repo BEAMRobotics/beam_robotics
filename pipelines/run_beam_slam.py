@@ -163,6 +163,7 @@ if __name__ == "__main__":
     elif not os.path.exists(args.o):
         logger.error(
             "output path does not exist, exiting. Output directory: %s", args.o)
+        exit()
     else:
         setup_logger(os.path.join(args.o, "run_beam_slam_pipeline.log"))
 
