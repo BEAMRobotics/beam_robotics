@@ -1,0 +1,44 @@
+{
+    "files": [
+        {
+            "matchers/loam_vlp16.json": [
+                {
+                    "n_feature_regions": {
+                        "type": "int",
+                        "increment": 1,
+                        "min": 4,
+                        "max": 8
+                    }
+                },
+                {
+                    "curvature_region": {
+                        "type": "int",
+                        "increment": 1,
+                        "min": 3,
+                        "max": 8
+                    }
+                },
+                {
+                    "max_corner_sharp": {
+                        "type": "int",
+                        "increment": 1,
+                        "min": 2,
+                        "max": 8
+                    }
+                }
+            ]
+        },
+        {
+            "registration/scan_to_map_loam.json": [
+                {
+                    "map_size": {
+                        "type": "int",
+                        "increment": 2,
+                        "min": 7,
+                        "max": 30
+                    }
+                }
+            ]
+        }
+    ]
+}

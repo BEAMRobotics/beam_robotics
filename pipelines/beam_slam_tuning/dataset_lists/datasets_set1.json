@@ -1,0 +1,20 @@
+{
+    "data_root_from_home_dir": "data",
+    "datasets": [
+        {
+            "dataset_path": "2021_10_07_11_01_30_KitchenerParkingGarage",
+            "bag": "data.bag",
+            "start_offset_s": 6
+        },
+        {
+            "dataset_path": "2021_10_27_16_21_54_ConestogoBridge",
+            "bag": "data.bag",
+            "start_offset_s": 5
+        },
+        {
+            "dataset_path": "2021_10_27_14_22_19_StructuresLabHandheld",
+            "bag": "data.bag",
+            "start_offset_s": 5
+        }
+    ]
+}
