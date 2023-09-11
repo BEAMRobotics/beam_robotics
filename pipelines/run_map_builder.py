@@ -6,6 +6,7 @@ import roslaunch
 import rospy
 import rospkg
 import logging
+from pathlib import Path
 
 uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 roslaunch.configure_logging(uuid)
@@ -80,6 +81,19 @@ def export_corrected_poses(type: str, poses_low_rate: str, poses_high_rate: str,
         logger.info("renaming %s to %s", p1, p2)
         os.system("mv " + p1 + " " + p2)               
 
+def build_map(poses_path: str, bag_file: str, output_dir: str):
+    build_map_bin = os.path.join(BIN_PATH, "map_builder_build_map")
+    beam_slam_launch_path = rospkg.RosPack().get_path("beam_slam_launch")
+    calibrations_path = os.path.join(beam_slam_launch_path, "calibrations")
+    extrinsics_path = os.path.join(calibrations_path, "ig2/extrinsics.json")
+    current_file = os.path.abspath(__file__)
+    current_path = Path(current_file).parent
+    inputs_dir = os.path.join(current_path, "inputs")
+    config_path = os.path.join(inputs_dir, "map_builder_config.json")
+    cmd = "{} --bag_file {} --config_file {} --extrinsics {} --output_directory {} --pose_file {}".format(build_map_bin, bag_file, config_path, extrinsics_path, output_dir, poses_path)
+    logger.info("Running command: %s", cmd)
+    os.system(cmd)
+
 def run(bag_file: str, slam_output_dir: str, output_dir: str):
     slam_bag_file = os.path.join(slam_output_dir, "slam_results.bag")
     export_raw_slam_poses("JSON", "/local_mapper/path_publisher/path", slam_bag_file, output_dir, "local_mapper")
@@ -95,6 +109,9 @@ def run(bag_file: str, slam_output_dir: str, output_dir: str):
     poses_low_rate = os.path.join(output_dir, "local_mapper_poses.json")
     export_corrected_poses("PCD", poses_low_rate, poses_high_rate, output_dir, "final")
     export_corrected_poses("JSON", poses_low_rate, poses_high_rate, output_dir, "final")
+
+    final_poses_path = os.path.join(output_dir, "final_poses.json")
+    build_map(final_poses_path, bag_file, output_dir)
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])

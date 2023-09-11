@@ -5,40 +5,52 @@
   "combine_sensor_data": false,
   "3d_sensor_data": [
     {
-      "topic": "/hvlp/velodyne_points",
-      "frame": "hvlp_link",
+      "topic": "/lidar_h/velodyne_points",
+      "frame": "lidar_h_link",
       "use_cropbox": true,
       "remove_outside_points": true,
-      "cropbox_min": [-50, -50, -50],
-      "cropbox_max": [50, 50, 50]
+      "cropbox_min": [
+        -50,
+        -50,
+        -50
+      ],
+      "cropbox_max": [
+        50,
+        50,
+        50
+      ]
     }
   ],
-  "input_filters":[
+  "input_filters": [
     {
       "filter_type": "CROPBOX",
-      "min": [-0.6, -0.5, -0.5],
-      "max": [0.6, 0.5, 0.5],
+      "min": [
+        -0.6,
+        -0.5,
+        -0.5
+      ],
+      "max": [
+        0.6,
+        0.5,
+        0.5
+      ],
       "remove_outside_points": false
-    }
-  ],
-  "intermediary_filters": [
-    {
-      "filter_type": "DROR",
-      "radius_multiplier": 2.5,
-      "azimuth_angle": 0.04,
-      "min_neighbors": 6,
-      "min_search_radius": 0.01
-    }
-  ],
-  "output_filters": [
-    {
-      "filter_type": "ROR",
-      "search_radius": 0.03,
-      "min_neighbors": 4
     },
     {
-      "filter_type": "VOXEL",
-      "cell_size": [0.05, 0.05, 0.05]
+      "filter_type": "CROPBOX",
+      "min": [
+        -5,
+        -5,
+        -5
+      ],
+      "max": [
+        5,
+        5,
+        5
+      ],
+      "remove_outside_points": true
     }
-  ]
+  ],
+  "intermediary_filters": [],
+  "output_filters": []
 }
