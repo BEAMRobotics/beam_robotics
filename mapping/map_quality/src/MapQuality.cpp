@@ -61,9 +61,12 @@ int MapQuality::CalculateOccupiedVoxels(const PointCloudPtr& cloud) const {
 std::vector<PointCloudPtr>
     MapQuality::BreakUpPointCloud(const PointCloud& input_cloud) const {
   // Determine if integer overflow will occur.
-  Eigen::Vector3f axis_dimensions(std::abs(max_.x - min_.x),
-                                  std::abs(max_.y - min_.y),
-                                  std::abs(max_.z - min_.z));
+  pcl::PointXYZ min;
+  pcl::PointXYZ max;
+  pcl::getMinMax3D(input_cloud, min, max);
+  Eigen::Vector3f axis_dimensions(std::abs(max.x - min.x),
+                                  std::abs(max.y - min.y),
+                                  std::abs(max.z - min.z));
   uint64_t voxel_count_x =
       static_cast<uint64_t>((axis_dimensions[0] / voxel_size_m_) + 1);
   uint64_t voxel_count_y =
