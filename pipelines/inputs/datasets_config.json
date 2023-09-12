@@ -1,0 +1,26 @@
+{
+    "datasets": [
+        {
+            "path": "/userhome/data/2021_10_27_14_22_19_StructuresLabHandheld/",
+            "start_time_s": 5,
+            "end_time_s": 30
+        },
+        {
+            "path": "/userhome/data/2021_10_27_16_21_54_ConestogoBridge/",
+            "start_time_s": 5,
+            "end_time_s": 35
+        },
+        {
+            "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
+            "start_time_s": 5,
+            "end_time_s": 30
+        },
+        {
+            "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
+            "start_time_s": 5,
+            "end_time_s": 30
+        }
+    ],
+    "rosbag_play_rate": 0.3,
+    "slam_config": "lio.yaml"
+}

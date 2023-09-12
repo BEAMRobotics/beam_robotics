@@ -152,6 +152,7 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float,
             "time elapsed exceeded user input (%s), exiting", end_time)
 
     logger.info("total runtime: %s s", time_elapsed.secs * rate)
+    logger.info("run_beam_slam.py finished successfully!")
 
 
 if __name__ == "__main__":
