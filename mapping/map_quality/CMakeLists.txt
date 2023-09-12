@@ -10,6 +10,7 @@ find_package(
   COMPONENTS
   utils
 )
+find_package(nlohmann_json 3.2.0 REQUIRED)
 
 ## Declare a C++ library
 add_library(

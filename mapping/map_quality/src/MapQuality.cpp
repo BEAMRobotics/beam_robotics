@@ -1,19 +1,22 @@
 #include <map_quality/MapQuality.h>
 
+#include <nlohmann/json.hpp>
 #include <pcl/common/common.h>
 #include <pcl/filters/voxel_grid.h>
 
+#include <beam_utils/filesystem.h>
 #include <beam_utils/log.h>
 
 namespace map_quality {
 
 MapQuality::MapQuality(const std::string& map_path,
-                       const std::string& output_path)
-    : map_path_(map_path), output_path_(output_path) {}
+                       const std::string& output_path, double voxel_size_m)
+    : map_path_(map_path),
+      output_path_(output_path),
+      voxel_size_m_(voxel_size_m) {}
 
 void MapQuality::Run() {
   LoadCloud();
-  pcl::getMinMax3D(map_, min_, max_);
   std::vector<PointCloudPtr> broken_clouds = BreakUpPointCloud(map_);
   for (const PointCloudPtr& cloud : broken_clouds) {
     int num_occupied = CalculateOccupiedVoxels(cloud);
@@ -30,23 +33,32 @@ void MapQuality::LoadCloud() {
     BEAM_ERROR("empty input map.");
     throw std::runtime_error{"empty input map"};
   }
+  pcl::getMinMax3D(map_, min_, max_);
 }
 
 void MapQuality::SaveResults() {
   BEAM_INFO("Saving results to: {}", output_path_);
 
+  nlohmann::json J;
+
   double wx = max_.x - min_.x;
   double wy = max_.y - min_.y;
   double wz = max_.z - min_.z;
   double volume = wx * wy * wz;
+  double voxel_volume = voxel_size_m_ * voxel_size_m_ * voxel_size_m_;
+  int64_t total_voxels = static_cast<int64_t>(volume / voxel_volume);
+  int64_t empty_voxels = total_voxels - total_occupied_voxels_;
+  J["volume_m3"] = volume;
+  J["total_voxels"] = total_voxels;
+  J["occupied_voxels"] = total_occupied_voxels_;
+  J["empty_voxels"] = empty_voxels;
+  J["map_points"] = map_.size();
+  J["voxels_per_m3"] = total_occupied_voxels_ / volume;
+  J["percent_empty"] =
+      static_cast<double>(empty_voxels) / static_cast<double>(total_voxels);
 
-  std::cout << "total_occupied_voxels_: " << total_occupied_voxels_ << "\n";
-  std::cout << "number of map points: " << map_.size() << "\n";
-  std::cout << "volume: " << volume << " m^3 \n";
-  std::cout << "occupied voxels per cubic meter: "
-            << total_occupied_voxels_ / volume << "\n";
-
-  // todo output to json
+  std::ofstream file(output_path_);
+  file << std::setw(4) << J << std::endl;
 }
 
 int MapQuality::CalculateOccupiedVoxels(const PointCloudPtr& cloud) const {

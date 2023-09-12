@@ -8,7 +8,8 @@ class MapQuality {
 public:
   MapQuality() = delete;
 
-  MapQuality(const std::string& map_path, const std::string& output_path);
+  MapQuality(const std::string& map_path, const std::string& output_path,
+             double voxel_size_m = 0.01);
 
   void Run();
 
