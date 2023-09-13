@@ -43,8 +43,6 @@ void CameraToMapAligner::FillTfTrees() {
   }
 
   BEAM_INFO("Filling TF tree with {} poses", poses.size());
-  ros::Time start_time = timestamps.front();
-  poses_tree_.start_time = start_time;
   for (int i = 0; i < poses.size(); i++) {
     Eigen::Affine3d T(poses[i]);
     poses_tree_.AddTransform(T, poses_fixed_frame_, poses_moving_frame_,

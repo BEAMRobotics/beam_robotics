@@ -371,8 +371,6 @@ void MapLabeler::FillTFTrees() {
   }
 
   BEAM_INFO("Filling TF tree with {} poses", final_poses.size());
-  ros::Time start_time = final_timestamps.front();
-  poses_tree_.start_time = start_time;
   for (int i = 0; i < final_poses.size(); i++) {
     poses_tree_.AddTransform(Eigen::Affine3d(final_poses[i]),
                              poses_fixed_frame_, poses_moving_frame_,
