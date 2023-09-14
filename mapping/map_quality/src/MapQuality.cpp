@@ -53,7 +53,7 @@ void MapQuality::SaveResults() {
   J["occupied_voxels"] = total_occupied_voxels_;
   J["empty_voxels"] = empty_voxels;
   J["map_points"] = map_.size();
-  J["voxels_per_m3"] = total_occupied_voxels_ / volume;
+  J["occupied_voxels_per_m3"] = total_occupied_voxels_ / volume;
   J["percent_empty"] =
       static_cast<double>(empty_voxels) / static_cast<double>(total_voxels);
 
