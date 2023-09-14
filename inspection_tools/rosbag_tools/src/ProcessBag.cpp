@@ -19,7 +19,7 @@ DEFINE_bool(unpack_scans, false,
 DEFINE_bool(debayer_images, true,
             "Set to true if you want to debayer images. Topics will be "
             "post-fixed with _debayered");
-DEFINE_bool(rectify_images, true,
+DEFINE_bool(rectify_images, false,
             "Set to true if you want to rectify images.");
 DEFINE_double(
     resize_multiplier, 1,
@@ -92,7 +92,6 @@ int main(int argc, char* argv[]) {
     auto height = cam_model->GetHeight();
     auto width = cam_model->GetWidth();
     Eigen::Vector2i size(height, width);
-    std::cout << size << std::endl;
     converter = std::make_shared<beam_calibration::ConvertCameraModel>(
         cam_model, size, size);
   }
