@@ -16,3 +16,6 @@
 [submodule "mapping/beam_slam"]
 	path = mapping/beam_slam
 	url = git@github.com:BEAMRobotics/beam_slam.git
+[submodule "mapping/vlma"]
+	path = mapping/vlma
+	url = git@github.com:jakemclaughlin6/vlma.git

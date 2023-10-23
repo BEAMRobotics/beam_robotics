@@ -1,21 +1,13 @@
 {
   "final_map_name": "combined_cloud.pcd",
   "cloud_combiner": "Override",
-  "depth_enhancement": true,
+  "depth_enhancement": false,
   "colorizer": "Projection2",
   "cameras": [
     {
       "Name": "camera0",
-      "Intrinsics": "F1.json",
+      "Intrinsics": "F1_full.json",
       "Enabled": true,
-      "SelectedImages": [
-        "ImageBridge34"
-      ]
-    },
-    {
-      "Name": "camera1",
-      "Intrinsics": "F2.json",
-      "Enabled": false,
       "SelectedImages": [
         "All"
       ]

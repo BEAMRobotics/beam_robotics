@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   using namespace rosbag_tools;
 
   // check inputs
-  if (FLAGS_resize_multiplier <= 0 || FLAGS_resize_multiplier > 1) {
+  if (FLAGS_resize_multiplier <= 0) {
     BEAM_CRITICAL("Invalid resize_multiplier params, must be in (0,1]");
     throw std::invalid_argument{"invalid resize_multiplier"};
   }
