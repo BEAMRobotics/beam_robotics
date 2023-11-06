@@ -5,25 +5,55 @@
 #include <pcl/filters/voxel_grid.h>
 
 #include <beam_utils/filesystem.h>
+#include <beam_utils/kdtree.h>
 #include <beam_utils/log.h>
 
 namespace map_quality {
 
 MapQuality::MapQuality(const std::string& map_path,
-                       const std::string& output_path, double voxel_size_m)
+                       const std::string& output_path, double voxel_size_m,
+                       int knn)
     : map_path_(map_path),
       output_path_(output_path),
-      voxel_size_m_(voxel_size_m) {}
+      voxel_size_m_(voxel_size_m),
+      knn_(knn) {}
 
 void MapQuality::Run() {
   LoadCloud();
+  RunVoxelMapQuality();
+  RunStatisticalMapQuality();
+  SaveResults();
+  BEAM_INFO("Map quality analysis finished successfully!");
+}
+
+void MapQuality::RunStatisticalMapQuality() {
+  // // build kdtree
+  beam::KdTree<pcl::PointXYZ> kdtree(map_);
+
+  // get mean distances to k nearest neighbors
+  std::vector<float> mean_distances;
+  for (const pcl::PointXYZ& pt : map_) {
+    std::vector<uint32_t> point_ids;
+    std::vector<float> point_distances;
+    int num_results =
+        kdtree.nearestKSearch(pt, knn_, point_ids, point_distances);
+    float sum = 0;
+    for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
+    mean_distances.push_back(sum / num_results);
+  }
+
+  // calculate overall mean
+  double sum = 0;
+  for (const float m : mean_distances) { sum += static_cast<double>(m); }
+  mean_knn_dist_ = sum / mean_distances.size();
+}
+
+void MapQuality::RunVoxelMapQuality() {
   std::vector<PointCloudPtr> broken_clouds = BreakUpPointCloud(map_);
   for (const PointCloudPtr& cloud : broken_clouds) {
     int num_occupied = CalculateOccupiedVoxels(cloud);
     total_occupied_voxels_ += num_occupied;
   }
-  SaveResults();
-  BEAM_INFO("Map quality analysis finished successfully!");
 }
 
 void MapQuality::LoadCloud() {
@@ -56,6 +86,9 @@ void MapQuality::SaveResults() {
   J["occupied_voxels_per_m3"] = total_occupied_voxels_ / volume;
   J["percent_empty"] =
       static_cast<double>(empty_voxels) / static_cast<double>(total_voxels);
+  J["mean_pts_per_voxel"] = static_cast<double>(map_.size()) /
+                            static_cast<double>(total_occupied_voxels_);
+  J["mean_knn_dist_mm"] = mean_knn_dist_ * 1000;
 
   std::ofstream file(output_path_);
   file << std::setw(4) << J << std::endl;

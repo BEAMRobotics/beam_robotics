@@ -28,13 +28,19 @@ def parse_args(args) -> Any:
     parser.add_argument(
         '-i', type=str, help='path global map output directory. '
         'This should contain lidar_submaps_initial, and lidar_submaps_optimized')
+    parser.add_argument('-s', default=0.05, type=float,
+                        help='voxel size in meters.')
+    parser.add_argument(
+        '-k', type=int, default=10, help='k nearest neighbors to use for distance metrics.')
     args = parser.parse_args()
     return args
 
 
-def process_single_cloud(pcd_file: str, results_file: str):
+def process_single_cloud(pcd_file: str, results_file: str, voxel_size: float, knn: int):
     logger.info("running map quality on pcd %s", pcd_file)
-    cmd = BIN_PATH + " -cloud " + pcd_file + " -output " + results_file
+    cmd = BIN_PATH + " -cloud " + pcd_file + \
+        " -output " + results_file + " -voxel_size " + \
+        str(voxel_size) + " -knn " + str(knn)
     logger.info("running command: %s", cmd)
     os.system(cmd)
 
@@ -54,7 +60,7 @@ def combine_results(results_files: List[str], combined_json_path: str):
         outfile.write(json_object)
 
 
-def run_quantification(submaps_path: str):
+def run_quantification(submaps_path: str, voxel_size: float, knn: int):
     results_files = []
     output_path = os.path.join(submaps_path, "map_quality_results")
     os.makedirs(output_path, exist_ok=True)
@@ -67,7 +73,8 @@ def run_quantification(submaps_path: str):
             results_filepath = os.path.join(
                 output_path, file[:-4] + results_postfix)
             results_files.append(results_filepath)
-            process_single_cloud(pcd_filepath, results_filepath)
+            process_single_cloud(
+                pcd_filepath, results_filepath, voxel_size, knn)
         break
     combined_json_path = os.path.join(submaps_path, "map_quality_summary.json")
     combine_results(results_files, combined_json_path)
@@ -83,5 +90,5 @@ if __name__ == "__main__":
     setup_logger()
     submaps_initial = os.path.join(args.i, "lidar_submaps_initial")
     submaps_opt = os.path.join(args.i, "lidar_submaps_optimized")
-    run_quantification(submaps_initial)
-    run_quantification(submaps_opt)
+    run_quantification(submaps_initial, args.s, args.k)
+    run_quantification(submaps_opt, args.s, args.k)

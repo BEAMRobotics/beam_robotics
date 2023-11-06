@@ -9,12 +9,16 @@ public:
   MapQuality() = delete;
 
   MapQuality(const std::string& map_path, const std::string& output_path,
-             double voxel_size_m = 0.01);
+             double voxel_size_m = 0.01, int knn = 10);
 
   void Run();
 
 private:
   void LoadCloud();
+
+  void RunVoxelMapQuality();
+
+  void RunStatisticalMapQuality();
 
   void SaveResults();
 
@@ -44,12 +48,14 @@ private:
   PointCloud map_;
 
   // params:
-  double voxel_size_m_{0.01};
+  double voxel_size_m_;
+  int knn_;
 
   // results
   pcl::PointXYZ min_;
   pcl::PointXYZ max_;
   int total_occupied_voxels_{0};
+  double mean_knn_dist_;
 };
 
 } // namespace map_quality
