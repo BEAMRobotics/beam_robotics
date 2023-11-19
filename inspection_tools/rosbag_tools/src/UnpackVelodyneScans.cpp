@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
         iter->instantiate<velodyne_msgs::VelodyneScan>();
     if (msg) {
       sensor_msgs::PointCloud2 cloud = velodyne_tools.UnpackScan(msg);
+      cloud.header = msg->header;
       writer.AddMsg(iter->getTopic() + FLAGS_output_postfix, iter->getTime(),
                     cloud);
     } else {
