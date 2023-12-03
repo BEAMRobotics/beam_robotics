@@ -96,6 +96,11 @@ void RosBagWriter::AddMsg(const std::string& topic, const ros::Time& stamp,
   bag_.write(topic, stamp, image);
 }
 
+void RosBagWriter::AddMsg(const std::string& topic, const ros::Time& stamp,
+                          const sensor_msgs::CompressedImage& image) {
+  bag_.write(topic, stamp, image);
+}
+
 void RosBagWriter::CloseBag() {
   bag_.close();
   BEAM_INFO("Finished writing bag to: {}", bag_file_path_);

@@ -22,7 +22,7 @@ def restamp_bag(input, output):
     os.system('rosbag reindex ' + output)
     bag_backup = output[:-4] + '.orig.bag'
     print('removing: ', bag_backup)
-    os.system('rm -rf ' + bag_backup)
+    os.remove(bag_backup)
 
 
 def preprocess_bag(input, output, calibration):
@@ -86,8 +86,8 @@ def main(args):
     cleanup_bag(output_preprocessed, args.output_bag)
 
     if not args.keep_intermediate_files:
-        os.system('rm -rf ' + output_restamped)
-        os.system('rm -rf ' + output_preprocessed)
+        os.remove(output_restamped)
+        os.remove(output_preprocessed)
 
 
 if __name__ == "__main__":

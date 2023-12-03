@@ -20,6 +20,7 @@ find_package(catkin REQUIRED
     std_msgs
     sensor_msgs
     velodyne_pointcloud
+    cv_bridge
 )
 
 # Unpack library

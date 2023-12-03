@@ -2,6 +2,7 @@
 
 #include <ros/ros.h>
 #include <rosbag/view.h>
+#include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <velodyne_msgs/VelodyneScan.h>
@@ -63,6 +64,9 @@ public:
 
   void AddMsg(const std::string& topic, const ros::Time& stamp,
               const sensor_msgs::Image& image);
+
+  void AddMsg(const std::string& topic, const ros::Time& stamp,
+              const sensor_msgs::CompressedImage& image);
 
 private:
   std::string bag_file_path_;

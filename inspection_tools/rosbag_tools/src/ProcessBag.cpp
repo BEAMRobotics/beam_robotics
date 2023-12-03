@@ -1,7 +1,9 @@
 #include <rosbag_tools/RosBagIO.h>
 #include <rosbag_tools/VelodyneTools.h>
 
+#include <cv_bridge/cv_bridge.h>
 #include <gflags/gflags.h>
+#include <sensor_msgs/image_encodings.h>
 
 #include <beam_calibration/CameraModel.h>
 #include <beam_calibration/ConvertCameraModel.h>
@@ -21,6 +23,8 @@ DEFINE_bool(debayer_images, true,
             "post-fixed with _debayered");
 DEFINE_bool(rectify_images, false,
             "Set to true if you want to rectify images.");
+DEFINE_bool(compress_images, false,
+            "Set to true if you want to compress the images.");
 DEFINE_double(
     resize_multiplier, 1,
     "Setting to a value in range (0,1) will resize images using this "
@@ -33,6 +37,8 @@ DEFINE_string(lidar_model, "VLP16",
               "32C, 32E, VLS128. (Optional)");
 DEFINE_string(camera_model_path, "",
               "Path to camera model (Required if rectified = true)");
+
+bool compress_images_;
 
 sensor_msgs::Image ProcessImage(
     const sensor_msgs::Image& msg, const double& resize_multiplier,
@@ -68,6 +74,65 @@ sensor_msgs::Image ProcessImage(
   return MatToRosImg(mat_resized, msg.header, encoding);
 }
 
+// Encodes to JPEG. Copied from:
+// github.com/ethz-asl/ros-message-transport/blob/master/compressed_imagem_transport/src/compressed_publisher.cpp
+sensor_msgs::CompressedImage CompressImage(const sensor_msgs::Image& msg) {
+  sensor_msgs::CompressedImage compressed;
+  compressed.header = msg.header;
+  compressed.format = msg.encoding;
+
+  // Compression settings
+  std::vector<int> params;
+  params.resize(3, 0);
+
+  // Bit depth of image encoding
+  int bitDepth = sensor_msgs::image_encodings::bitDepth(msg.encoding);
+  int numChannels = sensor_msgs::image_encodings::numChannels(msg.encoding);
+
+  params[0] = 85;
+  params[1] = 85;
+
+  // Update ros message format header
+  compressed.format += "; jpeg compressed";
+
+  // check input format
+  if (bitDepth != 8) {
+    BEAM_ERROR(
+        "JPEG compression only works on 8 bit images, not compressing images");
+    compress_images_ = false;
+  }
+  if ((numChannels != 1) && numChannels != 3) {
+    BEAM_ERROR(
+        "Cannot compress images with 1 or 3 channels, not compressing images");
+    compress_images_ = false;
+  }
+
+  // Target image format
+  std::stringstream targetFormat;
+  if (sensor_msgs::image_encodings::isColor(msg.encoding)) {
+    // convert color images to RGB domain
+    targetFormat << "rgb" << bitDepth;
+  }
+
+  // OpenCV-ros bridge
+  cv_bridge::CvImagePtr cv_ptr;
+  try {
+    cv_ptr = cv_bridge::toCvCopy(msg, targetFormat.str());
+
+    // Compress image
+    if (cv::imencode(".jpg", cv_ptr->image, compressed.data, params)) {
+      float cRatio = (float)(cv_ptr->image.rows * cv_ptr->image.cols *
+                             cv_ptr->image.elemSize()) /
+                     (float)compressed.data.size();
+    } else {
+      BEAM_ERROR("cv::imencode (jpeg) failed on input image");
+    }
+  } catch (cv_bridge::Exception& e) {
+    BEAM_ERROR("{}", e.what());
+  } catch (cv::Exception& e) { BEAM_ERROR("{}", e.what()); }
+  return compressed;
+}
+
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   using namespace rosbag_tools;
@@ -79,6 +144,8 @@ int main(int argc, char* argv[]) {
   }
   ros::Time::init();
   VelodyneTools velodyne_tools(FLAGS_lidar_model);
+
+  compress_images_ = FLAGS_compress_images;
 
   boost::filesystem::path p(FLAGS_input);
 
@@ -110,14 +177,21 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (FLAGS_debayer_images || FLAGS_resize_multiplier != 1) {
+    if (FLAGS_debayer_images || FLAGS_resize_multiplier != 1 ||
+        FLAGS_compress_images) {
       std::string postfix =
           FLAGS_resize_multiplier != 1 ? "_resized" : "_debayered";
       auto maybe_image_msg = iter->instantiate<sensor_msgs::Image>();
       if (maybe_image_msg != nullptr) {
         sensor_msgs::Image new_msg =
             ProcessImage(*maybe_image_msg, FLAGS_resize_multiplier, converter);
-        writer.AddMsg(iter->getTopic() + postfix, iter->getTime(), new_msg);
+        if (compress_images_) {
+          sensor_msgs::CompressedImage img_comp = CompressImage(new_msg);
+          writer.AddMsg(iter->getTopic() + postfix, iter->getTime(), img_comp);
+        } else {
+          writer.AddMsg(iter->getTopic() + postfix, iter->getTime(), new_msg);
+        }
+
         continue;
       }
     }
