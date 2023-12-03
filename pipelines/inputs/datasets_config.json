@@ -13,7 +13,7 @@
         {
             "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
             "start_time_s": 5,
-            "end_time_s": 30
+            "end_time_s": -1
         },
         {
             "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
@@ -21,6 +21,11 @@
             "end_time_s": 30
         }
     ],
-    "rosbag_play_rate": 0.3,
-    "slam_config": "lio.yaml"
+    "rosbag_play_rate": 0.5,
+    "local_mapper_config": "lio.yaml",
+    "global_mapper_config": "global_mapper.yaml",
+    "skip_slam": true,
+    "skip_map_refinement": true,
+    "skip_map_builder": false,
+    "skip_map_labeler": true
 }

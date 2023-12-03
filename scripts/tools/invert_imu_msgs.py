@@ -6,11 +6,14 @@ import argparse
 
 from rosbag import Bag
 
+
 def main(args):
 
-    parser = argparse.ArgumentParser(description='multiplies imu data by -1 and saves as /imu/data_inverted')
+    parser = argparse.ArgumentParser(
+        description='multiplies imu data by -1 and saves as /imu/data_inverted')
     parser.add_argument('--bagfile', nargs=1, help='input bag file')
-    parser.add_argument('--output', nargs=1,  help='output bag file', default=['output.bag'])
+    parser.add_argument('--output', nargs=1,
+                        help='output bag file', default=['output.bag'])
     args = parser.parse_args()
 
     bagfile = args.bagfile[0]
@@ -27,6 +30,7 @@ def main(args):
                 msg_inv.linear_acceleration.y = - 1 * msg.linear_acceleration.y
                 msg_inv.linear_acceleration.z = - 1 * msg.linear_acceleration.z
                 outbag.write("/imu/data_inverted", msg_inv, t)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

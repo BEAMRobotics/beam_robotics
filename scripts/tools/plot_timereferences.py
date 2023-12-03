@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 def main(args):
     parser = argparse.ArgumentParser(
         description='Plot all TimeReference topics in a bag. This is helpful to validate synchronization in a dataset (e.g., ig2 data).')
-    parser.add_argument('-b', '--bag', nargs=1, help='input bag file', required=True)
+    parser.add_argument('-b', '--bag', nargs=1,
+                        help='input bag file', required=True)
     parser.add_argument(
         '-t', '--topics', nargs='+', help='whitespace separated list of topics to include, leave empty for all TimeReference topics')
 
@@ -24,11 +25,11 @@ def main(args):
             if topic == "sensor_msgs/TimeReference":
                 topics.append(topic)
     else:
-        info_dict = yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', args.bag[0]], stdout=subprocess.PIPE).communicate()[0])
+        info_dict = yaml.load(subprocess.Popen(
+            ['rosbag', 'info', '--yaml', args.bag[0]], stdout=subprocess.PIPE).communicate()[0])
         for topic in info_dict["topics"]:
             if topic["type"] == "sensor_msgs/TimeReference":
                 topics.append(topic["topic"])
-
 
     stamps = {}
 
