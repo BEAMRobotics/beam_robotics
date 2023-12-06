@@ -49,8 +49,8 @@ ImageExtractor::ImageExtractor(const std::string& bag_file,
     camera_data.topic = camera_params["image_topic"];
     camera_data.distance_between_images_m =
         camera_params["distance_between_images_m"];
-    camera_data.rotation_between_images_rad =
-        beam::Deg2Rad(camera_params["rotation_between_images_deg"]);
+    camera_data.rotation_between_images_deg =
+        camera_params["rotation_between_images_deg"];
     camera_data.input_distorted = camera_params["are_images_distorted"];
     camera_data.output_distorted = camera_params["are_images_distorted"];
     camera_data.ir_camera = camera_params["is_ir_camera"];
@@ -198,7 +198,7 @@ void ImageExtractor::GetTimeStamps() {
       Eigen::Matrix4d T_curr_last =
           T_moving_fixed_curr.inverse() * T_moving_fixed_last;
       if (beam::PassedMotionThreshold(T_moving_fixed_curr, T_moving_fixed_last,
-                                      camera_data.rotation_between_images_rad,
+                                      camera_data.rotation_between_images_deg,
                                       camera_data.distance_between_images_m,
                                       true, false, false)) {
         time_stamps.push_back(pose_time_stamps[pose_iter]);

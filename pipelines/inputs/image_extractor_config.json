@@ -5,7 +5,7 @@
     {
       "image_topic": "/F1/image",
       "intrinsics_name": "F1.json",
-      "distance_between_images_m": 2,
+      "distance_between_images_m": 1,
       "rotation_between_images_deg": 30,
       "are_images_distorted": true,
       "is_ir_camera": false,

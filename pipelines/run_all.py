@@ -4,7 +4,7 @@ import os
 import json
 import logging
 from typing import Any, Dict
-from pathlib import Path
+import shutil
 
 from utils import start_ros_master, start_calibration_publisher
 from params import *
@@ -157,7 +157,9 @@ def run_image_extractor(config: str, output_path: str, dataset_number: int):
     map_builder_path = os.path.join(output_path, MAP_BUILDER_FOLDER)
     poses_path = os.path.join(map_builder_path, "final_poses.json")
 
-    os.makedirs(img_extractor_output, exist_ok=True)
+    if (os.path.exists(img_extractor_output)):
+        shutil.rmtree(img_extractor_output)
+    os.makedirs(img_extractor_output)
 
     # Loam image extractor and override intrinsics directory
     image_extractor_config_in = os.path.join(

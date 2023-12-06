@@ -68,7 +68,7 @@ private:
     std::string topic;
     std::string frame_id;
     double distance_between_images_m;
-    double rotation_between_images_rad;
+    double rotation_between_images_deg;
     std::vector<ImageTransform> transforms;
     bool input_distorted;
     bool output_distorted;
