@@ -8,6 +8,7 @@ add_library(${PROJECT_NAME}
   QuantifyDefects.cpp
   InspectionUtils.cpp
   CameraToMapAligner.cpp
+  Utils.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
@@ -20,4 +21,5 @@ target_link_libraries(${PROJECT_NAME}
   OpenCV::OpenCV
   nlohmann_json::nlohmann_json
   ${pcl_ros_LIBRARIES}
+  ${catkin_LIBRARIES}
 )

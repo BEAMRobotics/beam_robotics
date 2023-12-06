@@ -1,8 +1,7 @@
-#include <rosbag_tools/RosBagIO.h>
-#include <rosbag_tools/VelodyneTools.h>
+#include <gflags/gflags.h>
 
 #include <cv_bridge/cv_bridge.h>
-#include <gflags/gflags.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <sensor_msgs/image_encodings.h>
 
 #include <beam_calibration/CameraModel.h>
@@ -10,6 +9,9 @@
 #include <beam_cv/OpenCVConversions.h>
 #include <beam_utils/filesystem.h>
 #include <beam_utils/gflags.h>
+
+#include <rosbag_tools/RosBagIO.h>
+#include <rosbag_tools/VelodyneTools.h>
 
 DEFINE_string(input, "", "Full path to input bag file (Required)");
 DEFINE_validator(input, &beam::gflags::ValidateBagFileMustExist);
@@ -39,6 +41,8 @@ DEFINE_string(camera_model_path, "",
               "Path to camera model (Required if rectified = true)");
 
 bool compress_images_;
+
+namespace enc = sensor_msgs::image_encodings;
 
 sensor_msgs::Image ProcessImage(
     const sensor_msgs::Image& msg, const double& resize_multiplier,
@@ -74,10 +78,8 @@ sensor_msgs::Image ProcessImage(
   return MatToRosImg(mat_resized, msg.header, encoding);
 }
 
-// Encodes to JPEG. Copied from:
-// github.com/ethz-asl/ros-message-transport/blob/master/compressed_imagem_transport/src/compressed_publisher.cpp
-sensor_msgs::CompressedImage CompressImage(const sensor_msgs::Image& msg) {
-  sensor_msgs::CompressedImage compressed;
+bool CompressImage(const sensor_msgs::Image& msg,
+                   sensor_msgs::CompressedImage& compressed) {
   compressed.header = msg.header;
   compressed.format = msg.encoding;
 
@@ -99,12 +101,12 @@ sensor_msgs::CompressedImage CompressImage(const sensor_msgs::Image& msg) {
   if (bitDepth != 8) {
     BEAM_ERROR(
         "JPEG compression only works on 8 bit images, not compressing images");
-    compress_images_ = false;
+    return false;
   }
-  if ((numChannels != 1) && numChannels != 3) {
+  if (numChannels != 1 && numChannels != 3) {
     BEAM_ERROR(
         "Cannot compress images with 1 or 3 channels, not compressing images");
-    compress_images_ = false;
+    return false;
   }
 
   // Target image format
@@ -120,17 +122,18 @@ sensor_msgs::CompressedImage CompressImage(const sensor_msgs::Image& msg) {
     cv_ptr = cv_bridge::toCvCopy(msg, targetFormat.str());
 
     // Compress image
-    if (cv::imencode(".jpg", cv_ptr->image, compressed.data, params)) {
-      float cRatio = (float)(cv_ptr->image.rows * cv_ptr->image.cols *
-                             cv_ptr->image.elemSize()) /
-                     (float)compressed.data.size();
-    } else {
+    if (!cv::imencode(".jpg", cv_ptr->image, compressed.data, params)) {
       BEAM_ERROR("cv::imencode (jpeg) failed on input image");
+      return false;
     }
   } catch (cv_bridge::Exception& e) {
     BEAM_ERROR("{}", e.what());
-  } catch (cv::Exception& e) { BEAM_ERROR("{}", e.what()); }
-  return compressed;
+    return false;
+  } catch (cv::Exception& e) {
+    BEAM_ERROR("{}", e.what());
+    return false;
+  }
+  return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -186,7 +189,8 @@ int main(int argc, char* argv[]) {
         sensor_msgs::Image new_msg =
             ProcessImage(*maybe_image_msg, FLAGS_resize_multiplier, converter);
         if (compress_images_) {
-          sensor_msgs::CompressedImage img_comp = CompressImage(new_msg);
+          sensor_msgs::CompressedImage img_comp;
+          if (!CompressImage(new_msg, img_comp)) { compress_images_ = false; }
           writer.AddMsg(iter->getTopic() + postfix, iter->getTime(), img_comp);
         } else {
           writer.AddMsg(iter->getTopic() + postfix, iter->getTime(), new_msg);

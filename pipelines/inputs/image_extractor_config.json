@@ -1,12 +1,12 @@
 {
   "image_container_type": "ImageBridge",
-  "intrinsics_directory": "/home/jake/",
+  "intrinsics_directory": "WillBeOverwritten",
   "camera_params": [
     {
-      "image_topic": "/F1/image_raw_resized",
+      "image_topic": "/F1/image",
       "intrinsics_name": "F1.json",
-      "distance_between_images_m": 3,
-      "rotation_between_images_deg": 90,
+      "distance_between_images_m": 2,
+      "rotation_between_images_deg": 30,
       "are_images_distorted": true,
       "is_ir_camera": false,
       "image_transforms": []

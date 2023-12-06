@@ -11,7 +11,10 @@ from params import *
 
 logger = logging.getLogger("RUN_ALL")
 
-REFINEMENT_BIN = CATKIN_WS + "/devel/lib/bs_tools/bs_tools_global_map_refinement_main"
+REFINEMENT_BIN = os.path.join(
+    CATKIN_WS, "devel/lib/bs_tools/bs_tools_global_map_refinement_main")
+IMAGE_EXTRACTOR_BIN = os.path.join(
+    CATKIN_WS, "build/inspection/inspection_extract_images")
 
 
 def setup_logger():
@@ -42,7 +45,7 @@ def load_config() -> Any:
 
 
 def run_slam(config: Dict, output_path: str, dataset_number: int):
-    if config["skip_slam"]:
+    if not config["run_slam"]:
         logger.info("skipping slam")
         return
 
@@ -59,11 +62,11 @@ def run_slam(config: Dict, output_path: str, dataset_number: int):
 
     logger.info("processing dataset: %s", dataset_path)
 
-    bag_path = os.path.join(dataset_path, RAW_BAG_FILE)
+    bag_path = os.path.join(dataset_path, SLAM_BAG_FILE)
 
     if not os.path.exists(bag_path):
         logger.error(
-            "invalid dataset path, no data.bag file in: %s", dataset_path)
+            f"invalid dataset path, no {SLAM_BAG_FILE} file in: {dataset_path}")
         exit()
 
     slam_output_path = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
@@ -81,7 +84,7 @@ def run_slam(config: Dict, output_path: str, dataset_number: int):
 
 
 def run_map_refinement(config: Dict, output_path: str):
-    if config["skip_map_refinement"]:
+    if not config["run_map_refinement"]:
         logger.info("skipping map refinement")
         return
 
@@ -108,7 +111,7 @@ def run_map_refinement(config: Dict, output_path: str):
 
 
 def run_map_builder(config: Dict, output_path: str, dataset_number: int):
-    if config["skip_map_builder"]:
+    if not config["run_map_builder"]:
         logger.info("skipping map builder")
         return
 
@@ -122,7 +125,7 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
         os.mkdir(map_builder_output_path)
 
     dataset_path = config["datasets"][dataset_number]["path"]
-    raw_bag_path = os.path.join(dataset_path, RAW_BAG_FILE)
+    raw_bag_path = os.path.join(dataset_path, SLAM_BAG_FILE)
     slam_output = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     local_mapper_bag = os.path.join(slam_output, LOCAL_MAPPER_BAG_FILE)
 
@@ -130,6 +133,49 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
         PIPELINES_PATH, "run_map_builder.py")
     cmd = f"python3 {map_builder_script_path} -b {raw_bag_path} -local_mapper_bag {local_mapper_bag} "
     cmd += f" -o {map_builder_output_path}"
+    logger.info("running command: %s", cmd)
+    os.system(cmd)
+
+
+def run_image_extractor(config: str, output_path: str, dataset_number: int):
+    if not config["run_image_extractor"]:
+        logger.info("skipping map builder")
+        return
+
+    print("\n------------------------------------")
+    print("----- Running Image Extractor ------")
+    print("------------------------------------\n")
+
+    dataset_path = config["datasets"][dataset_number]["path"]
+    bag_path = os.path.join(dataset_path, INSPECTION_BAG_FILE)
+    if not os.path.exists(bag_path):
+        logger.error(
+            f"missing  {INSPECTION_BAG_FILE} file in: P{dataset_path}")
+        exit()
+
+    img_extractor_output = os.path.join(output_path, IMAGE_EXTRACTOR_FOLDER)
+    map_builder_path = os.path.join(output_path, MAP_BUILDER_FOLDER)
+    poses_path = os.path.join(map_builder_path, "final_poses.json")
+
+    os.makedirs(img_extractor_output, exist_ok=True)
+
+    # Loam image extractor and override intrinsics directory
+    image_extractor_config_in = os.path.join(
+        PIPELINE_INPUTS, "image_extractor_config.json")
+    logger.info(f"loading image extractor config: {image_extractor_config_in}")
+    f = open(image_extractor_config_in)
+    j = json.load(f)
+    logger.info(
+        f"overwriting intrinsics directory with: {INSPECTION_INTRINSICS_PATH}")
+    j["intrinsics_directory"] = INSPECTION_INTRINSICS_PATH
+    image_extractor_config_out = os.path.join(
+        img_extractor_output, "image_extractor_config.json")
+    with open(image_extractor_config_out, "w") as outfile:
+        json.dump(j, outfile)
+    f.close()
+
+    cmd = f"{IMAGE_EXTRACTOR_BIN} -bag {bag_path} -config {image_extractor_config_out} "
+    cmd += f"-output {img_extractor_output} -poses {poses_path}"
     logger.info("running command: %s", cmd)
     os.system(cmd)
 
@@ -149,6 +195,7 @@ def run(dataset_number: int):
     run_slam(config, output_path, dataset_number)
     run_map_refinement(config, output_path)
     run_map_builder(config, output_path, dataset_number)
+    run_image_extractor(config, output_path, dataset_number)
 
     logger.info("run_all.py pipeline completed successfully")
 

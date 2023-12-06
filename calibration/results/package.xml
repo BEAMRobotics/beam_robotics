@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+  <name>calibration_results</name>
+  <version>1.0.0</version>
+  <description>Package for storing beam calibration results</description>
+
+  <author email="nicholas.c.charron@gmail.com">Nick Charron</author>
+  <maintainer email="nicholas.c.charron@gmail.com">Nick Charron</maintainer>
+  
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>

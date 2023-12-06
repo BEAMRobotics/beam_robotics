@@ -40,7 +40,6 @@ Set all the parameters in ImageExtractorConfig.json located in the config direct
  * distance_between_images_m : minimum change in distance between extracted images in meters
  * rotation_between_images_deg : minimum change in rotation between extracted images. This is calculated by taking the axis angle representation of the rotation between the two most recent poses and comparing to the angle value.
  * are_images_distorted : bool of wether or not the image have been undistorted
- * are_images_compressed: if the input images from the topic are compressed. If so, the unddistort function will need to upsample first. If not undistorting then this isn't used
  * image_transforms : some image processing method have been implemented (see below)
 
 ### Image Transforms:

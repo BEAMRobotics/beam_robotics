@@ -8,7 +8,6 @@
       "distance_between_images_m": 1,
       "rotation_between_images_deg": 30,
       "are_images_distorted": true,
-      "are_images_compressed": false,
       "is_ir_camera": false,
       "image_transforms": [
         {
@@ -29,7 +28,6 @@
       "distance_between_images_m": 1,
       "rotation_between_images_deg": 30,
       "are_images_distorted": true,
-      "are_images_compressed": false,
       "is_ir_camera": false,
       "image_transforms": [
         {
@@ -48,7 +46,6 @@
       "distance_between_images_m": 1,
       "rotation_between_images_deg": 30,
       "are_images_distorted": true,
-      "are_images_compressed": false,
       "is_ir_camera": false,
       "image_transforms": [
         {
