@@ -43,14 +43,16 @@ ImageExtractor::ImageExtractor(const std::string& bag_file,
     CameraData camera_data;
     beam::ValidateJsonKeysOrThrow(
         {"image_topic", "intrinsics_name", "distance_between_images_m",
-         "rotation_between_images_deg", "are_images_distorted", "is_ir_camera",
-         "image_transforms"},
+         "rotation_between_images_deg", "max_rotation_rate_deg_per_s",
+         "are_images_distorted", "is_ir_camera", "image_transforms"},
         camera_params);
     camera_data.topic = camera_params["image_topic"];
     camera_data.distance_between_images_m =
         camera_params["distance_between_images_m"];
     camera_data.rotation_between_images_deg =
         camera_params["rotation_between_images_deg"];
+    camera_data.max_rotation_rate_deg_per_s =
+        camera_params["max_rotation_rate_deg_per_s"];
     camera_data.input_distorted = camera_params["are_images_distorted"];
     camera_data.output_distorted = camera_params["are_images_distorted"];
     camera_data.ir_camera = camera_params["is_ir_camera"];
@@ -187,27 +189,64 @@ void ImageExtractor::GetTimeStamps() {
     // iterate over all poses for this camera
     std::vector<ros::Time> time_stamps;
     Eigen::Matrix4d T_moving_fixed_last = poses[0];
+    time_stamps.push_back(pose_time_stamps[0]);
     for (uint16_t pose_iter = 1; pose_iter < poses.size(); pose_iter++) {
       // first check that pose time is not outside current bag time
       if (pose_time_stamps[pose_iter] < topic_start_time ||
           pose_time_stamps[pose_iter] > topic_end_time) {
         continue;
       }
+
+      if (!CheckRotationalVelocity(pose_time_stamps, poses, pose_iter,
+                                   camera_data.max_rotation_rate_deg_per_s)) {
+        continue;
+      }
+
       // next, check sufficient motion has passed
       Eigen::Matrix4d T_moving_fixed_curr = poses[pose_iter];
+
       Eigen::Matrix4d T_curr_last =
           T_moving_fixed_curr.inverse() * T_moving_fixed_last;
-      if (beam::PassedMotionThreshold(T_moving_fixed_curr, T_moving_fixed_last,
-                                      camera_data.rotation_between_images_deg,
-                                      camera_data.distance_between_images_m,
-                                      true, false, false)) {
-        time_stamps.push_back(pose_time_stamps[pose_iter]);
-        T_moving_fixed_last = T_moving_fixed_curr;
+      if (!beam::PassedMotionThreshold(T_moving_fixed_curr, T_moving_fixed_last,
+                                       camera_data.rotation_between_images_deg,
+                                       camera_data.distance_between_images_m,
+                                       true, false, false)) {
+        continue;
       }
+      time_stamps.push_back(pose_time_stamps[pose_iter]);
+      T_moving_fixed_last = T_moving_fixed_curr;
     }
     camera_data.timestamps = time_stamps;
     BEAM_INFO("Saving {} images from camera topic: {}", time_stamps.size(),
               camera_data.topic);
+  }
+}
+
+bool ImageExtractor::CheckRotationalVelocity(
+    const std::vector<ros::Time>& timestamps,
+    const std::vector<Eigen::Matrix4d, beam::AlignMat4d>& poses,
+    uint16_t pose_iter, double max_rotation_rate_deg_per_s) const {
+  // skip last pose as we can't get an accurate velocity
+  const static int check_last_n = 1;
+  if (pose_iter >= poses.size() - check_last_n) { return false; }
+  if (pose_iter < check_last_n) { return false; }
+
+  double dt_s = (timestamps.at(pose_iter + check_last_n) -
+                 timestamps.at(pose_iter - check_last_n))
+                    .toSec();
+
+  const Eigen::Matrix4d& T_W_BLast = poses.at(pose_iter - check_last_n);
+  const Eigen::Matrix4d& T_W_BNext = poses.at(pose_iter + check_last_n);
+
+  Eigen::Matrix4d T_BLast_BNext = beam::InvertTransform(T_W_BLast) * T_W_BNext;
+  Eigen::Matrix3d R_BLast_BNext = T_BLast_BNext.block(0, 0, 3, 3);
+  double dR = beam::Rad2Deg(Eigen::AngleAxis<double>(R_BLast_BNext).angle());
+  double dRdt = std::abs(dR / dt_s);
+
+  if (dRdt > max_rotation_rate_deg_per_s) {
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -222,6 +261,7 @@ void ImageExtractor::OutputImages() {
 
   // iterate over all cameras
   for (int cam_count = 0; cam_count < camera_data_.size(); cam_count++) {
+    last_image_time_ = ros::TIME_MIN;
     auto& camera_data = camera_data_.at(cam_count);
     BEAM_INFO("Saving images for Camera {}.", camera_data.frame_id);
 

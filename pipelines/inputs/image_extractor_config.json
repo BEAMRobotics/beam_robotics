@@ -6,7 +6,38 @@
       "image_topic": "/F1/image",
       "intrinsics_name": "F1.json",
       "distance_between_images_m": 1,
-      "rotation_between_images_deg": 30,
+      "rotation_between_images_deg": 15,
+      "max_rotation_rate_deg_per_s": 5,
+      "are_images_distorted": true,
+      "is_ir_camera": false,
+      "image_transforms": []
+    },
+    {
+      "image_topic": "/F2/image",
+      "intrinsics_name": "F2.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 15,
+      "max_rotation_rate_deg_per_s": 5,
+      "are_images_distorted": true,
+      "is_ir_camera": false,
+      "image_transforms": []
+    },
+    {
+      "image_topic": "/F3/image",
+      "intrinsics_name": "F3.json",
+      "distance_between_images_m": 1,
+      "rotation_between_images_deg": 15,
+      "max_rotation_rate_deg_per_s": 5,
+      "are_images_distorted": true,
+      "is_ir_camera": false,
+      "image_transforms": []
+    },
+    {
+      "image_topic": "/F4/image",
+      "intrinsics_name": "F4.json",
+      "distance_between_images_m": 0.5,
+      "rotation_between_images_deg": 15,
+      "max_rotation_rate_deg_per_s": 5,
       "are_images_distorted": true,
       "is_ir_camera": false,
       "image_transforms": []

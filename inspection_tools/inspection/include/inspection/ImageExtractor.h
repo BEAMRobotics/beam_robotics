@@ -7,6 +7,7 @@
 #include <sensor_msgs/Image.h>
 
 #include <beam_calibration/ConvertCameraModel.h>
+#include <beam_utils/math.h>
 
 namespace inspection {
 
@@ -33,6 +34,11 @@ public:
 
 private:
   std::vector<ImageTransform> GetImageTransforms(const nlohmann::json& J);
+
+  bool CheckRotationalVelocity(
+      const std::vector<ros::Time>& timestamps,
+      const std::vector<Eigen::Matrix4d, beam::AlignMat4d>& poses,
+      uint16_t pose_iter, double max_rotation_rate_deg_per_s) const;
 
   cv::Mat ApplyImageTransforms(const cv::Mat& input_image, int cam_number);
 
@@ -69,6 +75,7 @@ private:
     std::string frame_id;
     double distance_between_images_m;
     double rotation_between_images_deg;
+    double max_rotation_rate_deg_per_s;
     std::vector<ImageTransform> transforms;
     bool input_distorted;
     bool output_distorted;
@@ -84,19 +91,6 @@ private:
   std::string poses_file_;
   std::string save_directory_;
   std::string image_container_type_;
-  // std::vector<std::string> image_topics_;
-  // std::vector<std::string> frame_ids_;
-  // std::vector<std::string> intrinsics_;
-  // std::vector<double> distance_between_images_;
-  // std::vector<double> rotation_between_images_;
-  // std::vector<std::vector<ImageTransform>> image_transforms_;
-  // std::vector<bool> are_input_images_distorted_;
-  // std::vector<bool> are_output_images_distorted_;
-  // std::vector<bool> are_images_compressed_;
-  // std::vector<bool> is_ir_camera_;
-  // std::vector<std::vector<ros::Time>> image_time_stamps_;
-  // std::vector<std::shared_ptr<beam_calibration::UndistortImages>>
-  //     undistort_images_;
   rosbag::Bag bag_;
   ros::Time last_image_time_{ros::TIME_MIN};
   std::vector<CameraData> camera_data_;

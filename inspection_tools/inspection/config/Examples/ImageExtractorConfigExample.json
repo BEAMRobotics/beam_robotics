@@ -7,6 +7,7 @@
       "intrinsics_name": "F1.json",
       "distance_between_images_m": 1,
       "rotation_between_images_deg": 30,
+      "max_rotation_rate_deg_per_s": 5,
       "are_images_distorted": true,
       "is_ir_camera": false,
       "image_transforms": [
