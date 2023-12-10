@@ -125,13 +125,13 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
         os.mkdir(map_builder_output_path)
 
     dataset_path = config["datasets"][dataset_number]["path"]
-    raw_bag_path = os.path.join(dataset_path, SLAM_BAG_FILE)
+    inspection_bag_path = os.path.join(dataset_path, INSPECTION_BAG_FILE)
     slam_output = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     local_mapper_bag = os.path.join(slam_output, LOCAL_MAPPER_BAG_FILE)
 
     map_builder_script_path = os.path.join(
         PIPELINES_PATH, "run_map_builder.py")
-    cmd = f"python3 {map_builder_script_path} -b {raw_bag_path} -local_mapper_bag {local_mapper_bag} "
+    cmd = f"python3 {map_builder_script_path} -b {inspection_bag_path} -local_mapper_bag {local_mapper_bag} "
     cmd += f" -o {map_builder_output_path}"
     logger.info("running command: %s", cmd)
     os.system(cmd)

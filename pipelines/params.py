@@ -28,6 +28,8 @@ INSPECTION_CALIBRATION_PATH = os.path.join(
     BEAM_CALIBRATION_RESULTS_PATH, "inspector_gadget2/current")
 INSPECTION_INTRINSICS_PATH = os.path.join(
     INSPECTION_CALIBRATION_PATH, "intrinsics")
+INSPECTION_EXTRINSICS_PATH = os.path.join(
+    INSPECTION_CALIBRATION_PATH, "extrinsics")
 
 CATKIN_WS = "/userhome/catkin_ws"
 
@@ -46,7 +48,3 @@ IMAGE_EXTRACTOR_FOLDER = "image_extractor"
 SLAM_BAG_FILE = "data.bag"
 INSPECTION_BAG_FILE = "inspection.bag"
 LOCAL_MAPPER_BAG_FILE = "local_mapper_results.bag"
-
-# File paths
-CALIBS_PATH = os.path.join(BS_CALIB_FILES_PATH, "ig2")
-EXTRINSICS_PATH = os.path.join(CALIBS_PATH, "extrinsics.json")

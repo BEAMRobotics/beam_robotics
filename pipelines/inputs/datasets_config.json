@@ -26,7 +26,7 @@
     "global_mapper_config": "global_mapper.yaml",
     "run_slam": false,
     "run_map_refinement": false,
-    "run_map_builder": false,
-    "run_map_labeler": false,
-    "run_image_extractor": true
+    "run_map_builder": true,
+    "run_image_extractor": true,
+    "run_map_labeler": false
 }

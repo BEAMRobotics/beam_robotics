@@ -99,10 +99,13 @@ def export_corrected_poses(type: str, poses_low_rate: str, poses_high_rate: str,
 
 
 def build_map(poses_path: str, bag_file: str, output_dir: str):
+    extrinsics_path = os.path.join(
+        INSPECTION_EXTRINSICS_PATH, "extrinsics.json")
+
     build_map_bin = os.path.join(BIN_PATH_MAP_BUILDER, "map_builder_build_map")
     config_path = os.path.join(PIPELINE_INPUTS, "map_builder_config.json")
     cmd = "{} --bag_file {} --config_file {} --extrinsics {} --output_directory {} --pose_file {}".format(
-        build_map_bin, bag_file, config_path, EXTRINSICS_PATH, output_dir, poses_path)
+        build_map_bin, bag_file, config_path, extrinsics_path, output_dir, poses_path)
     logger.info("Running command: %s", cmd)
     os.system(cmd)
 
