@@ -1,0 +1,40 @@
+{
+  "final_map_name": "combined_cloud.pcd",
+  "cloud_combiner": "Override",
+  "depth_enhancement": false,
+  "colorizer": "Projection2",
+  "cameras": [
+    {
+      "Name": "F1_link",
+      "Intrinsics": "F1.json",
+      "Enabled": true,
+      "SelectedImages": [
+        "All"
+      ]
+    },
+    {
+      "Name": "F2_link",
+      "Intrinsics": "F2.json",
+      "Enabled": false,
+      "SelectedImages": [
+        "All"
+      ]
+    },
+    {
+      "Name": "F3_link",
+      "Intrinsics": "F3.json",
+      "Enabled": false,
+      "SelectedImages": [
+        "All"
+      ]
+    },
+    {
+      "Name": "F4_link",
+      "Intrinsics": "F4.json",
+      "Enabled": false,
+      "SelectedImages": [
+        "All"
+      ]
+    }
+  ]
+}

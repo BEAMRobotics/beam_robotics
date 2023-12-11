@@ -15,6 +15,8 @@ REFINEMENT_BIN = os.path.join(
     CATKIN_WS, "devel/lib/bs_tools/bs_tools_global_map_refinement_main")
 IMAGE_EXTRACTOR_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_extract_images")
+MAP_LABELER_BIN = os.path.join(
+    CATKIN_WS, "build/inspection/inspection_label_map")
 
 
 def setup_logger():
@@ -182,6 +184,47 @@ def run_image_extractor(config: str, output_path: str, dataset_number: int):
     os.system(cmd)
 
 
+def run_map_labeler(config: str, output_path: str):
+    if not config["run_map_labeler"]:
+        logger.info("skipping map map")
+        return
+
+    print("\n------------------------------------")
+    print("------- Running Map Labeler --------")
+    print("------------------------------------\n")
+    image_extractor_output = os.path.join(
+        output_path, IMAGE_EXTRACTOR_FOLDER)
+    cameras_path = os.path.join(image_extractor_output, "CameraListNew.json")
+    logger.info(f"reading cameras list: {cameras_path}")
+    file_cameras = open(cameras_path)
+    cameras_json = json.load(file_cameras)
+    file_cameras.close()
+    images_filename = cameras_json["ImagesFilename"]
+    image_extractor_output_path = os.path.join(
+        output_path, IMAGE_EXTRACTOR_FOLDER)
+    labeler_output_path = os.path.join(output_path, MAP_LABELER_FOLDER)
+    for camera in cameras_json["Cameras"]:
+        logger.info(f"running map labeler on camera {camera}")
+        map_builder_output = os.path.join(output_path, MAP_BUILDER_FOLDER)
+        map_path = os.path.join(map_builder_output, "map.pcd")
+        poses_path = os.path.join(map_builder_output, "final_poses.json")
+        extrinsics = os.path.join(
+            INSPECTION_EXTRINSICS_PATH, "extrinsics.json")
+        config_path = os.path.join(PIPELINE_INPUTS, "map_labeler_config.json")
+        camera_path = os.path.join(image_extractor_output_path, camera)
+        images_path = os.path.join(camera_path, images_filename + ".json")
+        camera_labeler_output = os.path.join(labeler_output_path, camera)
+        os.makedirs(camera_labeler_output, exist_ok=True)
+        cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=false -output_camera_poses=true "
+        cmd += "-output_images=true -output_individual_clouds=true -remove_unlabeled=false "
+        cmd += "-save_final_map=true -draw_final_map=false "
+        cmd += f"-images {images_path} -map {map_path} -poses {poses_path} -config {config_path} "
+        cmd += f"-intrinsics {INSPECTION_INTRINSICS_PATH} -extrinsics {extrinsics} "
+        cmd += f"-output {camera_labeler_output}"
+        logger.info("running command: %s", cmd)
+        os.system(cmd)
+
+
 def run(dataset_number: int):
     config = load_config()
     if dataset_number > (len(config["datasets"]) - 1):
@@ -198,6 +241,7 @@ def run(dataset_number: int):
     run_map_refinement(config, output_path)
     run_map_builder(config, output_path, dataset_number)
     run_image_extractor(config, output_path, dataset_number)
+    run_map_labeler(config, output_path)
 
     logger.info("run_all.py pipeline completed successfully")
 

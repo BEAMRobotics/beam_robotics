@@ -27,6 +27,6 @@
     "run_slam": false,
     "run_map_refinement": false,
     "run_map_builder": false,
-    "run_image_extractor": true,
-    "run_map_labeler": false
+    "run_image_extractor": false,
+    "run_map_labeler": true
 }

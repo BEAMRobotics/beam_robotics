@@ -17,12 +17,13 @@ Camera::Camera(const std::string& camera_name,
                const std::string& colorizer_type,
                const std::vector<std::string>& selected_images)
     : name(camera_name), intrinsics_path(intrinsics_filename) {
-  BEAM_DEBUG("Creating camera: {}", name);
+  BEAM_INFO("Creating camera: {}", name);
   cam_model = beam_calibration::CameraModel::Create(intrinsics_path);
 
   nlohmann::json J;
+  BEAM_INFO("reading images from {}", images_filepath);
   if (!beam::ReadJson(images_filepath, J)) {
-    BEAM_CRITICAL("cannot images list file: {}", images_filepath);
+    BEAM_CRITICAL("cannot find images list file: {}", images_filepath);
     throw std::runtime_error{"invalid images list metadata file path"};
   }
 

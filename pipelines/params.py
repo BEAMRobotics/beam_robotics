@@ -43,6 +43,7 @@ MAP_BUILDER_FOLDER = "map_builder"
 GLOBAL_MAPPER_RESULTS = "global_map_results"
 GLOBAL_MAP_REFINEMENT_RESULTS = "global_map_refined_results"
 IMAGE_EXTRACTOR_FOLDER = "image_extractor"
+MAP_LABELER_FOLDER = "map_labeler"
 
 # Filenames
 SLAM_BAG_FILE = "data.bag"
