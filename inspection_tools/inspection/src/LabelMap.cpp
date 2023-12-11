@@ -6,7 +6,9 @@
 #include <inspection/InspectionUtils.h>
 #include <inspection/MapLabeler.h>
 
-DEFINE_string(images, "", "Full path cameras json listing each camera image list to read. (Required)");
+DEFINE_string(images, "",
+              "Full path cameras json listing each camera image list to read. "
+              "(Required)");
 DEFINE_validator(images, &beam::gflags::ValidateDirMustExist);
 DEFINE_string(output, "", "Full path to output folder of labeled. (Required)");
 DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);
@@ -60,7 +62,7 @@ int main(int argc, char* argv[]) {
     config_path = FLAGS_config;
   }
 
-  MapLabeler::Inputs inputs{.images_directory = FLAGS_images,
+  MapLabeler::Inputs inputs{.cameras_json_path = FLAGS_images,
                             .map = FLAGS_map,
                             .poses = FLAGS_poses,
                             .intrinsics_directory = FLAGS_intrinsics,

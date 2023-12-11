@@ -19,7 +19,7 @@
 namespace inspection {
 
 void MapLabeler::Inputs::Print() const {
-  BEAM_INFO("Images directory: {}", images_directory);
+  BEAM_INFO("Cameras list: {}", cameras_json_path);
   BEAM_INFO("Map file path: {}", map);
   BEAM_INFO("Poses file path: {}", poses);
   BEAM_INFO("Intrinsics root folder: {}", intrinsics_directory);
@@ -123,9 +123,7 @@ std::unordered_map<std::string, DefectCloudsMapType>
   }
 
   std::unordered_map<std::string, DefectCloudsMapType> defect_clouds_in_cam;
-  for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
-    const Camera& cam = cameras_[cam_index];
-
+  for (const Camera& cam : cameras_) {
     // create dummy projection to check map points viewable by each image
     beam_colorize::Projection projection_colorizer;
     projection_colorizer.SetIntrinsics(cam.cam_model);
@@ -326,21 +324,17 @@ void MapLabeler::ProcessJSONConfig() {
   if (!beam::ReadJson(inputs_.config_file_location, J)) {
     throw std::runtime_error{"invalid config file path"};
   }
+  beam::ValidateJsonKeysOrThrow({"depth_enhancement", "final_map_name",
+                                 "cloud_combiner", "colorizer", "cameras"},
+                                J);
 
-  nlohmann::json cameras_json;
-  try {
-    depth_enhancement_ = J.at("depth_enhancement");
-    final_map_name_ = J.at("final_map_name");
-    cloud_combiner_type_ = J.at("cloud_combiner");
-    colorizer_type_ = J.at("colorizer");
-    nlohmann::json tmp = J.at("cameras");
-    cameras_json = tmp;
-  } catch (nlohmann::json::exception& e) {
-    BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
-                  e.id);
-  }
+  depth_enhancement_ = J.at("depth_enhancement");
+  final_map_name_ = J.at("final_map_name");
+  cloud_combiner_type_ = J.at("cloud_combiner");
+  colorizer_type_ = J.at("colorizer");
+  std::vector<nlohmann::json> cameras_json = J.at("cameras");
 
-  BEAM_INFO("Images path: {}", inputs_.images_directory);
+  BEAM_INFO("Cameras json path: {}", inputs_.cameras_json_path);
   BEAM_INFO("Map path: {}", inputs_.map);
   BEAM_INFO("Poses path: {}", inputs_.poses);
   BEAM_INFO("Extrinsics: {}", inputs_.extrinsics);
@@ -348,9 +342,8 @@ void MapLabeler::ProcessJSONConfig() {
   BEAM_INFO("Colorizer type: {}", colorizer_type_);
   BEAM_INFO("Creating {} camera objects for labeling...", cameras_json.size());
 
-  cameras_ = LoadCameras(cameras_json, inputs_.images_directory,
+  cameras_ = LoadCameras(cameras_json, inputs_.cameras_json_path,
                          inputs_.intrinsics_directory, colorizer_type_);
-
   BEAM_INFO("Successfully loaded config");
 }
 

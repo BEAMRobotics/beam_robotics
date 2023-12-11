@@ -32,7 +32,7 @@ struct DefectCloudStats {
 class MapLabeler {
 public:
   struct Inputs {
-    std::string images_directory;
+    std::string cameras_json_path;
     std::string map;
     std::string poses;
     std::string intrinsics_directory;

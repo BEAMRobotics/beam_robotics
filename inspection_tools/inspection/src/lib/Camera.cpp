@@ -1,6 +1,6 @@
 #include <inspection/Camera.h>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <beam_utils/filesystem.h>
 
@@ -37,7 +37,7 @@ Camera::Camera(const std::string& camera_name,
     BEAM_INFO("loading selected {} image IDs", image_list.size());
   }
 
-  boost::filesystem::path p(images_filepath);
+  std::filesystem::path p(images_filepath);
   std::string save_path = p.parent_path().string();
   for (const std::string& image_name : image_list) {
     images.push_back(Image(beam::CombinePaths(save_path, image_name)));
@@ -73,44 +73,63 @@ void Camera::FillPoses(const beam_calibration::TfTree& extinsics_tree,
   }
 }
 
-std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json_list,
-                                const std::string& images_directory,
-                                const std::string& intrinsics_directory,
-                                const std::string& colorizer_type) {
+std::vector<Camera>
+    LoadCameras(const std::vector<nlohmann::json>& camera_config_json_list,
+                const std::string& cameras_json_path,
+                const std::string& intrinsics_directory,
+                const std::string& colorizer_type) {
+  std::string cameras_directory =
+      std::filesystem::path(cameras_json_path).parent_path().string();
+
+  BEAM_INFO("reading  cameras list from: {} ", cameras_json_path);
+  nlohmann::json J;
+  if (!beam::ReadJson(cameras_json_path, J)) {
+    throw std::runtime_error{"invalid json file path"};
+  }
+  beam::ValidateJsonKeysOrThrow({"Cameras", "ImagesFilename"}, J);
+  std::set<std::string> camera_names_from_json;
+  std::vector<std::string> camera_names_from_json_v = J["Cameras"];
+  for (const auto& v : camera_names_from_json_v) {
+    camera_names_from_json.emplace(v);
+  }
+  std::string images_filename = J["ImagesFilename"];
+
   std::vector<Camera> cameras;
   for (const auto& camera_config_json : camera_config_json_list) {
-    bool camera_enabled;
-    std::string instrinsics_filename;
-    std::vector<std::string> selected_images;
-    std::string camera_name;
+    beam::ValidateJsonKeysOrThrow(
+        {"Enabled", "Intrinsics", "SelectedImages", "Name"},
+        camera_config_json);
 
-    try {
-      bool tmp = camera_config_json.at("Enabled");
-      camera_enabled = tmp;
-      std::string tmp2 = camera_config_json.at("Intrinsics");
-      instrinsics_filename = tmp2;
-      std::vector<std::string> tmp3 = camera_config_json.at("SelectedImages");
-      selected_images = tmp3;
-      std::string tmp5 = camera_config_json.at("Name");
-      camera_name = tmp5;
-    } catch (nlohmann::json::exception& e) {
-      BEAM_CRITICAL("Error processing JSON file: Message {}, ID: {}", e.what(),
-                    e.id);
+    std::string camera_name = camera_config_json.at("Name");
+
+    if (camera_names_from_json.find(camera_name) ==
+        camera_names_from_json.end()) {
+      BEAM_ERROR("Camera {} from map labeler config is not available in "
+                 "cameras list file: {}",
+                 camera_name, cameras_json_path);
+      throw std::runtime_error{"inconsistent json files"};
     }
-
-    std::string instrinsics_path =
-        intrinsics_directory + "/" + instrinsics_filename;
-
+    bool camera_enabled = camera_config_json.at("Enabled");
     if (!camera_enabled) {
       BEAM_INFO("skipping camera with name {} as it's set to disabled.",
                 camera_name);
       continue;
     }
 
+    std::string instrinsics_filename = camera_config_json.at("Intrinsics");
+    std::string instrinsics_path =
+        beam::CombinePaths(intrinsics_directory, instrinsics_filename);
+    std::vector<std::string> selected_images =
+        camera_config_json.at("SelectedImages");
     if (selected_images.empty() || selected_images[0] == "All") {
       selected_images = std::vector<std::string>();
     }
-    cameras.push_back(Camera(camera_name, instrinsics_path, images_directory,
+
+    std::string camera_path =
+        beam::CombinePaths(cameras_directory, camera_name);
+    std::string images_list_json =
+        beam::CombinePaths(camera_path, images_filename + ".json");
+    cameras.push_back(Camera(camera_name, instrinsics_path, images_list_json,
                              colorizer_type, selected_images));
   }
 

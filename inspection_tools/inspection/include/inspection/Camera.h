@@ -28,9 +28,7 @@ struct Camera {
    * @param camera_name ID of camera being instantiated (e.g., "F1",
    * @param intrinsics_filename Path to folder containing all camera
    * intrinsics files (e.g., .../calibrations/)
-   * @param images_directory Path to root folder containing CameraList.json
-   * (e.g.,
-   * .../inspection/images)
+   * @param images_filepath Path to json file with images list
    * @param colorizer_type type of colorizer to use (e.g., Override)
    * @param selected_images vector of image names to use for map labeling. These
    * filenames must match the image container folder name. (e.g., ImageBridge1,
@@ -38,7 +36,7 @@ struct Camera {
    * in the ImageList.json
    */
   Camera(const std::string& camera_name, const std::string& intrinsics_filename,
-         const std::string& images_directory, const std::string& colorizer_type,
+         const std::string& images_filepath, const std::string& colorizer_type,
          const std::vector<std::string>& selected_images =
              std::vector<std::string>());
 
@@ -79,14 +77,15 @@ struct Camera {
  *
  * @param camera_config_json list of json objects having the fields: Name,
  * Intrinsics, Enabled, SelectedImages
- * @param images_directory
+ * @param cameras_directory
  * @param intrinsics_directory
  * @param colorizer_type
  * @return std::vector<Camera>
  */
-std::vector<Camera> LoadCameras(const nlohmann::json& camera_config_json,
-                                const std::string& images_directory,
-                                const std::string& intrinsics_directory,
-                                const std::string& colorizer_type);
+std::vector<Camera>
+    LoadCameras(const std::vector<nlohmann::json>& camera_config_json,
+                const std::string& cameras_json_path,
+                const std::string& intrinsics_directory,
+                const std::string& colorizer_type);
 
 } // namespace inspection
