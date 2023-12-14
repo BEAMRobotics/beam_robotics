@@ -15,7 +15,7 @@
     {
       "Name": "F2_link",
       "Intrinsics": "F2.json",
-      "Enabled": false,
+      "Enabled": true,
       "SelectedImages": [
         "All"
       ]
@@ -23,7 +23,7 @@
     {
       "Name": "F3_link",
       "Intrinsics": "F3.json",
-      "Enabled": false,
+      "Enabled": true,
       "SelectedImages": [
         "All"
       ]
@@ -31,7 +31,7 @@
     {
       "Name": "F4_link",
       "Intrinsics": "F4.json",
-      "Enabled": false,
+      "Enabled": true,
       "SelectedImages": [
         "All"
       ]

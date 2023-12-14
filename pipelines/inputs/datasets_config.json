@@ -19,14 +19,20 @@
             "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
             "start_time_s": 5,
             "end_time_s": 30
+        },
+        {
+            "path": "/userhome/data/2021_10_07_09_38_36_ParkStBridge/",
+            "start_time_s": 15,
+            "end_time_s": 130
         }
     ],
     "rosbag_play_rate": 0.5,
     "local_mapper_config": "lio.yaml",
     "global_mapper_config": "global_mapper.yaml",
-    "run_slam": false,
-    "run_map_refinement": false,
-    "run_map_builder": false,
-    "run_image_extractor": false,
+    "run_slam": true,
+    "run_map_refinement": true,
+    "run_map_builder": true,
+    "run_image_extractor": true,
+    "run_image_selection": true,
     "run_map_labeler": true
 }

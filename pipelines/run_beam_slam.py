@@ -141,12 +141,14 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float,
     rosbag_play_node_process = run_rosbag_play(bag_file, start_time, rate)
     rosbag_record_node_process = run_rosbag_record(output_dir)
 
-    start_time = rospy.get_rostime()
-    end_time_at_run_rate = end_time / rate
+    bag_start_time = rospy.get_rostime().to_sec()
+    end_time_at_run_rate = bag_start_time + end_time / rate
     while (True):
-        if end_time != -1 and (rospy.get_rostime() - start_time).to_sec() < end_time_at_run_rate:
-            logger.info(
-                "time elapsed exceeded user input (%s), exiting", end_time)
+        if end_time != -1:
+            if rospy.get_rostime().to_sec() - bag_start_time > end_time_at_run_rate:
+                logger.info(
+                    "time elapsed exceeded user input (%s), exiting", end_time)
+                break
         if not slam_lm_node_process.is_alive():
             logger.error("SLAM local mapper node shutdown, exiting")
             break
