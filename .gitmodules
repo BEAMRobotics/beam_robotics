@@ -19,3 +19,6 @@
 [submodule "mapping/vlma"]
 	path = mapping/vlma
 	url = git@github.com:jakemclaughlin6/vlma.git
+[submodule "inspection_tools/camera_to_map_calibrator"]
+	path = inspection_tools/camera_to_map_calibrator
+	url = https://github.com/nickcharron/camera_to_map_calibrator.git
