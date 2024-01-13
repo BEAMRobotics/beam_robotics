@@ -1,6 +1,5 @@
 {
   "final_map_name": "combined_cloud.pcd",
-  "cloud_combiner": "Override",
   "depth_enhancement": true,
   "colorizer": "RayTrace",
   "cameras": [

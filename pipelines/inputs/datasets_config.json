@@ -29,10 +29,10 @@
     "rosbag_play_rate": 0.5,
     "local_mapper_config": "lio.yaml",
     "global_mapper_config": "global_mapper.yaml",
-    "run_slam": true,
-    "run_map_refinement": true,
+    "run_slam": false,
+    "run_map_refinement": false,
     "run_map_builder": true,
-    "run_image_extractor": true,
-    "run_image_selection": true,
-    "run_map_labeler": true
+    "run_image_extractor": false,
+    "run_image_selection": false,
+    "run_map_labeler": false
 }

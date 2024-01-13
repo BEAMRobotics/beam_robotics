@@ -271,7 +271,6 @@ void MapLabeler::PrintConfiguration() const {
   inputs_.Print();
 
   BEAM_INFO("Colorizer type: {}", colorizer_type_);
-  BEAM_INFO("Strategy for combining clouds: {}", cloud_combiner_type_);
   BEAM_INFO("Saving final map to: {}", final_map_name_);
   BEAM_INFO("Run depth enhancement: {}", depth_enhancement_ ? "True" : "False");
 
@@ -324,13 +323,11 @@ void MapLabeler::ProcessJSONConfig() {
   if (!beam::ReadJson(inputs_.config_file_location, J)) {
     throw std::runtime_error{"invalid config file path"};
   }
-  beam::ValidateJsonKeysOrThrow({"depth_enhancement", "final_map_name",
-                                 "cloud_combiner", "colorizer", "cameras"},
-                                J);
+  beam::ValidateJsonKeysOrThrow(
+      {"depth_enhancement", "final_map_name", "colorizer", "cameras"}, J);
 
   depth_enhancement_ = J.at("depth_enhancement");
   final_map_name_ = J.at("final_map_name");
-  cloud_combiner_type_ = J.at("cloud_combiner");
   colorizer_type_ = J.at("colorizer");
   std::vector<nlohmann::json> cameras_json = J.at("cameras");
 

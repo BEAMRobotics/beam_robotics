@@ -242,7 +242,6 @@ private:
   std::string colorizer_type_{"Projection2"};
   bool depth_enhancement_{false};
   std::string final_map_name_{"final_map.pcd"};
-  std::string cloud_combiner_type_{"Override"};
 
   // params only tunable here
   double frustum_lengh_{1};

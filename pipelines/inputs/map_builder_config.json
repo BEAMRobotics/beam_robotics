@@ -7,8 +7,8 @@
   "lidar_type": "VELODYNE",
   "3d_sensor_data": [
     {
-      "topic": "/lidar_v/velodyne_points",
-      "frame": "lidar_v_link",
+      "topic": "/lidar_h/velodyne_points",
+      "frame": "lidar_h_link",
       "use_cropbox": true,
       "remove_outside_points": true,
       "cropbox_min": [

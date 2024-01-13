@@ -22,3 +22,6 @@
 [submodule "inspection_tools/camera_to_map_calibrator"]
 	path = inspection_tools/camera_to_map_calibrator
 	url = https://github.com/nickcharron/camera_to_map_calibrator.git
+[submodule "inspection_tools/lidar_to_lidar_calibrator"]
+	path = inspection_tools/lidar_to_lidar_calibrator
+	url = git@github.com:nickcharron/lidar_to_lidar_calibrator.git
