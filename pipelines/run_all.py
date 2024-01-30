@@ -19,6 +19,7 @@ IMAGE_SELECTOR_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_view_and_filter_images")
 MAP_LABELER_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_label_map")
+BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
 
 
 def setup_logger():
@@ -109,7 +110,7 @@ def run_map_refinement(config: Dict, output_path: str):
     cmd = f"{REFINEMENT_BIN} -calibration_yaml {calibration_yaml} "
     cmd += f"-globalmap_dir {global_map_dir} -output_path {refinement_output} "
     cmd += f"-refinement_config {refinement_config} -run_posegraph_optimization=true "
-    cmd += "-run_submap_alignment=true -run_submap_refinement=true"
+    cmd += "-run_submap_alignment=false -run_submap_refinement=false"
     logger.info("running command: %s", cmd)
     os.system(cmd)
 
@@ -137,6 +138,25 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
         PIPELINES_PATH, "run_map_builder.py")
     cmd = f"python3 {map_builder_script_path} -b {inspection_bag_path} -local_mapper_bag {local_mapper_bag} "
     cmd += f" -o {map_builder_output_path}"
+    logger.info("running command: %s", cmd)
+    os.system(cmd)
+
+
+def run_map_quality(config: Dict, output_path: str):
+    if not config["run_map_quality"]:
+        logger.info("skipping map quality")
+        return
+
+    print("\n------------------------------------")
+    print("------- Running Map Quality --------")
+    print("------------------------------------\n")
+
+    bin_path = os.path.join(BIN_PATH_MAP_QUALITY,
+                            "map_quality_run_map_quality_analysis")
+    map_builder_output_path = os.path.join(output_path, MAP_BUILDER_FOLDER)
+    map_path = os.path.join(map_builder_output_path, "map.pcd")
+    output_file = os.path.join(map_builder_output_path, "map_quality.json")
+    cmd = "{} --cloud {} --output {}".format(bin_path, map_path, output_file)
     logger.info("running command: %s", cmd)
     os.system(cmd)
 
@@ -248,6 +268,7 @@ def run(dataset_number: int):
     run_slam(config, output_path, dataset_number)
     run_map_refinement(config, output_path)
     run_map_builder(config, output_path, dataset_number)
+    run_map_quality(config, output_path)
     run_image_extractor(config, output_path, dataset_number)
     run_image_selection(config, output_path)
     run_map_labeler(config, output_path)

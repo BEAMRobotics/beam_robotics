@@ -11,7 +11,6 @@ uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 roslaunch.configure_logging(uuid)
 logger = logging.getLogger("RUN_MAP_BUILDER")
 BIN_PATH_MAP_BUILDER = "/userhome/catkin_ws/devel/lib/map_builder"
-BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
 
 
 def setup_logger(output_file: str):
@@ -30,7 +29,7 @@ def setup_logger(output_file: str):
 
 
 def parse_args(args) -> Any:
-    parser = argparse.ArgumentParser(description='Run SLAM')
+    parser = argparse.ArgumentParser(description='Run Map Builder')
     parser.add_argument(
         '-b', type=str, help='input bag file which contains the raw lidar data')
     parser.add_argument('-local_mapper_bag', type=str,
@@ -110,14 +109,6 @@ def build_map(poses_path: str, bag_file: str, output_dir: str):
     os.system(cmd)
 
 
-def run_map_quality_analysis(map_path: str, output_file: str):
-    bin_path = os.path.join(BIN_PATH_MAP_QUALITY,
-                            "map_quality_run_map_quality_analysis")
-    cmd = "{} --cloud {} --output {}".format(bin_path, map_path, output_file)
-    logger.info("running command: %s", cmd)
-    os.system(cmd)
-
-
 def run(bag_file: str, local_mapper_bag: str, output_dir: str):
     export_raw_slam_poses(type="JSON", topic="/local_mapper/graph_publisher/odom",
                           bag_file=local_mapper_bag, output_dir=output_dir, prefix="local_mapper_graph")
@@ -151,8 +142,6 @@ def run(bag_file: str, local_mapper_bag: str, output_dir: str):
 
     final_poses_path = os.path.join(output_dir, "final_poses.json")
     build_map(final_poses_path, bag_file, output_dir)
-    run_map_quality_analysis(os.path.join(
-        output_dir, "map.pcd"), os.path.join(output_dir, "map_quality.json"))
     logger.info("run_map_builder.py finished successfully!")
 
 
