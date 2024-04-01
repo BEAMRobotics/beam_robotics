@@ -35,6 +35,8 @@ def parse_args(args) -> Any:
     parser.add_argument('-local_mapper_bag', type=str,
                         help='path to bag which contains local mapper trajectories.')
     parser.add_argument('-o', type=str, help='full path to output directory')
+    parser.add_argument(
+        '-c', type=str, help='full path to config file for map builder')
     args = parser.parse_args()
     return args
 
@@ -97,19 +99,19 @@ def export_corrected_poses(type: str, poses_low_rate: str, poses_high_rate: str,
         os.system("mv " + p1 + " " + p2)
 
 
-def build_map(poses_path: str, bag_file: str, output_dir: str):
+def build_map(poses_path: str, bag_file: str, output_dir: str, config_path: str):
     extrinsics_path = os.path.join(
         INSPECTION_EXTRINSICS_PATH, "extrinsics.json")
 
     build_map_bin = os.path.join(BIN_PATH_MAP_BUILDER, "map_builder_build_map")
-    config_path = os.path.join(PIPELINE_INPUTS, "map_builder_config.json")
+
     cmd = "{} --bag_file {} --config_file {} --extrinsics {} --output_directory {} --pose_file {}".format(
         build_map_bin, bag_file, config_path, extrinsics_path, output_dir, poses_path)
     logger.info("Running command: %s", cmd)
     os.system(cmd)
 
 
-def run(bag_file: str, local_mapper_bag: str, output_dir: str):
+def run(bag_file: str, local_mapper_bag: str, output_dir: str, config_path: str):
     export_raw_slam_poses(type="JSON", topic="/local_mapper/graph_publisher/odom",
                           bag_file=local_mapper_bag, output_dir=output_dir, prefix="local_mapper_graph")
     export_raw_slam_poses(type="JSON", topic="/local_mapper/inertial_odometry/odometry",
@@ -141,7 +143,7 @@ def run(bag_file: str, local_mapper_bag: str, output_dir: str):
                            poses_high_rate, output_dir, "final")
 
     final_poses_path = os.path.join(output_dir, "final_poses.json")
-    build_map(final_poses_path, bag_file, output_dir)
+    build_map(final_poses_path, bag_file, output_dir, config_path)
     logger.info("run_map_builder.py finished successfully!")
 
 
@@ -155,4 +157,4 @@ if __name__ == "__main__":
 
     setup_logger(os.path.join(args.o, "run_map_builder_pipeline.log"))
 
-    run(args.b, args.local_mapper_bag, args.o)
+    run(args.b, args.local_mapper_bag, args.o, args.c)

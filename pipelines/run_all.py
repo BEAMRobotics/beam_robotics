@@ -89,7 +89,11 @@ def run_slam(config: Dict, output_path: str, dataset_number: int):
 
 
 def run_map_refinement(config: Dict, output_path: str):
-    if not config["run_map_refinement"]:
+    run_submap_refinement = config["map_refinement"]["run_submap_refinement"]
+    run_submap_alignment = config["map_refinement"]["run_submap_alignment"]
+    run_posegraph_optimization = config["map_refinement"]["run_posegraph_optimization"]
+    run_batch_optimizer = config["map_refinement"]["run_batch_optimizer"]
+    if not (run_posegraph_optimization or run_submap_alignment or run_submap_refinement or run_batch_optimizer):
         logger.info("skipping map refinement")
         return
 
@@ -109,8 +113,9 @@ def run_map_refinement(config: Dict, output_path: str):
     refinement_output = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     cmd = f"{REFINEMENT_BIN} -calibration_yaml {calibration_yaml} "
     cmd += f"-globalmap_dir {global_map_dir} -output_path {refinement_output} "
-    cmd += f"-refinement_config {refinement_config} -run_posegraph_optimization=true "
-    cmd += "-run_submap_alignment=false -run_submap_refinement=false"
+    cmd += f"-refinement_config {refinement_config} -run_posegraph_optimization={run_posegraph_optimization} "
+    cmd += f"-run_submap_alignment={run_submap_alignment} -run_submap_refinement={run_submap_refinement} "
+    cmd += f"-run_batch_optimizer={run_batch_optimizer}"
     logger.info("running command: %s", cmd)
     os.system(cmd)
 
@@ -134,9 +139,22 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
     slam_output = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     local_mapper_bag = os.path.join(slam_output, LOCAL_MAPPER_BAG_FILE)
 
+    config_filename = config["datasets"][dataset_number]["map_builder_config_filename"]
+    config_path = os.path.join(PIPELINE_INPUTS, config_filename)
+    if len(config_filename) == 0 or config_filename == "DEFAULT":
+        config_path = os.path.join(
+            PIPELINE_INPUTS, "map_builder_config_default.json")
+        logger.info(f"Using default map builder config file: {config_path}")
+    else:
+        logger.info(f"Using custom map builder config file: {config_path}")
+
+    if not os.path.exists(config_path):
+        logger.error(f"invalid config path")
+        raise Exception("invalid config path")
+
     map_builder_script_path = os.path.join(
         PIPELINES_PATH, "run_map_builder.py")
-    cmd = f"python3 {map_builder_script_path} -b {inspection_bag_path} -local_mapper_bag {local_mapper_bag} "
+    cmd = f"python3 {map_builder_script_path} -b {inspection_bag_path} -local_mapper_bag {local_mapper_bag} -c {config_path}"
     cmd += f" -o {map_builder_output_path}"
     logger.info("running command: %s", cmd)
     os.system(cmd)
