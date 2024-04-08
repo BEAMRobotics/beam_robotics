@@ -111,7 +111,7 @@ def build_map(poses_path: str, bag_file: str, output_dir: str, config_path: str)
     os.system(cmd)
 
 
-def run(bag_file: str, local_mapper_bag: str, output_dir: str, config_path: str):
+def run(bag_file: str, local_mapper_bag: str, output_dir: str, config_path: str, use_refined_results: bool = True):
     export_raw_slam_poses(type="JSON", topic="/local_mapper/graph_publisher/odom",
                           bag_file=local_mapper_bag, output_dir=output_dir, prefix="local_mapper_graph")
     export_raw_slam_poses(type="JSON", topic="/local_mapper/inertial_odometry/odometry",
@@ -133,6 +133,9 @@ def run(bag_file: str, local_mapper_bag: str, output_dir: str, config_path: str)
     slam_output_path = Path(local_mapper_bag).parent
     global_map_ref_path = os.path.join(
         slam_output_path, GLOBAL_MAP_REFINEMENT_RESULTS)
+    if not use_refined_results:
+        global_map_ref_path = os.path.join(
+            slam_output_path, GLOBAL_MAPPER_RESULTS)
     poses_low_rate = os.path.join(
         global_map_ref_path, "global_map_trajectory_optimized.json")
 

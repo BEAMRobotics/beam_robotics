@@ -1,0 +1,62 @@
+{
+  "intermediary_map_size": 10,
+  "min_translation_m": 0.1,
+  "min_rotation_deg": 5,
+  "combine_sensor_data": false,
+  "deskew_scans": true,
+  "lidar_type": "VELODYNE",
+  "3d_sensor_data": [
+    {
+      "topic": "/lidar_v/velodyne_points",
+      "frame": "lidar_v_link",
+      "use_cropbox": true,
+      "remove_outside_points": true,
+      "cropbox_min": [
+        -8,
+        -8,
+        -8
+      ],
+      "cropbox_max": [
+        8,
+        8,
+        8
+      ]
+    }
+  ],
+  "input_filters": [
+    {
+      "filter_type": "CROPBOX",
+      "min": [
+        -0.6,
+        -0.5,
+        -0.5
+      ],
+      "max": [
+        0.6,
+        0.5,
+        0.5
+      ],
+      "remove_outside_points": false
+    }
+  ],
+  "intermediary_filters": [
+    {
+      "filter_type": "VOXEL",
+      "cell_size": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    }
+  ],
+  "output_filters": [
+    {
+      "filter_type": "VOXEL",
+      "cell_size": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    }
+  ]
+}

@@ -39,9 +39,9 @@
         "run_submap_refinement": false,
         "run_submap_alignment": false,
         "run_posegraph_optimization": false,
-        "run_batch_optimizer": true
+        "run_batch_optimizer": false
     },
-    "run_map_builder": false,
+    "run_map_builder": true,
     "run_map_quality": false,
     "run_image_extractor": false,
     "run_image_selection": false,
