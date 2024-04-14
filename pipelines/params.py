@@ -28,8 +28,11 @@ INSPECTION_CALIBRATION_PATH = os.path.join(
     BEAM_CALIBRATION_RESULTS_PATH, "inspector_gadget2/current")
 INSPECTION_INTRINSICS_PATH = os.path.join(
     INSPECTION_CALIBRATION_PATH, "intrinsics")
-INSPECTION_EXTRINSICS_PATH = os.path.join(
-    INSPECTION_CALIBRATION_PATH, "extrinsics")
+
+# TODO Update all extrinsics to point to the same. Note one in beam_robotics/calibration is bad!
+# INSPECTION_EXTRINSICS_PATH = os.path.join(
+#     INSPECTION_CALIBRATION_PATH, "extrinsics")
+INSPECTION_EXTRINSICS_PATH = os.path.join(BS_CALIB_FILES_PATH, "ig2")
 
 CATKIN_WS = "/userhome/catkin_ws"
 
