@@ -1,0 +1,27 @@
+{
+  "max_iterations": 15,
+  "files": {
+    "mapping/beam_slam/beam_slam_launch/config/global_map/global_map_refinement.json": [
+      {
+        "parameter": "batch_optimizer/lc_max_per_query_scan",
+        "min": 5,
+        "max": 35,
+        "increment": 5
+      },
+      {
+        "parameter": "batch_optimizer/lc_dist_thresh_m",
+        "min": 3,
+        "max": 10,
+        "increment": 1
+      }
+    ],
+    "mapping/beam_slam/beam_slam_launch/config/registration/multi_scan_slow.json": [
+      {
+        "parameter": "num_neighbors",
+        "min": 5,
+        "max": 15,
+        "increment": 2
+      }
+    ]
+  }
+}

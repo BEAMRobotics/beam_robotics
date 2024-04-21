@@ -7,6 +7,7 @@ from typing import Any, Dict
 import shutil
 
 from utils import start_ros_master, start_calibration_publisher
+from hyperparameter_tuning import HyperParamTuning
 from params import *
 
 logger = logging.getLogger("RUN_ALL")
@@ -22,7 +23,7 @@ MAP_LABELER_BIN = os.path.join(
 BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
 
 
-def setup_logger():
+def setup_logger(output_file: str):
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '[%(levelname)s] %(asctime)s-%(name)s: %(message)s')
@@ -30,6 +31,11 @@ def setup_logger():
     handler1.setLevel(logging.DEBUG)
     handler1.setFormatter(formatter)
     logger.addHandler(handler1)
+    if output_file:
+        handler2 = logging.FileHandler(output_file)
+        handler2.setLevel(logging.DEBUG)
+        handler2.setFormatter(formatter)
+        logger.addHandler(handler2)
 
 
 def parse_args(args) -> Any:
@@ -118,6 +124,7 @@ def run_map_refinement(config: Dict, output_path: str):
     cmd += f"-run_batch_optimizer={run_batch_optimizer}"
     logger.info("running command: %s", cmd)
     os.system(cmd)
+    rosmaster.shutdown()
 
 
 def run_map_builder(config: Dict, output_path: str, dataset_number: int):
@@ -215,7 +222,7 @@ def run_image_extractor(config: str, output_path: str, dataset_number: int):
     image_extractor_config_out = os.path.join(
         img_extractor_output, "image_extractor_config.json")
     with open(image_extractor_config_out, "w") as outfile:
-        json.dump(j, outfile)
+        json.dump(j, outfile, indent=4)
     f.close()
 
     cmd = f"{IMAGE_EXTRACTOR_BIN} -bag {bag_path} -config {image_extractor_config_out} "
@@ -279,9 +286,32 @@ def run(dataset_number: int):
 
     dataset_path = config["datasets"][dataset_number]["path"]
     output_path = os.path.join(dataset_path, RESULTS_FOLDER)
+
+    log_path = os.path.join(output_path, "run_all_pipeline.log")
+    setup_logger(log_path)
+
     if not os.path.exists(output_path):
         logger.info("creating output directory: %s", output_path)
         os.mkdir(output_path)
+
+    if config["run_hyperparameter_tuning"]:
+        if not config["run_map_quality"]:
+            logger.warning(
+                "Turning on run_map_quality which is needed for Hyper Parameter Tuning")
+            config["run_map_quality"] = True
+        if not config["run_map_builder"]:
+            logger.warning(
+                "Turning on run_map_builder which is needed for Hyper Parameter Tuning")
+            config["run_map_builder"] = True
+
+        param_tuning = HyperParamTuning(output_path)
+
+        while param_tuning.next():
+            run_slam(config, output_path, dataset_number)
+            run_map_refinement(config, output_path)
+            run_map_builder(config, output_path, dataset_number)
+            run_map_quality(config, output_path)
+        param_tuning.set_best_parameters()
 
     run_slam(config, output_path, dataset_number)
     run_map_refinement(config, output_path)
@@ -290,11 +320,12 @@ def run(dataset_number: int):
     run_image_extractor(config, output_path, dataset_number)
     run_image_selection(config, output_path)
     run_map_labeler(config, output_path)
+    if config["run_hyperparameter_tuning"]:
+        param_tuning.cleanup()
 
     logger.info("run_all.py pipeline completed successfully")
 
 
 if __name__ == "__main__":
-    setup_logger()
     args = parse_args(sys.argv[1:])
     run(args.d)
