@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any, Dict
 import shutil
+import hashlib
 
 from utils import start_ros_master, start_calibration_publisher
 from hyperparameter_tuning import HyperParamTuning
@@ -21,6 +22,8 @@ IMAGE_SELECTOR_BIN = os.path.join(
 MAP_LABELER_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_label_map")
 BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
+
+trajectory_checksum = ""
 
 
 def setup_logger(output_file: str):
@@ -278,6 +281,36 @@ def run_map_labeler(config: str, output_path: str):
     os.system(cmd)
 
 
+def calculate_file_sha1(file_path: str) -> str:
+    sha1 = hashlib.sha1()
+    with open(file_path, "rb") as file:
+        chunk = file.read(4096)  # Read the file in 4KB chunks
+        while chunk:
+            sha1.update(chunk)
+            chunk = file.read(4096)
+
+    sha1_sum = sha1.hexdigest()
+    return sha1_sum
+
+
+def has_trajectory_changed(output_path: str) -> bool:
+    slam_output_path = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
+    global_map_ref_path = os.path.join(
+        slam_output_path, GLOBAL_MAPPER_RESULTS)
+    poses_low_rate = os.path.join(
+        global_map_ref_path, "global_map_trajectory_optimized.json")
+    sha1_sum = calculate_file_sha1(poses_low_rate)
+    global trajectory_checksum
+    if sha1_sum == trajectory_checksum:
+        logger.warning(
+            "trajectory hasn't changed from the last iteration. Did map refinement crash?")
+        return False
+    else:
+        trajectory_checksum = sha1_sum
+        logger.info(f"setting trajectory checksum to: {trajectory_checksum}")
+        return True
+
+
 def run(dataset_number: int):
     config = load_config()
     if dataset_number > (len(config["datasets"]) - 1):
@@ -309,6 +342,10 @@ def run(dataset_number: int):
         while param_tuning.next():
             run_slam(config, output_path, dataset_number)
             run_map_refinement(config, output_path)
+            if not has_trajectory_changed(output_path):
+                param_tuning.mark_as_failed()
+                continue
+
             run_map_builder(config, output_path, dataset_number)
             run_map_quality(config, output_path)
         param_tuning.set_best_parameters()

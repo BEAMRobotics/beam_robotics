@@ -67,6 +67,7 @@ class HyperParamTuning:
         self.rnd_gen = random
         self.rnd_gen.seed()
         self.selected_parameters = None
+        self.iteration_failed = False
 
     def next(self) -> bool:
         if self.selected_parameters is not None:
@@ -85,6 +86,9 @@ class HyperParamTuning:
         self.__apply_selected_parameters()
         return True
 
+    def mark_as_failed(self):
+        self.iteration_failed = True
+
     def set_best_parameters(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True):
         self.__backup_config_files()
 
@@ -99,6 +103,11 @@ class HyperParamTuning:
 
         best_iter = "-1"
         for iter_str, results in self.results.items():
+            if results["map_quality"] is None:
+                logger.warn(
+                    f"skipping iter {iter_str} which was not successful")
+                continue
+
             value = results["map_quality"][parameter_key]
             if lower_is_better and value < best_value:
                 best_value = value
@@ -227,9 +236,16 @@ class HyperParamTuning:
 
     def __store_results(self):
         logger.info(f"Storing results from iteration {self.iter}")
+        self.results[str(self.iter)] = {}
+
+        if self.iteration_failed:
+            self.results[str(self.iter)
+                         ]["parameters"] = self.selected_parameters
+            self.results[str(self.iter)]["map_quality"] = {}
+            self.iteration_failed = False
+
         map_quality_results_path = os.path.join(
             self.output_path, MAP_BUILDER_FOLDER, MAP_QUALITY_FILENAME)
-        self.results[str(self.iter)] = {}
         with open(map_quality_results_path, 'r') as f:
             results = json.load(f)
             self.results[str(self.iter)]["map_quality"] = results

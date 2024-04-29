@@ -34,15 +34,15 @@
     "rosbag_play_rate": 0.25,
     "local_mapper_config": "lio_slow.yaml",
     "global_mapper_config": "global_mapper.yaml",
-    "run_hyperparameter_tuning": true,
+    "run_hyperparameter_tuning": false,
     "run_slam": false,
     "map_refinement": {
         "run_submap_refinement": false,
         "run_submap_alignment": false,
         "run_posegraph_optimization": false,
-        "run_batch_optimizer": true
+        "run_batch_optimizer": false
     },
-    "run_map_builder": false,
+    "run_map_builder": true,
     "run_map_quality": false,
     "run_image_extractor": false,
     "run_image_selection": false,

@@ -5,9 +5,12 @@
   "combine_sensor_data": false,
   "deskew_scans": true,
   "octomap": {
-    "run_octomap_filter": false,
+    "run_octomap_filter": true,
     "resolution": 0.05,
-    "probability_threshold": 0.5
+    "probability_threshold": 0.5,
+    "estimate_lidar_non_returns": true,
+    "non_return_raytrace_d_min": 1.1,
+    "non_return_raytrace_d_max": 5
   },
   "lidar_type": "VELODYNE",
   "3d_sensor_data": [
