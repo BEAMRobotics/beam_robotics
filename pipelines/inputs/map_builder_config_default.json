@@ -1,14 +1,14 @@
 {
   "intermediary_map_size": 80,
-  "min_translation_m": 0.01,
-  "min_rotation_deg": 1,
+  "min_translation_m": 0.02,
+  "min_rotation_deg": 5,
   "combine_sensor_data": false,
   "deskew_scans": true,
   "octomap": {
-    "run_octomap_filter": true,
+    "run_octomap_filter": false,
     "resolution": 0.05,
     "probability_threshold": 0.5,
-    "estimate_lidar_non_returns": true,
+    "estimate_lidar_non_returns": false,
     "non_return_raytrace_d_min": 1.1,
     "non_return_raytrace_d_max": 5
   },
@@ -32,30 +32,8 @@
     }
   ],
   "input_filters": [
-    {
-      "filter_type": "CROPBOX",
-      "min": [
-        -0.6,
-        -0.5,
-        -0.5
-      ],
-      "max": [
-        0.6,
-        0.5,
-        0.5
-      ],
-      "remove_outside_points": false
-    }
   ],
   "intermediary_filters": [
-    {
-      "filter_type": "VOXEL",
-      "cell_size": [
-        0.03,
-        0.03,
-        0.03
-      ]
-    }
   ],
   "output_filters": []
 }

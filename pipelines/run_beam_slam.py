@@ -35,7 +35,7 @@ def parse_args(args) -> Any:
     parser.add_argument('-b', help='input bag file')
     parser.add_argument('-s', help='start time in s', type=float, default=1)
     parser.add_argument(
-        '-e', help='end time in s. Set to -1 to play till end of bag', type=float)
+        '-d', help='duration to play in s. Set to -1 to play till end of bag', type=float)
     parser.add_argument('-r', help='rosbag play rate', type=float, default=1)
     parser.add_argument(
         '-o', help='full path to output directory', type=str, default="")
@@ -124,7 +124,7 @@ def run_rosbag_record(output_dir: str):
     return process
 
 
-def run(bag_file: str, start_time: float, end_time: float, rate: float,
+def run(bag_file: str, start_time: float, duration: float, rate: float,
         local_mapper_params_filename: str, global_mapper_params_filename: str, output_dir: str):
     rosmaster = start_ros_master()
     start_calibration_publisher()
@@ -142,12 +142,12 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float,
     rosbag_record_node_process = run_rosbag_record(output_dir)
 
     bag_start_time = rospy.get_rostime().to_sec()
-    end_time_at_run_rate = bag_start_time + end_time / rate
+    end_time_at_run_rate = bag_start_time + duration / rate
     while (True):
-        if end_time != -1:
-            if rospy.get_rostime().to_sec() - bag_start_time > end_time_at_run_rate:
+        if duration != -1:
+            if rospy.get_rostime().to_sec() > end_time_at_run_rate:
                 logger.info(
-                    "time elapsed exceeded user input (%s), exiting", end_time)
+                    "time elapsed exceeded user input (%s), exiting", duration)
                 break
         if not slam_lm_node_process.is_alive():
             logger.error("SLAM local mapper node shutdown, exiting")
@@ -161,7 +161,11 @@ def run(bag_file: str, start_time: float, end_time: float, rate: float,
         if not rosbag_record_node_process.is_alive():
             logger.error("rosbag record shutdown, exiting")
             break
-
+    
+    slam_lm_node_process.stop()
+    slam_gm_node_process.stop()
+    rosbag_play_node_process.stop()
+    rosbag_record_node_process.stop()
     logger.info("run_beam_slam.py finished successfully!")
 
 
@@ -178,5 +182,5 @@ if __name__ == "__main__":
     else:
         setup_logger(os.path.join(args.o, "run_beam_slam_pipeline.log"))
 
-    run(args.b, args.s, args.e, args.r, args.local_mapper_config,
+    run(args.b, args.s, args.d, args.r, args.local_mapper_config,
         args.global_mapper_config, args.o)

@@ -72,7 +72,7 @@ def run_slam(config: Dict, output_path: str, dataset_number: int):
     global_mapper_config = config["global_mapper_config"]
     dataset_path = config["datasets"][dataset_number]["path"]
     start_time_s = config["datasets"][dataset_number]["start_time_s"]
-    end_time_s = config["datasets"][dataset_number]["end_time_s"]
+    duration_s = config["datasets"][dataset_number]["duration_s"]
 
     logger.info("processing dataset: %s", dataset_path)
 
@@ -89,8 +89,8 @@ def run_slam(config: Dict, output_path: str, dataset_number: int):
         os.mkdir(slam_output_path)
 
     slam_script_path = os.path.join(PIPELINES_PATH, "run_beam_slam.py")
-    cmd = "python3 {} -b {} -s {} -e {} -r {} -o {} -local_mapper_config {} -global_mapper_config {}".format(
-        slam_script_path, bag_path, start_time_s, end_time_s, rate,
+    cmd = "python3 {} -b {} -s {} -d {} -r {} -o {} -local_mapper_config {} -global_mapper_config {}".format(
+        slam_script_path, bag_path, start_time_s, duration_s, rate,
         slam_output_path, local_mapper_config, global_mapper_config
     )
     logger.info("running command: %s", cmd)

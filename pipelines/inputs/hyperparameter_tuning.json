@@ -1,5 +1,5 @@
 {
-  "max_iterations": 15,
+  "max_iterations": 20,
   "files": {
     "mapping/beam_slam/beam_slam_launch/config/global_map/global_map_refinement.json": [
       {
@@ -13,6 +13,12 @@
         "min": 3,
         "max": 10,
         "increment": 1
+      },
+      {
+        "parameter": "batch_optimizer/lc_scan_context_dist_thres",
+        "min": 0.3,
+        "max": 0.4,
+        "increment": 0.05
       }
     ],
     "mapping/beam_slam/beam_slam_launch/config/registration/multi_scan_slow.json": [
@@ -21,6 +27,14 @@
         "min": 5,
         "max": 15,
         "increment": 2
+      }
+    ],
+    "mapping/beam_slam/beam_slam_launch/config/matchers/loam_vlp16_slow.json": [
+      {
+        "parameter": "max_corner_sharp",
+        "min": 3,
+        "max": 5,
+        "increment": 1
       }
     ]
   }

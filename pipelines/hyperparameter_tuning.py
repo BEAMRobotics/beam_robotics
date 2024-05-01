@@ -230,7 +230,7 @@ class HyperParamTuning:
 
     def __sample_parameter(self, min: Any, max: Any, increment: Any) -> Any:
         num_increments = (max - min) / increment
-        increment_id = self.rnd_gen.randint(0, num_increments)
+        increment_id = self.rnd_gen.randint(0, int(num_increments))
         parameter = min + increment_id * increment
         return parameter
 

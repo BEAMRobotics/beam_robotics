@@ -2,32 +2,32 @@
     "datasets": [
         {
             "path": "/userhome/data/2021_10_27_14_22_19_StructuresLabHandheld/",
-            "start_time_s": 5,
-            "end_time_s": 30,
+            "start_time_s": 10,
+            "duration_s": 35,
             "map_builder_config_filename": "DEFAULT"
         },
         {
             "path": "/userhome/data/2021_10_27_16_21_54_ConestogoBridge/",
             "start_time_s": 5,
-            "end_time_s": 35,
+            "duration_s": 35,
             "map_builder_config_filename": "DEFAULT"
         },
         {
             "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
             "start_time_s": 5,
-            "end_time_s": -1,
+            "duration_s": -1,
             "map_builder_config_filename": "DEFAULT"
         },
         {
             "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
             "start_time_s": 5,
-            "end_time_s": 30,
+            "duration_s": 30,
             "map_builder_config_filename": "DEFAULT"
         },
         {
             "path": "/userhome/data/2021_10_07_09_38_36_ParkStBridge/",
             "start_time_s": 15,
-            "end_time_s": 130,
+            "duration_s": 130,
             "map_builder_config_filename": "DEFAULT"
         }
     ],
@@ -40,10 +40,10 @@
         "run_submap_refinement": false,
         "run_submap_alignment": false,
         "run_posegraph_optimization": false,
-        "run_batch_optimizer": false
+        "run_batch_optimizer": true
     },
     "run_map_builder": true,
-    "run_map_quality": false,
+    "run_map_quality": true,
     "run_image_extractor": false,
     "run_image_selection": false,
     "run_map_labeler": false
