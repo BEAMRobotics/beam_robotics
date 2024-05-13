@@ -198,11 +198,17 @@ void MapLabeler::LabelColor(
             img_time_ns, cam.name);
         continue;
       }
-      ProjectImgRGBToMap(camera_defects.at(img_time_ns), img, cam,
-                         remove_unlabeled);
-      BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
-                cam_index + 1, cameras_.size(), img_index + 1,
-                cam.images.size(), timer.elapsed());
+      if (camera_defects.at(img_time_ns)->empty()) {
+        BEAM_WARN(
+            "[Cam: {}/{}, Image: {}/{}] Could not color image due to empty map",
+            cam_index + 1, cameras_.size(), img_index + 1, cam.images.size());
+      } else {
+        ProjectImgRGBToMap(camera_defects.at(img_time_ns), img, cam,
+                           remove_unlabeled);
+        BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
+                  cam_index + 1, cameras_.size(), img_index + 1,
+                  cam.images.size(), timer.elapsed());
+      }
     }
   }
 }
@@ -388,7 +394,8 @@ void MapLabeler::SaveLabeledClouds(
     for (const auto& [timestamp, cloud_in_cam] : cam_defects) {
       if (cloud_in_cam->empty()) {
         BEAM_WARN("empty cloud detected (cam: {}, timestamp: {}) not "
-                  "outputting cloud");
+                  "outputting cloud",
+                  cam_name, timestamp);
         continue;
       }
 

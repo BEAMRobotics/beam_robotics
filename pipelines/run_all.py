@@ -7,7 +7,7 @@ from typing import Any, Dict
 import shutil
 import hashlib
 
-from utils import start_ros_master, start_calibration_publisher
+from utils import start_ros_master, start_calibration_publisher_with_file
 from hyperparameter_tuning import HyperParamTuning
 from params import *
 
@@ -111,7 +111,9 @@ def run_map_refinement(config: Dict, output_path: str):
     print("------------------------------------\n")
 
     rosmaster = start_ros_master()
-    start_calibration_publisher()
+    # start_calibration_publisher()
+    calibration_publisher_process = start_calibration_publisher_with_file(
+        EXTRINSICS_JSON_PATH)
 
     calibration_yaml = os.path.join(
         BS_CONFIG_FILES_PATH, "calibration_params.yaml")
@@ -127,6 +129,7 @@ def run_map_refinement(config: Dict, output_path: str):
     cmd += f"-run_batch_optimizer={run_batch_optimizer}"
     logger.info("running command: %s", cmd)
     os.system(cmd)
+    calibration_publisher_process.stop()
     rosmaster.shutdown()
 
 
@@ -155,6 +158,10 @@ def run_map_builder(config: Dict, output_path: str, dataset_number: int):
         config_path = os.path.join(
             PIPELINE_INPUTS, "map_builder_config_default.json")
         logger.info(f"Using default map builder config file: {config_path}")
+    elif config_filename == "HANDHELD":
+        config_path = os.path.join(
+            PIPELINE_INPUTS, "map_builder_config_handheld.json")
+        logger.info(f"Using handheld map builder config file: {config_path}")
     else:
         logger.info(f"Using custom map builder config file: {config_path}")
 
@@ -220,8 +227,8 @@ def run_image_extractor(config: str, output_path: str, dataset_number: int):
     f = open(image_extractor_config_in)
     j = json.load(f)
     logger.info(
-        f"overwriting intrinsics directory with: {INSPECTION_INTRINSICS_PATH}")
-    j["intrinsics_directory"] = INSPECTION_INTRINSICS_PATH
+        f"overwriting intrinsics directory with: {INTRINSICS_PATH}")
+    j["intrinsics_directory"] = INTRINSICS_PATH
     image_extractor_config_out = os.path.join(
         img_extractor_output, "image_extractor_config.json")
     with open(image_extractor_config_out, "w") as outfile:
@@ -235,16 +242,23 @@ def run_image_extractor(config: str, output_path: str, dataset_number: int):
 
 
 def run_image_selection(config: str, output_path: str):
+    img_extractor_output = os.path.join(output_path, IMAGE_EXTRACTOR_FOLDER)
+    camera_list = os.path.join(img_extractor_output, "CameraList.json")
+
     if not config["run_image_selection"]:
         logger.info("skipping image selection")
+        new_list_file = os.path.join(
+            img_extractor_output, "CameraListNew.json")
+        if not os.path.exists(new_list_file):
+            logger.info(
+                f"no CameraListNew file, copying from {camera_list} to {new_list_file}")
+            shutil.copyfile(camera_list, new_list_file)
         return
 
     print("\n------------------------------------")
     print("----- Running Image Selection ------")
     print("------------------------------------\n")
 
-    img_extractor_output = os.path.join(output_path, IMAGE_EXTRACTOR_FOLDER)
-    camera_list = os.path.join(img_extractor_output, "CameraList.json")
     cmd = f"{IMAGE_SELECTOR_BIN} -camera_list {camera_list} "
     cmd += f"-image_container_type IMAGE_BRIDGE "
     cmd += f"-images_filename selected_images "
@@ -268,14 +282,14 @@ def run_map_labeler(config: str, output_path: str):
     map_path = os.path.join(map_builder_output, "map.pcd")
     poses_path = os.path.join(map_builder_output, "final_poses.json")
     extrinsics = os.path.join(
-        INSPECTION_EXTRINSICS_PATH, "extrinsics.json")
+        EXTRINSICS_PATH, "extrinsics.json")
     config_path = os.path.join(PIPELINE_INPUTS, "map_labeler_config.json")
     os.makedirs(labeler_output_path, exist_ok=True)
     cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=false -output_camera_poses=true "
     cmd += "-output_images=true -output_individual_clouds=true -remove_unlabeled=false "
     cmd += "-save_final_map=true -draw_final_map=false "
     cmd += f"-images {cameras_path} -map {map_path} -poses {poses_path} -config {config_path} "
-    cmd += f"-intrinsics {INSPECTION_INTRINSICS_PATH} -extrinsics {extrinsics} "
+    cmd += f"-intrinsics {INTRINSICS_PATH} -extrinsics {extrinsics} "
     cmd += f"-output {labeler_output_path}"
     logger.info("running command: %s", cmd)
     os.system(cmd)

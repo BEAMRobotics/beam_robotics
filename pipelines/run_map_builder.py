@@ -101,7 +101,7 @@ def export_corrected_poses(type: str, poses_low_rate: str, poses_high_rate: str,
 
 def build_map(poses_path: str, bag_file: str, output_dir: str, config_path: str):
     extrinsics_path = os.path.join(
-        INSPECTION_EXTRINSICS_PATH, "extrinsics.json")
+        EXTRINSICS_PATH, "extrinsics.json")
 
     build_map_bin = os.path.join(BIN_PATH_MAP_BUILDER, "map_builder_build_map")
 

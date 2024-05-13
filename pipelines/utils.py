@@ -37,3 +37,21 @@ def start_calibration_publisher():
     logger_utils.info("running launch file: %s", launch_file_path)
     launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_file_path])
     launch.start()
+
+
+def start_calibration_publisher_with_file(filepath):
+    setup_logger()
+    logger_utils.info(
+        f"starting calibration publisher using filepath: {filepath}")
+    os.system(
+        "rosparam set /calibration_publisher_main/extrinsics_file_path " + filepath)
+    # os.system(
+    #     "rosparam set /calibration_publisher_main/robot_name " + "")
+    publisher_node = roslaunch.core.Node(
+        package='calibration_publisher', node_type='calibration_publisher_main',
+        name='calibration_publisher_main',
+        output='screen')
+    launch = roslaunch.scriptapi.ROSLaunch()
+    launch.start()
+    process = launch.launch(publisher_node)
+    return process

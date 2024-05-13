@@ -3,14 +3,14 @@
         {
             "path": "/userhome/data/2021_10_27_14_22_19_StructuresLabHandheld/",
             "start_time_s": 10,
-            "duration_s": 35,
-            "map_builder_config_filename": "DEFAULT"
+            "duration_s": 45,
+            "map_builder_config_filename": "HANDHELD"
         },
         {
             "path": "/userhome/data/2021_10_27_16_21_54_ConestogoBridge/",
             "start_time_s": 5,
-            "duration_s": 35,
-            "map_builder_config_filename": "DEFAULT"
+            "duration_s": 85,
+            "map_builder_config_filename": "HANDHELD"
         },
         {
             "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
@@ -22,7 +22,7 @@
             "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
             "start_time_s": 5,
             "duration_s": 30,
-            "map_builder_config_filename": "DEFAULT"
+            "map_builder_config_filename": "HANDHELD"
         },
         {
             "path": "/userhome/data/2021_10_07_09_38_36_ParkStBridge/",
@@ -32,10 +32,10 @@
         }
     ],
     "rosbag_play_rate": 0.25,
-    "local_mapper_config": "lio_slow.yaml",
+    "local_mapper_config": "lio.yaml",
     "global_mapper_config": "global_mapper.yaml",
     "run_hyperparameter_tuning": false,
-    "run_slam": false,
+    "run_slam": true,
     "map_refinement": {
         "run_submap_refinement": false,
         "run_submap_alignment": false,
@@ -44,7 +44,7 @@
     },
     "run_map_builder": true,
     "run_map_quality": true,
-    "run_image_extractor": false,
+    "run_image_extractor": true,
     "run_image_selection": false,
-    "run_map_labeler": false
+    "run_map_labeler": true
 }

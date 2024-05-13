@@ -1,7 +1,7 @@
 {
   "final_map_name": "combined_cloud.pcd",
   "depth_enhancement": false,
-  "colorizer": "Projection",
+  "colorizer": "Projection2",
   "cameras": [
     {
       "Name": "F1_link",

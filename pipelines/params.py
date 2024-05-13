@@ -20,25 +20,29 @@ def get_calibration_results_path() -> str:
 
 # Directories
 BEAM_SLAM_LAUNCH_PATH = rospkg.RosPack().get_path("beam_slam_launch")
-BEAM_CALIBRATION_RESULTS_PATH = get_calibration_results_path()
+
 BS_LAUNCH_FILES_PATH = os.path.join(BEAM_SLAM_LAUNCH_PATH, "launch")
 BS_CONFIG_FILES_PATH = os.path.join(BEAM_SLAM_LAUNCH_PATH, "config")
-BS_CALIB_FILES_PATH = os.path.join(BEAM_SLAM_LAUNCH_PATH, "calibrations")
-INSPECTION_CALIBRATION_PATH = os.path.join(
-    BEAM_CALIBRATION_RESULTS_PATH, "inspector_gadget2/current")
-INSPECTION_INTRINSICS_PATH = os.path.join(
-    INSPECTION_CALIBRATION_PATH, "intrinsics")
-
-# TODO Update all extrinsics to point to the same. Note one in beam_robotics/calibration is bad!
-# INSPECTION_EXTRINSICS_PATH = os.path.join(
-#     INSPECTION_CALIBRATION_PATH, "extrinsics")
-INSPECTION_EXTRINSICS_PATH = os.path.join(BS_CALIB_FILES_PATH, "ig2")
 
 CATKIN_WS = "/userhome/catkin_ws"
 
 PIPELINES_PATH = get_pipelines_path()
 PIPELINE_INPUTS = get_pipeline_inputs_path()
 BEAM_ROBOTICS_PATH = Path(PIPELINES_PATH).parent
+
+
+BEAM_CALIBRATION_RESULTS_PATH = get_calibration_results_path()
+CALIBRATION_PATH = os.path.join(
+    BEAM_CALIBRATION_RESULTS_PATH, "inspector_gadget2/current")
+# BS_CALIB_FILES_PATH = os.path.join(BEAM_SLAM_LAUNCH_PATH, "calibrations")
+# EXTRINSICS_PATH = os.path.join(CALIBRATION_PATH, "extrinsics")
+# EXTRINSICS_PATH = os.path.join(BS_CALIB_FILES_PATH, "ig2")
+
+EXTRINSICS_PATH = os.path.join(PIPELINES_PATH, "calibrations")
+EXTRINSICS_JSON_PATH = os.path.join(
+    EXTRINSICS_PATH, "extrinsics.json")
+INTRINSICS_PATH = os.path.join(
+    CALIBRATION_PATH, "intrinsics")
 
 # Folder names
 RESULTS_FOLDER = "results"

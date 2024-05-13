@@ -4,10 +4,9 @@ import os
 from typing import Any
 import roslaunch
 import rospy
-import rospkg
 import logging
 
-from utils import start_ros_master, start_calibration_publisher
+from utils import start_ros_master, start_calibration_publisher_with_file
 from params import *
 
 uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -127,12 +126,15 @@ def run_rosbag_record(output_dir: str):
 def run(bag_file: str, start_time: float, duration: float, rate: float,
         local_mapper_params_filename: str, global_mapper_params_filename: str, output_dir: str):
     rosmaster = start_ros_master()
-    start_calibration_publisher()
+    rospy.sleep(2)
     rospy.init_node('run_beam_slam_pipeline')
+    calibration_publisher_process = start_calibration_publisher_with_file(
+        EXTRINSICS_JSON_PATH)
     load_calibration_params()
     load_slam_params(local_mapper_params_filename,
                      global_mapper_params_filename,
                      output_dir)
+
     rospy.sleep(2)  # sleep to give the computer time to start everything
     slam_lm_node_process = run_local_mapper()
     rospy.sleep(2)  # sleep to give the computer time to start everything
@@ -161,11 +163,12 @@ def run(bag_file: str, start_time: float, duration: float, rate: float,
         if not rosbag_record_node_process.is_alive():
             logger.error("rosbag record shutdown, exiting")
             break
-    
+
     slam_lm_node_process.stop()
     slam_gm_node_process.stop()
     rosbag_play_node_process.stop()
     rosbag_record_node_process.stop()
+    calibration_publisher_process.stop()
     logger.info("run_beam_slam.py finished successfully!")
 
 
