@@ -1,46 +1,46 @@
 {
-  "intermediary_map_size": 50,
-  "min_translation_m": 0.01,
-  "min_rotation_deg": 1,
-  "combine_sensor_data": false,
-  "deskew_scans": true,
-  "octomap": {
-    "run_octomap_filter": true,
-    "resolution": 0.05,
-    "probability_threshold": 0.5,
-    "estimate_lidar_non_returns": false,
-    "non_return_raytrace_d_min": 1.1,
-    "non_return_raytrace_d_max": 5
-  },
-  "lidar_type": "VELODYNE",
-  "3d_sensor_data": [
-    {
-      "topic": "/lidar_h/velodyne_points",
-      "frame": "lidar_h_link",
-      "use_cropbox": true,
-      "remove_outside_points": true,
-      "cropbox_min": [
-        -18,
-        -18,
-        -18
-      ],
-      "cropbox_max": [
-        18,
-        18,
-        18
-      ]
-    }
-  ],
-  "input_filters": [],
-  "intermediary_filters": [
-    {
-      "filter_type": "VOXEL",
-      "cell_size": [
-        0.03,
-        0.03,
-        0.03
-      ]
-    }
-  ],
-  "output_filters": []
+    "intermediary_map_size": 50,
+    "min_translation_m": 0.001,
+    "min_rotation_deg": 0.1,
+    "combine_sensor_data": false,
+    "deskew_scans": true,
+    "octomap": {
+        "run_octomap_filter": false,
+        "resolution": 0.05,
+        "probability_threshold": 0.5,
+        "estimate_lidar_non_returns": false,
+        "non_return_raytrace_d_min": 1.1,
+        "non_return_raytrace_d_max": 5
+    },
+    "lidar_type": "VELODYNE",
+    "3d_sensor_data": [
+        {
+            "topic": "/lidar_h/velodyne_points",
+            "frame": "lidar_h_link",
+            "use_cropbox": true,
+            "remove_outside_points": true,
+            "cropbox_min": [
+                -18,
+                -18,
+                -18
+            ],
+            "cropbox_max": [
+                18,
+                18,
+                18
+            ]
+        }
+    ],
+    "input_filters": [],
+    "intermediary_filters": [
+        {
+            "filter_type": "VOXEL",
+            "cell_size": [
+                0.03,
+                0.03,
+                0.03
+            ]
+        }
+    ],
+    "output_filters": []
 }

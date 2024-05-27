@@ -9,7 +9,7 @@
         {
             "path": "/userhome/data/2021_10_27_16_21_54_ConestogoBridge/",
             "start_time_s": 5,
-            "duration_s": 85,
+            "duration_s": 80,
             "map_builder_config_filename": "HANDHELD"
         },
         {
@@ -34,17 +34,17 @@
     "rosbag_play_rate": 0.25,
     "local_mapper_config": "lio.yaml",
     "global_mapper_config": "global_mapper.yaml",
-    "run_hyperparameter_tuning": false,
-    "run_slam": true,
+    "run_hyperparameter_tuning": true,
+    "run_slam": false,
     "map_refinement": {
-        "run_submap_refinement": false,
+        "run_submap_refinement": true,
         "run_submap_alignment": false,
         "run_posegraph_optimization": false,
-        "run_batch_optimizer": true
+        "run_batch_optimizer": false
     },
     "run_map_builder": true,
     "run_map_quality": true,
-    "run_image_extractor": true,
+    "run_image_extractor": false,
     "run_image_selection": false,
-    "run_map_labeler": true
+    "run_map_labeler": false
 }

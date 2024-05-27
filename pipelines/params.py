@@ -52,6 +52,7 @@ GLOBAL_MAPPER_RESULTS = "global_mapper_results"
 GLOBAL_MAP_REFINEMENT_RESULTS = "global_map_refined_results"
 IMAGE_EXTRACTOR_FOLDER = "image_extractor"
 MAP_LABELER_FOLDER = "map_labeler"
+HYPER_PARAM_TUNING_FOLDER = "hyper_param_tuning"
 
 # Filenames
 SLAM_BAG_FILE = "data.bag"

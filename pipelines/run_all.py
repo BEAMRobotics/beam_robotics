@@ -24,7 +24,8 @@ MAP_LABELER_BIN = os.path.join(
 BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
 
 trajectory_checksum = ""
-
+map_checksum = ""
+map_builder_trajectory_checksum = ""
 
 def setup_logger(output_file: str):
     logger.setLevel(logging.DEBUG)
@@ -249,7 +250,7 @@ def run_image_selection(config: str, output_path: str):
         logger.info("skipping image selection")
         new_list_file = os.path.join(
             img_extractor_output, "CameraListNew.json")
-        if not os.path.exists(new_list_file):
+        if not os.path.exists(new_list_file) and os.path.exists(camera_list):
             logger.info(
                 f"no CameraListNew file, copying from {camera_list} to {new_list_file}")
             shutil.copyfile(camera_list, new_list_file)
@@ -268,7 +269,7 @@ def run_image_selection(config: str, output_path: str):
 
 def run_map_labeler(config: str, output_path: str):
     if not config["run_map_labeler"]:
-        logger.info("skipping map map")
+        logger.info("skipping map labeler")
         return
 
     print("\n------------------------------------")
@@ -310,11 +311,14 @@ def calculate_file_sha1(file_path: str) -> str:
 def has_trajectory_changed(output_path: str) -> bool:
     slam_output_path = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     global_map_ref_path = os.path.join(
-        slam_output_path, GLOBAL_MAPPER_RESULTS)
+        slam_output_path, GLOBAL_MAP_REFINEMENT_RESULTS)
     poses_low_rate = os.path.join(
-        global_map_ref_path, "global_map_trajectory_optimized.json")
+        global_map_ref_path, "global_map_trajectory_optimized.pcd")
+    logger.info(f"calculating checksum for trajectory file: {poses_low_rate}")
     sha1_sum = calculate_file_sha1(poses_low_rate)
     global trajectory_checksum
+    logger.info(f"calculated checksum: {sha1_sum}")
+    logger.info(f"previous checksum  : {trajectory_checksum}")
     if sha1_sum == trajectory_checksum:
         logger.warning(
             "trajectory hasn't changed from the last iteration. Did map refinement crash?")
@@ -323,6 +327,39 @@ def has_trajectory_changed(output_path: str) -> bool:
         trajectory_checksum = sha1_sum
         logger.info(f"setting trajectory checksum to: {trajectory_checksum}")
         return True
+
+def has_map_trajectory_changed(output_path: str) -> bool:
+    path = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.pcd")
+    logger.info(f"calculating checksum for map builder trajectory file: {path}")
+    sha1_sum = calculate_file_sha1(path)
+    global map_builder_trajectory_checksum
+    logger.info(f"calculated checksum: {sha1_sum}")
+    logger.info(f"previous checksum  : {map_builder_trajectory_checksum}")
+    if sha1_sum == map_builder_trajectory_checksum:
+        logger.warning(
+            "map builder trajectory hasn't changed from the last iteration. Did map builder crash?")
+        return False
+    else:
+        map_builder_trajectory_checksum = sha1_sum
+        logger.info(f"setting map builder trajectory checksum to: {map_builder_trajectory_checksum}")
+        return True    
+
+
+def has_map_changed(output_path: str) -> bool:
+    map_path = os.path.join(output_path, MAP_BUILDER_FOLDER, "map.pcd")
+    logger.info(f"calculating checksum for map file: {map_path}")
+    sha1_sum = calculate_file_sha1(map_path)
+    global map_checksum
+    logger.info(f"calculated checksum: {sha1_sum}")
+    logger.info(f"previous checksum  : {map_checksum}")
+    if sha1_sum == map_checksum:
+        logger.warning(
+            "map hasn't changed from the last iteration. Did map builder crash?")
+        return False
+    else:
+        map_checksum = sha1_sum
+        logger.info(f"setting map checksum to: {map_checksum}")
+        return True    
 
 
 def run(dataset_number: int):
@@ -350,7 +387,8 @@ def run(dataset_number: int):
             logger.warning(
                 "Turning on run_map_builder which is needed for Hyper Parameter Tuning")
             config["run_map_builder"] = True
-
+        hyperparam_output = os.path.join(output_path, HYPER_PARAM_TUNING_FOLDER)
+        os.makedirs(hyperparam_output, exist_ok=True)
         param_tuning = HyperParamTuning(output_path)
 
         while param_tuning.next():
@@ -359,9 +397,26 @@ def run(dataset_number: int):
             if not has_trajectory_changed(output_path):
                 param_tuning.mark_as_failed()
                 continue
-
             run_map_builder(config, output_path, dataset_number)
+            if not has_map_trajectory_changed(output_path) or not has_map_changed(output_path):
+                param_tuning.mark_as_failed()
+                continue
+                # print("still going on")
             run_map_quality(config, output_path)
+
+            # copy trajectory and map files for reference
+            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "map_quality.json")
+            dst = os.path.join(hyperparam_output, f"map_quality_{param_tuning.get_iteration()}.json")
+            shutil.copyfile(src, dst)
+            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "map.pcd")
+            dst = os.path.join(hyperparam_output, f"map_{param_tuning.get_iteration()}.pcd")
+            shutil.copyfile(src, dst)
+            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.json")
+            dst = os.path.join(hyperparam_output, f"final_poses{param_tuning.get_iteration()}.json")
+            shutil.copyfile(src, dst)
+            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.pcd")
+            dst = os.path.join(hyperparam_output, f"final_poses{param_tuning.get_iteration()}.pcd")
+            shutil.copyfile(src, dst)
         param_tuning.set_best_parameters()
 
     run_slam(config, output_path, dataset_number)

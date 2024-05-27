@@ -28,14 +28,6 @@
         "max": 15,
         "increment": 2
       }
-    ],
-    "mapping/beam_slam/beam_slam_launch/config/matchers/loam_vlp16_slow.json": [
-      {
-        "parameter": "max_corner_sharp",
-        "min": 3,
-        "max": 5,
-        "increment": 1
-      }
     ]
   }
 }
