@@ -27,6 +27,7 @@ trajectory_checksum = ""
 map_checksum = ""
 map_builder_trajectory_checksum = ""
 
+
 def setup_logger(output_file: str):
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -278,22 +279,39 @@ def run_map_labeler(config: str, output_path: str):
     image_extractor_output = os.path.join(
         output_path, IMAGE_EXTRACTOR_FOLDER)
     cameras_path = os.path.join(image_extractor_output, "CameraListNew.json")
-    labeler_output_path = os.path.join(output_path, MAP_LABELER_FOLDER)
+
     map_builder_output = os.path.join(output_path, MAP_BUILDER_FOLDER)
-    map_path = os.path.join(map_builder_output, "map.pcd")
     poses_path = os.path.join(map_builder_output, "final_poses.json")
     extrinsics = os.path.join(
         EXTRINSICS_PATH, "extrinsics.json")
     config_path = os.path.join(PIPELINE_INPUTS, "map_labeler_config.json")
-    os.makedirs(labeler_output_path, exist_ok=True)
     cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=false -output_camera_poses=true "
     cmd += "-output_images=true -output_individual_clouds=true -remove_unlabeled=false "
     cmd += "-save_final_map=true -draw_final_map=false "
-    cmd += f"-images {cameras_path} -map {map_path} -poses {poses_path} -config {config_path} "
+    cmd += f"-images {cameras_path} -poses {poses_path} -config {config_path} "
     cmd += f"-intrinsics {INTRINSICS_PATH} -extrinsics {extrinsics} "
-    cmd += f"-output {labeler_output_path}"
-    logger.info("running command: %s", cmd)
-    os.system(cmd)
+
+    # run for hvlp map if exists
+    map_path = os.path.join(map_builder_output, "map_lidar_h_link.pcd")
+    if os.path.exists(map_path):
+        logger.info(f"running map labeling with horizontal lidar map")
+        labeler_output_path = os.path.join(
+            output_path, MAP_LABELER_FOLDER + "_hvlp")
+        os.makedirs(labeler_output_path, exist_ok=True)
+        cmd1 = cmd + f" -map {map_path} -output {labeler_output_path}"
+        logger.info("running command: %s", cmd1)
+        os.system(cmd1)
+
+    # run for vvlp map if exists
+    map_path = os.path.join(map_builder_output, "map_lidar_v_link.pcd")
+    if os.path.exists(map_path):
+        logger.info(f"running map labeling with vertical lidar map")
+        labeler_output_path = os.path.join(
+            output_path, MAP_LABELER_FOLDER + "_vvlp")
+        os.makedirs(labeler_output_path, exist_ok=True)
+        cmd1 = cmd + f" -map {map_path} -output {labeler_output_path}"
+        logger.info("running command: %s", cmd1)
+        os.system(cmd1)
 
 
 def calculate_file_sha1(file_path: str) -> str:
@@ -328,9 +346,11 @@ def has_trajectory_changed(output_path: str) -> bool:
         logger.info(f"setting trajectory checksum to: {trajectory_checksum}")
         return True
 
+
 def has_map_trajectory_changed(output_path: str) -> bool:
     path = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.pcd")
-    logger.info(f"calculating checksum for map builder trajectory file: {path}")
+    logger.info(
+        f"calculating checksum for map builder trajectory file: {path}")
     sha1_sum = calculate_file_sha1(path)
     global map_builder_trajectory_checksum
     logger.info(f"calculated checksum: {sha1_sum}")
@@ -341,8 +361,9 @@ def has_map_trajectory_changed(output_path: str) -> bool:
         return False
     else:
         map_builder_trajectory_checksum = sha1_sum
-        logger.info(f"setting map builder trajectory checksum to: {map_builder_trajectory_checksum}")
-        return True    
+        logger.info(
+            f"setting map builder trajectory checksum to: {map_builder_trajectory_checksum}")
+        return True
 
 
 def has_map_changed(output_path: str) -> bool:
@@ -359,7 +380,7 @@ def has_map_changed(output_path: str) -> bool:
     else:
         map_checksum = sha1_sum
         logger.info(f"setting map checksum to: {map_checksum}")
-        return True    
+        return True
 
 
 def run(dataset_number: int):
@@ -387,7 +408,8 @@ def run(dataset_number: int):
             logger.warning(
                 "Turning on run_map_builder which is needed for Hyper Parameter Tuning")
             config["run_map_builder"] = True
-        hyperparam_output = os.path.join(output_path, HYPER_PARAM_TUNING_FOLDER)
+        hyperparam_output = os.path.join(
+            output_path, HYPER_PARAM_TUNING_FOLDER)
         os.makedirs(hyperparam_output, exist_ok=True)
         param_tuning = HyperParamTuning(output_path)
 
@@ -405,17 +427,24 @@ def run(dataset_number: int):
             run_map_quality(config, output_path)
 
             # copy trajectory and map files for reference
-            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "map_quality.json")
-            dst = os.path.join(hyperparam_output, f"map_quality_{param_tuning.get_iteration()}.json")
+            src = os.path.join(
+                output_path, MAP_BUILDER_FOLDER, "map_quality.json")
+            dst = os.path.join(
+                hyperparam_output, f"map_quality_{param_tuning.get_iteration()}.json")
             shutil.copyfile(src, dst)
             src = os.path.join(output_path, MAP_BUILDER_FOLDER, "map.pcd")
-            dst = os.path.join(hyperparam_output, f"map_{param_tuning.get_iteration()}.pcd")
+            dst = os.path.join(hyperparam_output,
+                               f"map_{param_tuning.get_iteration()}.pcd")
             shutil.copyfile(src, dst)
-            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.json")
-            dst = os.path.join(hyperparam_output, f"final_poses{param_tuning.get_iteration()}.json")
+            src = os.path.join(
+                output_path, MAP_BUILDER_FOLDER, "final_poses.json")
+            dst = os.path.join(
+                hyperparam_output, f"final_poses{param_tuning.get_iteration()}.json")
             shutil.copyfile(src, dst)
-            src = os.path.join(output_path, MAP_BUILDER_FOLDER, "final_poses.pcd")
-            dst = os.path.join(hyperparam_output, f"final_poses{param_tuning.get_iteration()}.pcd")
+            src = os.path.join(
+                output_path, MAP_BUILDER_FOLDER, "final_poses.pcd")
+            dst = os.path.join(
+                hyperparam_output, f"final_poses{param_tuning.get_iteration()}.pcd")
             shutil.copyfile(src, dst)
         param_tuning.set_best_parameters()
 

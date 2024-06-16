@@ -29,6 +29,22 @@
                 18,
                 18
             ]
+        },
+        {
+            "topic": "/lidar_v/velodyne_points",
+            "frame": "lidar_v_link",
+            "use_cropbox": true,
+            "remove_outside_points": true,
+            "cropbox_min": [
+                -18,
+                -18,
+                -18
+            ],
+            "cropbox_max": [
+                18,
+                18,
+                18
+            ]
         }
     ],
     "input_filters": [],

@@ -1,8 +1,14 @@
 #include <map_quality/MapQuality.h>
 
+#include <math.h>
+
 #include <nlohmann/json.hpp>
+#include <pcl/ModelCoefficients.h>
 #include <pcl/common/common.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
 
 #include <beam_utils/filesystem.h>
 #include <beam_utils/kdtree.h>
@@ -12,11 +18,14 @@ namespace map_quality {
 
 MapQuality::MapQuality(const std::string& map_path,
                        const std::string& output_path, double voxel_size_m,
-                       int knn)
+                       int knn, double radius,
+                       const std::string& map_output_path)
     : map_path_(map_path),
       output_path_(output_path),
       voxel_size_m_(voxel_size_m),
-      knn_(knn) {}
+      knn_(knn),
+      radius_(radius),
+      map_output_path_(map_output_path) {}
 
 void MapQuality::Run() {
   LoadCloud();
@@ -27,28 +36,136 @@ void MapQuality::Run() {
 }
 
 void MapQuality::RunStatisticalMapQuality() {
-  // // build kdtree
-  beam::KdTree<pcl::PointXYZ> kdtree(map_);
+  BEAM_INFO("Running statistical map quality analysis");
 
-  // get mean distances to k nearest neighbors
-  std::vector<float> mean_distances;
-  for (const pcl::PointXYZ& pt : map_) {
+  PointCloudQuality map_quality;
+  pcl::copyPointCloud(map_, map_quality);
+
+  // build kdtree
+  beam::KdTree<PointQuality> kdtree(map_quality);
+
+  // iterate through all points, computing statistics and saving to cloud
+#pragma omp parallel
+#pragma omp for
+  for (int pid = 0; pid < map_quality.points.size(); pid++) {
+    auto& pt = map_quality.points.at(pid);
+
+    // get mean distances to k nearest neighbors
     std::vector<uint32_t> point_ids;
     std::vector<float> point_distances;
     int num_results =
         kdtree.nearestKSearch(pt, knn_, point_ids, point_distances);
-    float sum = 0;
-    for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
-    mean_distances.push_back(sum / num_results);
+    if (num_results > 0) {
+      float sum = 0;
+      for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
+      pt.mean_knn_dist = sum / num_results;
+    } else {
+      pt.mean_knn_dist = -1;
+    }
+
+    // calculate densities as described here:
+    // cloudcompare.org/doc/wiki/index.php/density
+    point_ids.clear();
+    point_distances.clear();
+    num_results = kdtree.radiusSearch(pt, radius_, point_ids, point_distances);
+    if (num_results > 0) {
+      float sum = 0;
+      for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
+      pt.surface_density = num_results / (M_PI * radius_ * radius_);
+      pt.volume_density =
+          num_results / (4 / 3 * M_PI * radius_ * radius_ * radius_);
+    } else {
+      // std::cout << "TEST0\n";
+      pt.surface_density = -1;
+      pt.volume_density = -1;
+    }
+
+    // calculate roughness as described here:
+    // cloudcompare.org/doc/wiki/index.php/roughness
+    if (num_results > 2) {
+      pt.roughness = CalculateRoughness(pt, map_quality, point_ids);
+    } else {
+      pt.roughness = -1;
+    }
   }
 
-  // calculate overall mean
-  double sum = 0;
-  for (const float m : mean_distances) { sum += static_cast<double>(m); }
-  mean_knn_dist_ = sum / mean_distances.size();
+  // iterate through cloud and calculate combined statistics
+  double sum_mean_knn_dist = 0;
+  double sum_surface_density = 0;
+  double sum_volume_density = 0;
+  double sum_roughness = 0;
+  int count_mean_knn_dist = 0;
+  int count_surface_density = 0;
+  int count_volume_density = 0;
+  int count_roughness = 0;
+  for (int pid = 0; pid < map_quality.points.size(); pid++) {
+    auto& pt = map_quality.points.at(pid);
+    if (pt.mean_knn_dist != -1) {
+      sum_mean_knn_dist += pt.mean_knn_dist;
+      count_mean_knn_dist++;
+    }
+    if (pt.surface_density != -1) {
+      sum_surface_density += pt.surface_density;
+      count_surface_density++;
+    }
+    if (pt.volume_density != -1) {
+      sum_volume_density += pt.volume_density;
+      count_volume_density++;
+    }
+    if (pt.roughness != -1) {
+      sum_roughness += pt.roughness;
+      count_roughness++;
+    }
+  }
+  mean_knn_dist_ = sum_mean_knn_dist / count_mean_knn_dist;
+  mean_surface_density_ = sum_surface_density / count_surface_density;
+  mean_volume_density_ = sum_volume_density / count_volume_density;
+  mean_roughness_ = sum_roughness / count_roughness;
+
+  if (!map_output_path_.empty()) {
+    beam::SavePointCloud(map_output_path_, map_quality);
+  }
+}
+
+double MapQuality::CalculateRoughness(
+    const PointQuality& pt, const PointCloudQuality& map,
+    const std::vector<uint32_t>& point_ids) const {
+  auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+
+  // Fill in the cloud data
+  for (const uint32_t pid : point_ids) {
+    pcl::PointXYZ p_new;
+    const auto& p = map.at(pid);
+    p_new.x = p.x;
+    p_new.y = p.y;
+    p_new.z = p.z;
+    cloud->push_back(p_new);
+  }
+
+  auto coefficients = std::make_shared<pcl::ModelCoefficients>();
+  auto inliers = std::make_shared<pcl::PointIndices>();
+
+  // Create the segmentation object
+  pcl::SACSegmentation<pcl::PointXYZ> seg;
+  seg.setModelType(pcl::SACMODEL_PLANE);
+  seg.setMethodType(pcl::SAC_RANSAC);
+  seg.setDistanceThreshold(radius_ * 2);
+  // seg.setOptimizeCoefficients(true); // Optional
+
+  seg.setInputCloud(cloud);
+  seg.segment(*inliers, *coefficients);
+
+  if (inliers->indices.size() == 0) { return -1; }
+
+  Eigen::Vector4f coef(coefficients->values[0], coefficients->values[1],
+                       coefficients->values[2], coefficients->values[3]);
+  Eigen::Vector4f pp(pt.x, pt.y, pt.z, 1);
+  double distance_to_plane = pp.dot(coef);
+  return distance_to_plane;
 }
 
 void MapQuality::RunVoxelMapQuality() {
+  BEAM_INFO("Running voxel map quality analysis");
   std::vector<PointCloudPtr> broken_clouds = BreakUpPointCloud(map_);
   for (const PointCloudPtr& cloud : broken_clouds) {
     int num_occupied = CalculateOccupiedVoxels(cloud);
@@ -89,6 +206,9 @@ void MapQuality::SaveResults() {
   J["mean_pts_per_voxel"] = static_cast<double>(map_.size()) /
                             static_cast<double>(total_occupied_voxels_);
   J["mean_knn_dist_mm"] = mean_knn_dist_ * 1000;
+  J["mean_surface_density"] = mean_surface_density_;
+  J["mean_volume_density"] = mean_volume_density_;
+  J["mean_roughness"] = mean_roughness_;
 
   std::ofstream file(output_path_);
   file << std::setw(4) << J << std::endl;

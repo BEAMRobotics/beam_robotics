@@ -12,6 +12,8 @@ find_package(
 )
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
+find_package(OpenMP)
+
 ## Declare a C++ library
 add_library(
   ${PROJECT_NAME}
@@ -26,6 +28,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(
   ${PROJECT_NAME}
     beam::utils
+    OpenMP::OpenMP_CXX
 )
 
 ################ Executables ###################
