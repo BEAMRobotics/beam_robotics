@@ -44,3 +44,16 @@ target_link_libraries(${PROJECT_NAME}_run_map_quality_analysis
   ${PROJECT_NAME}
   beam::utils
 )
+
+add_executable(${PROJECT_NAME}_tests
+  src/tests.cpp
+)
+
+target_include_directories(${PROJECT_NAME}_tests
+  PUBLIC
+)
+
+target_link_libraries(${PROJECT_NAME}_tests
+  ${PROJECT_NAME}
+  beam::utils
+)

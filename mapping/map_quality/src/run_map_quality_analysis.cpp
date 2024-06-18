@@ -8,10 +8,10 @@ DEFINE_string(cloud, "", "Full file path to map pointcloud");
 DEFINE_validator(cloud, &beam::gflags::ValidateFileMustExist);
 DEFINE_string(output, "",
               "Output path to save results. Must be a json file output");
+DEFINE_validator(output, &beam::gflags::ValidateMustBeJson);
 DEFINE_string(pointcloud_output, "",
               "If set, this will output the metrics into a pointcloud for "
               "viewing metrics that apply to each point.");
-DEFINE_validator(output, &beam::gflags::ValidateDirMustExist);
 DEFINE_double(voxel_size, 0.01, "voxel size in meters");
 DEFINE_double(radius, 0.1,
               "search radius for density and roughness calculations.");

@@ -30,6 +30,10 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
 
 namespace map_quality {
 
+double CalculateRoughness(const PointQuality& pt, const PointCloudQuality& map,
+                          const std::vector<uint32_t>& point_ids,
+                          double seg_dist_thresh);
+
 class MapQuality {
 public:
   MapQuality() = delete;
@@ -69,9 +73,6 @@ private:
   std::pair<PointCloudPtr, PointCloudPtr>
       SplitCloudInTwo(const PointCloud& input_cloud, int max_axis) const;
 
-  double CalculateRoughness(const PointQuality& pt,
-                            const PointCloudQuality& map,
-                            const std::vector<uint32_t>& point_ids) const;
   // data storage
   std::string map_path_;
   std::string output_path_;

@@ -83,7 +83,8 @@ void MapQuality::RunStatisticalMapQuality() {
     // calculate roughness as described here:
     // cloudcompare.org/doc/wiki/index.php/roughness
     if (num_results > 2) {
-      pt.roughness = CalculateRoughness(pt, map_quality, point_ids);
+      pt.roughness =
+          CalculateRoughness(pt, map_quality, point_ids, radius_ * 2);
     } else {
       pt.roughness = -1;
     }
@@ -127,9 +128,9 @@ void MapQuality::RunStatisticalMapQuality() {
   }
 }
 
-double MapQuality::CalculateRoughness(
-    const PointQuality& pt, const PointCloudQuality& map,
-    const std::vector<uint32_t>& point_ids) const {
+double CalculateRoughness(const PointQuality& pt, const PointCloudQuality& map,
+                          const std::vector<uint32_t>& point_ids,
+                          double seg_dist_thresh) {
   auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
 
   // Fill in the cloud data
@@ -149,7 +150,7 @@ double MapQuality::CalculateRoughness(
   pcl::SACSegmentation<pcl::PointXYZ> seg;
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
-  seg.setDistanceThreshold(radius_ * 2);
+  seg.setDistanceThreshold(seg_dist_thresh);
   // seg.setOptimizeCoefficients(true); // Optional
 
   seg.setInputCloud(cloud);
@@ -161,7 +162,7 @@ double MapQuality::CalculateRoughness(
                        coefficients->values[2], coefficients->values[3]);
   Eigen::Vector4f pp(pt.x, pt.y, pt.z, 1);
   double distance_to_plane = pp.dot(coef);
-  return distance_to_plane;
+  return std::abs(distance_to_plane);
 }
 
 void MapQuality::RunVoxelMapQuality() {
