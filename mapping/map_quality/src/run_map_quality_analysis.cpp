@@ -17,14 +17,23 @@ DEFINE_double(radius, 0.1,
               "search radius for density and roughness calculations.");
 DEFINE_double(knn, 10,
               "number of neighbors to use for average distance metric");
+DEFINE_bool(voxel, true, "whether or not to run voxel statistics");
+DEFINE_bool(neighborhood, true,
+            "whether or not to run neighborhood statistics");
+DEFINE_bool(plane, true, "whether or not to run plane statistics");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   map_quality::MapQuality map_quality(FLAGS_cloud, FLAGS_output,
-                                      FLAGS_voxel_size, FLAGS_knn, FLAGS_radius,
                                       FLAGS_pointcloud_output);
-  map_quality.Run();
-
+  if (FLAGS_voxel) {
+    map_quality.ComputeVoxelStatistics(FLAGS_voxel_size, FLAGS_knn);
+  }
+  if (FLAGS_neighborhood) {
+    map_quality.ComputerNeighborhoodStatistics(FLAGS_radius);
+  }
+  if (FLAGS_plane) { map_quality.ComputePlaneStatistics(); }
+  map_quality.SaveResults();
   return 0;
 }
