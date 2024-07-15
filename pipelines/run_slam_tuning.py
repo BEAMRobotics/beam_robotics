@@ -59,6 +59,15 @@ def calculate_file_sha1(file_path: str) -> str:
     return sha1_sum
 
 
+def trajectory_exists(output_path: str) -> bool:
+    slam_output_path = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
+    global_map_ref_path = os.path.join(
+        slam_output_path, GLOBAL_MAPPER_RESULTS)
+    poses_low_rate = os.path.join(
+        global_map_ref_path, "global_map_trajectory_optimized.pcd")
+    return os.path.exists(poses_low_rate)
+
+
 def has_trajectory_changed(output_path: str) -> bool:
     slam_output_path = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
     global_map_ref_path = os.path.join(
@@ -109,9 +118,13 @@ def run(dataset_number: int, config_filename: str):
         run_slam(datasets_config, output_path, dataset_number, ROSBAG_PLAY_RATE,
                  LOCAL_MAPPER_CONFIG, GLOBAL_MAPPER_CONFIG)
 
-        if not has_trajectory_changed(output_path):
-            param_tuning.mark_as_failed()
-            continue
+        if not trajectory_exists(output_path) or not has_trajectory_changed(output_path):
+            # try one more time:
+            run_slam(datasets_config, output_path, dataset_number, ROSBAG_PLAY_RATE,
+                     LOCAL_MAPPER_CONFIG, GLOBAL_MAPPER_CONFIG)
+            if not trajectory_exists() or not has_trajectory_changed(output_path):
+                param_tuning.mark_as_failed()
+                continue
 
         run_slam_trajectory_validation(
             datasets_config, slam_tuning_output_path, slam_output, dataset_number)

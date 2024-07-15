@@ -28,3 +28,6 @@
 [submodule "dependencies/octomap"]
 	path = dependencies/octomap
 	url = https://github.com/OctoMap/octomap.git
+[submodule "inspection_tools/lidar_trajectory_validation"]
+	path = inspection_tools/lidar_trajectory_validation
+	url = git@github.com:nickcharron/lidar_trajectory_validation.git
