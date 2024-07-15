@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>lidar_trajectory_validation</name>
+    <version>1.0.0</version>
+    <description>Package for validating some slam trajectory using the lidar data + loop closures from predefined locations</description>
+    <author email="nicholas.c.charron@gmail.com">Nick Charron</author>
+    <maintainer email="nicholas.c.charron@gmail.com">Nick Charron</maintainer>
+
+    <license>BSD</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>libbeam</build_depend>
+
+</package>
