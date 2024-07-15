@@ -1,0 +1,14 @@
+{
+    "voxel_size_m": 0.01,
+    "knn": 10,
+    "radius": 0.1,
+    "use_euc_clustering": true,
+    "max_clusters_h": 2,
+    "max_clusters_v": 4,
+    "min_cluster_size": 50,
+    "clustering_dist_m": 0.06,
+    "max_horz_planes": 2,
+    "max_vert_planes": 15,
+    "plane_seg_dist_thresh": 0.3,
+    "plane_ang_thres_deg": 30
+}

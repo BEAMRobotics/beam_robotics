@@ -4,47 +4,31 @@
             "path": "/userhome/data/2021_10_27_14_22_19_StructuresLabHandheld/",
             "start_time_s": 10,
             "duration_s": 45,
-            "map_builder_config_filename": "HANDHELD"
+            "map_builder_config_filename": "map_builder_config_handheld.json"
         },
         {
             "path": "/userhome/data/2021_10_27_16_21_54_ConestogoBridge/",
             "start_time_s": 5,
             "duration_s": 80,
-            "map_builder_config_filename": "HANDHELD"
+            "map_builder_config_filename": "map_builder_config_handheld.json"
         },
         {
             "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
             "start_time_s": 5,
             "duration_s": -1,
-            "map_builder_config_filename": "DEFAULT"
+            "map_builder_config_filename": "map_builder_config_default.json"
         },
         {
             "path": "/userhome/data/2021_10_27_16_33_53_ConestogoBridge/",
             "start_time_s": 5,
             "duration_s": 30,
-            "map_builder_config_filename": "HANDHELD"
+            "map_builder_config_filename": "map_builder_config_handheld.json"
         },
         {
             "path": "/userhome/data/2021_10_07_09_38_36_ParkStBridge/",
             "start_time_s": 15,
-            "duration_s": 130,
-            "map_builder_config_filename": "DEFAULT"
+            "duration_s": -1,
+            "map_builder_config_filename": "map_builder_config_parkstbridge.json"
         }
-    ],
-    "rosbag_play_rate": 0.25,
-    "local_mapper_config": "lio.yaml",
-    "global_mapper_config": "global_mapper.yaml",
-    "run_hyperparameter_tuning": false,
-    "run_slam": true,
-    "map_refinement": {
-        "run_submap_refinement": true,
-        "run_submap_alignment": true,
-        "run_posegraph_optimization": true,
-        "run_batch_optimizer": false
-    },
-    "run_map_builder": false,
-    "run_map_quality": false,
-    "run_image_extractor": false,
-    "run_image_selection": false,
-    "run_map_labeler": false
+    ]
 }

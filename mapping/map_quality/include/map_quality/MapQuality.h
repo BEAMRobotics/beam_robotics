@@ -36,22 +36,43 @@ double CalculateRoughness(const PointQuality& pt, const PointCloudQuality& map,
 
 class MapQuality {
 public:
+  struct Params {
+    double voxel_size_m{0.01};
+    int knn{10};
+    double radius{0.1};
+
+    // plane segmentation parameters
+    bool use_euc_clustering{true};
+    int max_clusters_h{3};
+    int max_clusters_v{7};
+    int min_cluster_size{50};
+    double clustering_dist_m{0.06};
+    int max_horz_planes{2};
+    int max_vert_planes{15};
+    double plane_seg_dist_thresh{0.15};
+    double plane_ang_thres_deg{15};
+  };
+
   MapQuality() = delete;
 
   MapQuality(const std::string& map_path, const std::string& output_path,
-             const std::string& map_output_path = "");
+             const std::string& config_path = "",
+             const std::string& map_output_path = "",
+             const std::string& planes_output_path = "");
 
-  void RunAll(double voxel_size_m = 0.01, int knn = 10, double radius = 0.1);
+  void RunAll();
 
-  void ComputeVoxelStatistics(double voxel_size_m = 0.01, int knn = 10);
+  void ComputeVoxelStatistics();
 
-  void ComputerNeighborhoodStatistics(double radius = 0.1);
+  void ComputerNeighborhoodStatistics();
 
   void ComputePlaneStatistics();
 
   void SaveResults();
 
 private:
+  void LoadConfig(const std::string& config_path);
+
   void LoadCloud();
 
   int CalculateOccupiedVoxels(const PointCloudPtr& cloud) const;
@@ -84,23 +105,10 @@ private:
   std::string map_path_;
   std::string output_path_;
   PointCloud map_;
+  Params params_;
 
-  // params:
-  double voxel_size_m_;
-  int knn_;
-  double radius_;
   std::string map_output_path_;
-
-  // plane segmentation parameters
-  bool use_euc_clustering_{true};
-  int max_clusters_h_{3};
-  int max_clusters_v_{7};
-  int min_cluster_size_{50};
-  double clustering_dist_m_{0.06};
-  int max_horz_planes_{2};
-  int max_vert_planes_{15};
-  double plane_seg_dist_thresh_{0.15};
-  double plane_ang_thres_deg_{15};
+  std::string planes_output_path_;
 
   // results
   pcl::PointXYZ min_;
@@ -111,10 +119,6 @@ private:
   double mean_volume_density_{0};
   double mean_roughness_{0};
   double mean_distance_to_planes_{0};
-
-  // debug params
-  std::string debug_output_path_{"/userhome/debug/plane_segmentation/"};
-  bool output_planes_{true};
 };
 
 } // namespace map_quality

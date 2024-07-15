@@ -59,16 +59,54 @@ double CalculateRoughness(const PointQuality& pt, const PointCloudQuality& map,
 
 MapQuality::MapQuality(const std::string& map_path,
                        const std::string& output_path,
-                       const std::string& map_output_path)
+                       const std::string& config_path,
+                       const std::string& map_output_path,
+                       const std::string& planes_output_path)
     : map_path_(map_path),
       output_path_(output_path),
-      map_output_path_(map_output_path) {
+      map_output_path_(map_output_path),
+      planes_output_path_(planes_output_path) {
+  LoadConfig(config_path);
   LoadCloud();
 }
 
-void MapQuality::RunAll(double voxel_size_m, int knn, double radius) {
-  ComputeVoxelStatistics(voxel_size_m, knn);
-  ComputerNeighborhoodStatistics(radius);
+void MapQuality::LoadConfig(const std::string& config_path) {
+  params_ = Params();
+  if (config_path.empty()) {
+    BEAM_INFO("No config path provided, using default parameters.");
+    return;
+  }
+
+  BEAM_INFO("Loading MapQuality config file: {}", config_path);
+  nlohmann::json J;
+  if (!beam::ReadJson(config_path, J)) {
+    throw std::runtime_error{"Invalid json"};
+  }
+
+  beam::ValidateJsonKeysOrThrow(
+      {"voxel_size_m", "knn", "radius", "use_euc_clustering", "max_clusters_h",
+       "max_clusters_v", "min_cluster_size", "clustering_dist_m",
+       "max_horz_planes", "max_vert_planes", "plane_seg_dist_thresh",
+       "plane_ang_thres_deg"},
+      J);
+
+  params_.voxel_size_m = J["voxel_size_m"];
+  params_.knn = J["knn"];
+  params_.radius = J["radius"];
+  params_.use_euc_clustering = J["use_euc_clustering"];
+  params_.max_clusters_h = J["max_clusters_h"];
+  params_.max_clusters_v = J["max_clusters_v"];
+  params_.min_cluster_size = J["min_cluster_size"];
+  params_.clustering_dist_m = J["clustering_dist_m"];
+  params_.max_horz_planes = J["max_horz_planes"];
+  params_.max_vert_planes = J["max_vert_planes"];
+  params_.plane_seg_dist_thresh = J["plane_seg_dist_thresh"];
+  params_.plane_ang_thres_deg = J["plane_ang_thres_deg"];
+}
+
+void MapQuality::RunAll() {
+  ComputeVoxelStatistics();
+  ComputerNeighborhoodStatistics();
   ComputePlaneStatistics();
   SaveResults();
   BEAM_INFO("Map quality analysis finished successfully!");
@@ -83,16 +121,16 @@ void MapQuality::ComputePlaneStatistics() {
   pcl::SACSegmentation<pcl::PointXYZ> seg;
   seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
-  seg.setDistanceThreshold(plane_seg_dist_thresh_);
+  seg.setDistanceThreshold(params_.plane_seg_dist_thresh);
   seg.setAxis(z_axis); // we look for planes perpendicular to z
-  seg.setEpsAngle(beam::Deg2Rad(plane_ang_thres_deg_));
+  seg.setEpsAngle(beam::Deg2Rad(params_.plane_ang_thres_deg));
   seg.setOptimizeCoefficients(true); // Optional
 
   // first get all horizontal planes
   auto current_map = std::make_shared<PointCloud>(map_);
   BEAM_INFO("Fitting horizontal planes");
   std::vector<PointCloudPtr> planes_h;
-  for (int i = 0; i < max_horz_planes_; i++) {
+  for (int i = 0; i < params_.max_horz_planes; i++) {
     BEAM_INFO("Working on plane {}", i);
     // fit plane
     auto coefficients = std::make_shared<pcl::ModelCoefficients>();
@@ -110,15 +148,16 @@ void MapQuality::ComputePlaneStatistics() {
     extract.setNegative(true);
     extract.filter(*current_map); // reduce original map
   }
-  if (output_planes_) {
-    BEAM_INFO("Clearing debug output path: {}", debug_output_path_);
-    std::filesystem::remove_all(debug_output_path_);
-    std::filesystem::create_directory(debug_output_path_);
+  if (!planes_output_path_.empty()) {
+    BEAM_INFO("Clearing planes output path: {}", planes_output_path_);
+    std::filesystem::remove_all(planes_output_path_);
+    std::filesystem::create_directory(planes_output_path_);
     BEAM_INFO("Saving {} horizontal planes to {}", planes_h.size(),
-              debug_output_path_);
+              planes_output_path_);
     for (int i = 0; i < planes_h.size(); i++) {
-      std::string filepath = beam::CombinePaths(
-          debug_output_path_, "plane_horizontal_" + std::to_string(i) + ".pcd");
+      std::string filepath =
+          beam::CombinePaths(planes_output_path_,
+                             "plane_horizontal_" + std::to_string(i) + ".pcd");
       beam::SavePointCloud(filepath, *planes_h.at(i));
     }
   }
@@ -127,15 +166,15 @@ void MapQuality::ComputePlaneStatistics() {
   pcl::SACSegmentation<pcl::PointXYZ> segv;
   segv.setModelType(pcl::SACMODEL_PARALLEL_PLANE);
   segv.setMethodType(pcl::SAC_RANSAC);
-  segv.setDistanceThreshold(plane_seg_dist_thresh_);
+  segv.setDistanceThreshold(params_.plane_seg_dist_thresh);
   segv.setAxis(z_axis); // we look for planes parallel to z
-  segv.setEpsAngle(beam::Deg2Rad(plane_ang_thres_deg_));
+  segv.setEpsAngle(beam::Deg2Rad(params_.plane_ang_thres_deg));
   seg.setOptimizeCoefficients(true); // Optional
 
   // get all vertical planes
   BEAM_INFO("Fitting vertical planes");
   std::vector<PointCloudPtr> planes_v;
-  for (int i = 0; i < max_vert_planes_; i++) {
+  for (int i = 0; i < params_.max_vert_planes; i++) {
     BEAM_INFO("Working on plane {}", i);
 
     // fit plane
@@ -154,32 +193,32 @@ void MapQuality::ComputePlaneStatistics() {
     extract.setNegative(true);
     extract.filter(*current_map); // reduce original map
   }
-  if (output_planes_) {
+  if (!planes_output_path_.empty()) {
     BEAM_INFO("Saving {} vertical planes to {}", planes_v.size(),
-              debug_output_path_);
+              planes_output_path_);
     for (int i = 0; i < planes_v.size(); i++) {
       std::string filepath = beam::CombinePaths(
-          debug_output_path_, "plane_vertical_" + std::to_string(i) + ".pcd");
+          planes_output_path_, "plane_vertical_" + std::to_string(i) + ".pcd");
       beam::SavePointCloud(filepath, *planes_v.at(i));
     }
   }
 
   std::vector<PointCloudPtr> planes;
-  if (use_euc_clustering_) {
+  if (params_.use_euc_clustering) {
     auto planes_v_filtered =
-        FilterPlanesByClustering(planes_v, max_clusters_v_);
+        FilterPlanesByClustering(planes_v, params_.max_clusters_v);
     for (const auto& pc : planes_v_filtered) { planes.push_back(pc); }
     auto planes_h_filtered =
-        FilterPlanesByClustering(planes_h, max_clusters_h_);
+        FilterPlanesByClustering(planes_h, params_.max_clusters_h);
     for (const auto& pc : planes_h_filtered) { planes.push_back(pc); }
   }
 
-  if (output_planes_) {
+  if (!planes_output_path_.empty()) {
     BEAM_INFO("Saving {} filtered planes to {}", planes.size(),
-              debug_output_path_);
+              planes_output_path_);
     for (int i = 0; i < planes.size(); i++) {
       std::string filepath = beam::CombinePaths(
-          debug_output_path_, "plane_filtered_" + std::to_string(i) + ".pcd");
+          planes_output_path_, "plane_filtered_" + std::to_string(i) + ".pcd");
       beam::SavePointCloud(filepath, *planes.at(i));
     }
   }
@@ -199,7 +238,7 @@ void MapQuality::CalculateMeanDistanceToPlanes(
     pcl::SACSegmentation<pcl::PointXYZ> seg;
     seg.setModelType(pcl::SACMODEL_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setDistanceThreshold(plane_seg_dist_thresh_);
+    seg.setDistanceThreshold(params_.plane_seg_dist_thresh);
     // seg.setOptimizeCoefficients(true); // Optional
 
     seg.setInputCloud(plane);
@@ -235,8 +274,8 @@ std::vector<PointCloudPtr> MapQuality::FilterPlanesByClustering(
     tree->setInputCloud(cloud);
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(clustering_dist_m_);
-    ec.setMinClusterSize(min_cluster_size_);
+    ec.setClusterTolerance(params_.clustering_dist_m);
+    ec.setMinClusterSize(params_.min_cluster_size);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud);
     ec.extract(cluster_indices);
@@ -262,9 +301,8 @@ std::vector<PointCloudPtr> MapQuality::FilterPlanesByClustering(
   return clouds_out;
 }
 
-void MapQuality::ComputerNeighborhoodStatistics(double radius) {
+void MapQuality::ComputerNeighborhoodStatistics() {
   BEAM_INFO("Running neighborhood statistical map quality analysis");
-  radius_ = radius;
   PointCloudQuality map_quality;
   pcl::copyPointCloud(map_, map_quality);
 
@@ -281,7 +319,7 @@ void MapQuality::ComputerNeighborhoodStatistics(double radius) {
     std::vector<uint32_t> point_ids;
     std::vector<float> point_distances;
     int num_results =
-        kdtree.nearestKSearch(pt, knn_, point_ids, point_distances);
+        kdtree.nearestKSearch(pt, params_.knn, point_ids, point_distances);
     if (num_results > 0) {
       float sum = 0;
       for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
@@ -294,13 +332,15 @@ void MapQuality::ComputerNeighborhoodStatistics(double radius) {
     // cloudcompare.org/doc/wiki/index.php/density
     point_ids.clear();
     point_distances.clear();
-    num_results = kdtree.radiusSearch(pt, radius_, point_ids, point_distances);
+    num_results =
+        kdtree.radiusSearch(pt, params_.radius, point_ids, point_distances);
     if (num_results > 0) {
       float sum = 0;
       for (int i = 0; i < num_results; i++) { sum += point_distances[i]; }
-      pt.surface_density = num_results / (M_PI * radius_ * radius_);
-      pt.volume_density =
-          num_results / (4 / 3 * M_PI * radius_ * radius_ * radius_);
+      pt.surface_density =
+          num_results / (M_PI * params_.radius * params_.radius);
+      pt.volume_density = num_results / (4 / 3 * M_PI * params_.radius *
+                                         params_.radius * params_.radius);
     } else {
       // std::cout << "TEST0\n";
       pt.surface_density = -1;
@@ -311,7 +351,7 @@ void MapQuality::ComputerNeighborhoodStatistics(double radius) {
     // cloudcompare.org/doc/wiki/index.php/roughness
     if (num_results > 2) {
       pt.roughness =
-          CalculateRoughness(pt, map_quality, point_ids, radius_ * 2);
+          CalculateRoughness(pt, map_quality, point_ids, params_.radius * 2);
     } else {
       pt.roughness = -1;
     }
@@ -355,10 +395,8 @@ void MapQuality::ComputerNeighborhoodStatistics(double radius) {
   }
 }
 
-void MapQuality::ComputeVoxelStatistics(double voxel_size_m, int knn) {
+void MapQuality::ComputeVoxelStatistics() {
   BEAM_INFO("Running voxel statistics map quality analysis");
-  voxel_size_m_ = voxel_size_m;
-  knn_ = knn;
   std::vector<PointCloudPtr> broken_clouds = BreakUpPointCloud(map_);
   for (const PointCloudPtr& cloud : broken_clouds) {
     int num_occupied = CalculateOccupiedVoxels(cloud);
@@ -386,7 +424,8 @@ void MapQuality::SaveResults() {
     double wy = max_.y - min_.y;
     double wz = max_.z - min_.z;
     double volume = wx * wy * wz;
-    double voxel_volume = voxel_size_m_ * voxel_size_m_ * voxel_size_m_;
+    double voxel_volume =
+        params_.voxel_size_m * params_.voxel_size_m * params_.voxel_size_m;
     int64_t total_voxels = static_cast<int64_t>(volume / voxel_volume);
     int64_t empty_voxels = total_voxels - total_occupied_voxels_;
     J["voxel-volume_m3"] = volume;
@@ -419,7 +458,8 @@ void MapQuality::SaveResults() {
 int MapQuality::CalculateOccupiedVoxels(const PointCloudPtr& cloud) const {
   PointCloud downsampled_points;
   pcl::VoxelGrid<pcl::PointXYZ> downsampler;
-  downsampler.setLeafSize(voxel_size_m_, voxel_size_m_, voxel_size_m_);
+  downsampler.setLeafSize(params_.voxel_size_m, params_.voxel_size_m,
+                          params_.voxel_size_m);
   downsampler.setInputCloud(cloud);
   downsampler.filter(downsampled_points);
   return downsampled_points.size();
@@ -435,11 +475,11 @@ std::vector<PointCloudPtr>
                                   std::abs(max.y - min.y),
                                   std::abs(max.z - min.z));
   uint64_t voxel_count_x =
-      static_cast<uint64_t>((axis_dimensions[0] / voxel_size_m_) + 1);
+      static_cast<uint64_t>((axis_dimensions[0] / params_.voxel_size_m) + 1);
   uint64_t voxel_count_y =
-      static_cast<uint64_t>((axis_dimensions[1] / voxel_size_m_) + 1);
+      static_cast<uint64_t>((axis_dimensions[1] / params_.voxel_size_m) + 1);
   uint64_t voxel_count_z =
-      static_cast<uint64_t>((axis_dimensions[2] / voxel_size_m_) + 1);
+      static_cast<uint64_t>((axis_dimensions[2] / params_.voxel_size_m) + 1);
   if ((voxel_count_x * voxel_count_y * voxel_count_z) >
       static_cast<uint64_t>(std::numeric_limits<std::int32_t>::max())) {
     // Split cloud along max axis until integer overflow does not occur.

@@ -3,12 +3,22 @@ import os
 from typing import Any
 import roslaunch
 import logging
+import json
 
 from params import *
 
 uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 roslaunch.configure_logging(uuid)
 logger_utils = logging.getLogger("UTILS")
+
+
+def load_datasets_config() -> Any:
+    config_path = os.path.join(PIPELINE_INPUTS, "datasets_config.json")
+    print(f"loading pipeline config json from {config_path}")
+    f = open(config_path)
+    config = json.load(f)
+    f.close()
+    return config
 
 
 def setup_logger():

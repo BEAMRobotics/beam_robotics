@@ -46,27 +46,30 @@ def get_from_dict(data: Dict, keys_list: List[str]):
 def set_in_dict(data: Dict, keys_list: List[str], value: Any):
     get_from_dict(data, keys_list[:-1])[keys_list[-1]] = value
 
+# param descriptions:
+# output_path: path where hyperparameter tuning will store results
+# validation_json_path: path to json which will have updated results each time we call next() on this class
+# config_filename filename for the config file, should be in pipelines/inputs
+
 
 class HyperParamTuning:
-    def __init__(self, output_path: str, continue_from_previous: bool = True):
+    def __init__(self, output_path: str, validation_json_path: str, config_filename: str = "hyperparameter_tuning.json"):
         self.output_path: str = output_path
-        self.hyper_param_tuning_output = os.path.join(self.output_path, HYPER_PARAM_TUNING_FOLDER)
+        self.hyper_param_tuning_output = os.path.join(
+            self.output_path, HYPER_PARAM_TUNING_FOLDER)
         os.makedirs(self.hyper_param_tuning_output, exist_ok=True)
         setup_logger(os.path.join(self.hyper_param_tuning_output,
                      "hyper_parameter_tuning.log"))
         logger.info("------------------------------------------")
         logger.info("Initializing new hyperparameter tuning run")
         logger.info("------------------------------------------")
-        config_path = os.path.join(
-            PIPELINE_INPUTS, "hyperparameter_tuning.json")
+        config_path = os.path.join(PIPELINE_INPUTS, config_filename)
+        self.validation_json_path = validation_json_path
         self.config: Dict = load_json(config_path)
-        self.results_path = os.path.join(self.hyper_param_tuning_output, RESULTS_FILENAME)
-        if continue_from_previous and os.path.exists(self.results_path):
-            self.__load_results()
-        else:
-            self.iter: int = 0
-            self.results = {}
-            self.max_iterations: int = self.config["max_iterations"]
+        self.results_path = os.path.join(
+            self.hyper_param_tuning_output, RESULTS_FILENAME)
+        self.results = {}
+        self.iter: int = 0
 
         self.__backup_config_files()
         self.rnd_gen = random
@@ -78,9 +81,8 @@ class HyperParamTuning:
         if self.selected_parameters is not None:
             self.__store_results()
             self.__output_results()
-            self.__load_results()
 
-        if self.iter >= self.max_iterations:
+        if self.iter >= self.config["max_iterations"]:
             logger.info(f"Hit max number of iterations: {self.iter}")
             self.cleanup()
             return False
@@ -97,39 +99,15 @@ class HyperParamTuning:
         logger.warn("Setting iteration as failed")
         self.iteration_failed = True
 
+    def store_best_parameter(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True):
+        best_iter = self.__get_best_parameter(parameter_key, lower_is_better)
+        self.results["best_iter"] = best_iter
+
     def set_best_parameters(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True):
         self.__backup_config_files()
-
-        if lower_is_better:
-            search_for = "lowest"
-            best_value = 9e9
-        else:
-            search_for = "highest"
-            best_value = -9e9
-        logger.info(
-            f"Setting parameters to the best results by looking for the {search_for} {parameter_key}")
-
-        best_iter = "-1"
-        for iter_str, results in self.results.items():
-            if results["map_quality"] is None:
-                logger.warn(
-                    f"skipping iter {iter_str} which was not successful")
-                continue
-
-            if not results["map_quality"]:
-                continue
-            value = results["map_quality"][parameter_key]
-            if lower_is_better and value < best_value:
-                best_value = value
-                best_iter = iter_str
-            elif not lower_is_better and value > best_value:
-                best_value = value
-                best_iter = iter_str
-
-        if best_iter == "-1":
-            raise Exception("Could not find best value")
-
+        best_iter = self.__get_best_parameter(parameter_key, lower_is_better)
         logger.info(f"Setting best parameters to iteration {best_iter}")
+        self.results["best_iter"] = best_iter
         self.selected_parameters = self.results[best_iter]["parameters"]
         self.__apply_selected_parameters()
 
@@ -151,20 +129,35 @@ class HyperParamTuning:
     def get_iteration(self):
         return self.iter
 
-    def __load_results(self):
-        logger.info(f"Loading results from: {self.results_path}")
-        with open(self.results_path, 'r') as f:
-            self.results = json.load(f)
-
-        # get max number of iterations
-        previous_max = 0
-        for iter_str, _ in self.results.items():
-            if int(iter_str) > previous_max:
-                previous_max = int(iter_str)
-        self.iter: int = previous_max
-        self.max_iterations: int = self.iter + self.config["max_iterations"]
+    def __get_best_parameter(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True) -> str:
+        if lower_is_better:
+            search_for = "lowest"
+            best_value = 9e9
+        else:
+            search_for = "highest"
+            best_value = -9e9
         logger.info(
-            f"set current iteration to {self.iter} and max iterations to {self.max_iterations}")
+            f"Setting parameters to the best results by looking for the {search_for} {parameter_key}")
+
+        best_iter = "-1"
+        for iter_str, results in self.results.items():
+            if results["results"] is None:
+                logger.warn(
+                    f"skipping iter {iter_str} which was not successful")
+                continue
+            if not results["results"]:
+                continue
+            value = results["results"][parameter_key]
+            if lower_is_better and value < best_value:
+                best_value = value
+                best_iter = iter_str
+            elif not lower_is_better and value > best_value:
+                best_value = value
+                best_iter = iter_str
+
+        if best_iter == "-1":
+            raise Exception("Could not find best value")
+        return best_iter
 
     def __output_results(self):
         logger.info(f"Outputting results to: {self.results_path}")
@@ -199,8 +192,9 @@ class HyperParamTuning:
                 json.dump(config_data, f, indent=4)
 
     def __sample_parameters(self) -> bool:
+        max_iter = self.config["max_iterations"]
         logger.info(
-            f"Sampling new set of parameters [{self.iter}/{self.max_iterations}]")
+            f"Sampling new set of parameters [{self.iter}/{max_iter}]")
         # iterate through all parameters and sample new values forming a unique combination
         self.selected_parameters, is_successful = self.__select_unique_parameter_set()
         if not is_successful:
@@ -254,14 +248,13 @@ class HyperParamTuning:
         if self.iteration_failed:
             self.results[str(self.iter)
                          ]["parameters"] = self.selected_parameters
-            self.results[str(self.iter)]["map_quality"] = {}
+            self.results[str(self.iter)]["results"] = {}
             self.iteration_failed = False
             return
 
-        map_quality_results_path = os.path.join(
-            self.output_path, MAP_BUILDER_FOLDER, MAP_QUALITY_FILENAME)
-        logger.info(f"Loading map quality results from: {map_quality_results_path}")
-        with open(map_quality_results_path, 'r') as f:
+        logger.info(
+            f"Loading validation file from: {self.validation_json_path}")
+        with open(self.validation_json_path, 'r') as f:
             results = json.load(f)
-            self.results[str(self.iter)]["map_quality"] = results
+            self.results[str(self.iter)]["results"] = results
         self.results[str(self.iter)]["parameters"] = self.selected_parameters

@@ -28,6 +28,7 @@ CATKIN_WS = "/userhome/catkin_ws"
 
 PIPELINES_PATH = get_pipelines_path()
 PIPELINE_INPUTS = get_pipeline_inputs_path()
+TRAJECTORY_VAL_INPUT = os.path.join(PIPELINE_INPUTS, "trajectory_validation")
 BEAM_ROBOTICS_PATH = Path(PIPELINES_PATH).parent
 
 
@@ -59,3 +60,5 @@ SLAM_BAG_FILE = "data.bag"
 INSPECTION_BAG_FILE = "inspection.bag"
 LOCAL_MAPPER_BAG_FILE = "local_mapper_results.bag"
 MAP_QUALITY_FILENAME = "map_quality.json"
+TRAJ_VALIDATION_RESULTS_FILENAME = "trajectory_validation_results.json"
+TRAJECTORY_VAL_FOLDER = "trajectory_validation"

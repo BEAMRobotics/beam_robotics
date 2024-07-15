@@ -37,6 +37,7 @@ def parse_args(args) -> Any:
     parser.add_argument('-o', type=str, help='full path to output directory')
     parser.add_argument(
         '-c', type=str, help='full path to config file for map builder')
+    parser.add_argument('--use_refined_results', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -159,5 +160,4 @@ if __name__ == "__main__":
         exit()
 
     setup_logger(os.path.join(args.o, "run_map_builder_pipeline.log"))
-
-    run(args.b, args.local_mapper_bag, args.o, args.c)
+    run(args.b, args.local_mapper_bag, args.o, args.c, args.use_refined_results)
