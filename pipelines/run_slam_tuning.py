@@ -16,7 +16,7 @@ trajectory_checksum = ""
 map_checksum = ""
 map_builder_trajectory_checksum = ""
 
-ROSBAG_PLAY_RATE: float = 0.5
+ROSBAG_PLAY_RATE: float = 0.3
 LOCAL_MAPPER_CONFIG: str = "lio.yaml"
 GLOBAL_MAPPER_CONFIG: str = "global_mapper.yaml"
 
@@ -117,6 +117,7 @@ def run(dataset_number: int, config_filename: str):
     param_tuning = HyperParamTuning(
         slam_tuning_output_path, traj_val_results_path, config_path)
     slam_output = os.path.join(output_path, SLAM_OUTPUT_FOLDER)
+
     while param_tuning.next():
         run_slam(datasets_config, output_path, dataset_number, ROSBAG_PLAY_RATE,
                  LOCAL_MAPPER_CONFIG, GLOBAL_MAPPER_CONFIG)
@@ -133,11 +134,19 @@ def run(dataset_number: int, config_filename: str):
         run_slam_trajectory_validation(
             datasets_config, slam_tuning_output_path, slam_output, dataset_number)
 
+        if param_tuning.get_max_iterations() == 0:
+            logger.info("slam tuning pipeline completed successfully")
+            return
+
         # copy results
         src = os.path.join(
             slam_tuning_output_path, TRAJECTORY_VAL_FOLDER)
         dst = os.path.join(hyperparam_output,
                            f"iter_{param_tuning.get_iteration()}")
+        if os.path.exists(dst):
+            logger.warning(
+                f"destination path already exists, overwriting: {dst}")
+            shutil.rmtree(dst)
         shutil.copytree(src, dst)
 
         # copy these config files:
@@ -148,7 +157,10 @@ def run(dataset_number: int, config_filename: str):
         ]
         for file in files:
             filename = os.path.basename(file)
-            shutil.copyfile(file, os.path.join(dst, filename))
+            if os.path.exists():
+                outpath = os.path.join(dst, filename)
+                logger.warning(f"file already exists, overwriting: {outpath}")
+            shutil.copyfile(file, outpath)
 
     param_tuning.store_best_parameter(
         parameter_key="median_translation_error_m")

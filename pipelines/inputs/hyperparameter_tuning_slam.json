@@ -1,5 +1,5 @@
 {
-  "max_iterations": 5,
+  "max_iterations": 0,
   "files": {
     "mapping/beam_slam/beam_slam_launch/config/registration/scan_to_map.json": [
       {
