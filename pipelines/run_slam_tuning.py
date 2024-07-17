@@ -65,7 +65,10 @@ def trajectory_exists(output_path: str) -> bool:
         slam_output_path, GLOBAL_MAPPER_RESULTS)
     poses_low_rate = os.path.join(
         global_map_ref_path, "global_map_trajectory_optimized.pcd")
-    return os.path.exists(poses_low_rate)
+    if not os.path.exists(poses_low_rate):
+        logger.info("Slam trajectory not found!")
+        return False
+    return True
 
 
 def has_trajectory_changed(output_path: str) -> bool:
@@ -120,9 +123,10 @@ def run(dataset_number: int, config_filename: str):
 
         if not trajectory_exists(output_path) or not has_trajectory_changed(output_path):
             # try one more time:
+            logger.info("looks like slam failed! Trying one more time...")
             run_slam(datasets_config, output_path, dataset_number, ROSBAG_PLAY_RATE,
                      LOCAL_MAPPER_CONFIG, GLOBAL_MAPPER_CONFIG)
-            if not trajectory_exists() or not has_trajectory_changed(output_path):
+            if not trajectory_exists(output_path) or not has_trajectory_changed(output_path):
                 param_tuning.mark_as_failed()
                 continue
 
