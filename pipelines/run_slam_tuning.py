@@ -157,9 +157,10 @@ def run(dataset_number: int, config_filename: str):
         ]
         for file in files:
             filename = os.path.basename(file)
-            if os.path.exists():
-                outpath = os.path.join(dst, filename)
+            outpath = os.path.join(dst, filename)
+            if os.path.exists(outpath):
                 logger.warning(f"file already exists, overwriting: {outpath}")
+                os.remove(outpath)
             shutil.copyfile(file, outpath)
 
     param_tuning.store_best_parameter(
