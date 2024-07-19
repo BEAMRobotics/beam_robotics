@@ -78,6 +78,12 @@ class HyperParamTuning:
         self.iteration_failed = False
 
     def next(self) -> bool:
+        if self.iter == 0 and self.config["max_iterations"] == 0:
+            logger.info(
+                "Max iterations set to 0, running once without sampling parameters")
+            self.iter += 1
+            return True
+
         if self.selected_parameters is not None:
             self.__store_results()
             self.__output_results()
@@ -100,6 +106,8 @@ class HyperParamTuning:
         self.iteration_failed = True
 
     def store_best_parameter(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True):
+        if (self.config["max_iterations"] == 0):
+            return
         best_iter = self.__get_best_parameter(parameter_key, lower_is_better)
         self.results["best_iter"] = best_iter
 
@@ -112,6 +120,9 @@ class HyperParamTuning:
         self.__apply_selected_parameters()
 
     def cleanup(self):
+        if (self.config["max_iterations"] == 0):
+            return
+
         logger.info("Cleaning up temporary config files")
         for filepath_rel, _ in self.config["files"].items():
             filepath = os.path.join(BEAM_ROBOTICS_PATH, filepath_rel)
@@ -128,6 +139,9 @@ class HyperParamTuning:
 
     def get_iteration(self):
         return self.iter
+
+    def get_max_iterations(self):
+        return self.config["max_iterations"]
 
     def __get_best_parameter(self, parameter_key: str = "mean_knn_dist_mm", lower_is_better: bool = True) -> str:
         if lower_is_better:

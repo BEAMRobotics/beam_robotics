@@ -4,9 +4,9 @@
     "mapping/beam_slam/beam_slam_launch/config/registration/scan_to_map.json": [
       {
         "parameter": "downsample_voxel_size",
-        "min": 0.05,
-        "max": 0.15,
-        "increment": 0.02
+        "min": 0.09,
+        "max": 0.1,
+        "increment": 0.001
       }
     ]
   }
