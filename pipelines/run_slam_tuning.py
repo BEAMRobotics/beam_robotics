@@ -16,7 +16,7 @@ trajectory_checksum = ""
 map_checksum = ""
 map_builder_trajectory_checksum = ""
 
-ROSBAG_PLAY_RATE: float = 1
+ROSBAG_PLAY_RATE: float = 0.2
 LOCAL_MAPPER_CONFIG: str = "lio.yaml"
 GLOBAL_MAPPER_CONFIG: str = "global_mapper.yaml"
 
@@ -155,8 +155,8 @@ def run(dataset_number: int, config_filename: str):
             os.path.join(BS_CONFIG_FILES_PATH,
                          "registration", "scan_to_map.json"),
             os.path.join(BS_CONFIG_FILES_PATH,
-                         "optimization", "ceres_config.json"),                         
-            os.path.join(BS_CONFIG_FILES_PATH, "lio.yaml")             
+                         "optimization", "ceres_config.json"),
+            os.path.join(BS_CONFIG_FILES_PATH, "lio.yaml")
         ]
         for file in files:
             filename = os.path.basename(file)
