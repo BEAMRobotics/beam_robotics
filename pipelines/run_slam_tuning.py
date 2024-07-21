@@ -16,7 +16,7 @@ trajectory_checksum = ""
 map_checksum = ""
 map_builder_trajectory_checksum = ""
 
-ROSBAG_PLAY_RATE: float = 0.1
+ROSBAG_PLAY_RATE: float = 1
 LOCAL_MAPPER_CONFIG: str = "lio.yaml"
 GLOBAL_MAPPER_CONFIG: str = "global_mapper.yaml"
 
@@ -168,7 +168,6 @@ def run(dataset_number: int, config_filename: str):
 
     param_tuning.store_best_parameter(
         parameter_key="median_translation_error_m")
-    param_tuning.cleanup()
 
     logger.info("slam tuning pipeline completed successfully")
 

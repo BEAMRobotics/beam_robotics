@@ -1,5 +1,6 @@
 {
   "max_iterations": 20,
+  "allow_duplicate_param_set": true,
   "files": {
     "mapping/beam_slam/beam_slam_launch/config/global_map/global_map_refinement.json": [
       {

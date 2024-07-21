@@ -1,12 +1,37 @@
 {
-  "max_iterations": 5,
+  "max_iterations": 50,
+  "allow_duplicate_param_set": true,
   "files": {
-    "mapping/beam_slam/beam_slam_launch/config/registration/scan_to_map.json": [
+    "mapping/beam_slam/beam_slam_launch/config/matchers/loam_vlp16.json": [
       {
-        "parameter": "downsample_voxel_size",
-        "min": 0.09,
-        "max": 0.1,
-        "increment": 0.001
+        "parameter": "n_feature_regions",
+        "min": 4,
+        "max": 10,
+        "increment": 1
+      },
+      {
+        "parameter": "curvature_region",
+        "min": 4,
+        "max": 7,
+        "increment": 1
+      },
+      {
+        "parameter": "max_surface_flat",
+        "min": 3,
+        "max": 7,
+        "increment": 1
+      },
+      {
+        "parameter": "max_corner_sharp",
+        "min": 3,
+        "max": 7,
+        "increment": 1
+      },
+      {
+        "parameter": "surface_curvature_threshold",
+        "min": 0.1,
+        "max": 0.3,
+        "increment": 0.05
       }
     ]
   }
