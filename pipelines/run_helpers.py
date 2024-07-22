@@ -3,7 +3,7 @@ import sys
 import os
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 import shutil
 import statistics
 
@@ -21,8 +21,10 @@ IMAGE_SELECTOR_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_view_and_filter_images")
 MAP_LABELER_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_label_map")
-BIN_PATH_MAP_QUALITY = "/userhome/catkin_ws/build/map_quality"
-BIN_TRAJECTORY_VALIDATION = "/userhome/catkin_ws/build/lidar_trajectory_validation/lidar_trajectory_validation_main"
+BIN_PATH_MAP_QUALITY = os.path.join(
+    CATKIN_WS, "build/map_quality")
+BIN_TRAJECTORY_VALIDATION = os.path.join(
+    CATKIN_WS, "build/lidar_trajectory_validation/lidar_trajectory_validation_main")
 
 
 def setup_logger():
@@ -126,13 +128,25 @@ def run_slam_trajectory_validation(datasets_config: Dict, output_path: str,  sla
         with open(results_path, "r") as f:
             results = json.load(f)
             rotation = results["mean_rotation_deg"]
+            if not rotation:
+                continue
             translation = results["mean_translation_norm_m"]
+            if not translation:
+                continue
             results_combined[matcher] = {
                 "mean_rotation_deg": rotation, "mean_translation_deg": translation}
             rots.append(rotation)
             trans.append(translation)
-    results_combined["median_rotation_error_deg"] = statistics.median(rots)
-    results_combined["median_translation_error_m"] = statistics.median(trans)
+    if rots:
+        results_combined["median_rotation_error_deg"] = statistics.median(rots)
+    else:
+        results_combined["median_rotation_error_deg"] = None
+    if trans:
+        results_combined["median_translation_error_m"] = statistics.median(
+            trans)
+    else:
+        results_combined["median_translation_error_m"] = None
+
     results_combined_path = os.path.join(
         traj_val_output_path, TRAJ_VALIDATION_RESULTS_FILENAME)
     logger.info(f"saving results to: {results_combined_path}")
@@ -321,3 +335,11 @@ def load_run_all_config():
     config = json.load(f)
     f.close()
     return config
+
+
+def run_parameter_tunning_results_plotting(results_filepath: str, plots_output, str, metrics: List[str]):
+    script_path = os.path.join(
+        PIPELINES_PATH, "plot_hyperparam_tuning_results.py")
+    cmd = f"{script_path} -r {results_filepath} -o {plots_output} --metrics {metrics}"
+    logger.info("running command: %s", cmd)
+    os.system(cmd)

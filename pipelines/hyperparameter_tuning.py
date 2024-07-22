@@ -13,7 +13,6 @@ from params import *
 logger = logging.getLogger("HYPERPARAMETER_TUNING")
 
 CONFIG_FILE_BACKUP_POST_FIX = ".backup.json"
-RESULTS_FILENAME = "hyperparameter_tuning_results.json"
 
 
 def setup_logger(output_file: str):
@@ -67,7 +66,7 @@ class HyperParamTuning:
         self.validation_json_path = validation_json_path
         self.config: Dict = load_json(config_path)
         self.results_path = os.path.join(
-            self.hyper_param_tuning_output, RESULTS_FILENAME)
+            self.hyper_param_tuning_output, PARAM_TUNING_RESULTS_FILENAME)
         self.results = {}
         self.iter: int = 0
 
@@ -213,19 +212,18 @@ class HyperParamTuning:
             f"Sampling new set of parameters [{self.iter}/{max_iter}]")
         # iterate through all parameters and sample new values forming a unique combination
         if self.set_all_parameter_combinations:
-            self.selected_parameters, is_successful = self.__select_any_parameter_set()    
-        else:     
+            self.selected_parameters, is_successful = self.__select_any_parameter_set()
+        else:
             self.selected_parameters, is_successful = self.__select_unique_parameter_set()
-                
+
         if not is_successful:
             if not self.config["allow_duplicate_param_set"]:
                 print("exiting parameter tuning")
-            else:    
+            else:
                 print("continuing with duplicate parameters")
                 self.set_all_parameter_combinations = True
                 self.selected_parameters, is_successful = self.__select_any_parameter_set()
         return is_successful
-
 
     def __select_any_parameter_set(self) -> Tuple[Dict, bool]:
         # {filepath -> {parameter_key -> value}}
@@ -233,16 +231,11 @@ class HyperParamTuning:
         for filepath_rel, parameters in self.config["files"].items():
             selected_parameters[filepath_rel] = {}
             for parameter in parameters:
-                new_param = self.__sample_parameter(
-                    min=parameter["min"],
-                    max=parameter["max"],
-                    increment=parameter["increment"],
-                )
+                new_param = self.__sample_parameter(parameter)
                 parameter_keys_combined = parameter["parameter"]
                 selected_parameters[filepath_rel][parameter_keys_combined] = new_param
         return selected_parameters, True
 
-    
     def __select_unique_parameter_set(self) -> Tuple[Dict, bool]:
         # {filepath -> {parameter_key -> value}}
         selected_parameters = {}
@@ -253,11 +246,7 @@ class HyperParamTuning:
             for filepath_rel, parameters in self.config["files"].items():
                 selected_parameters[filepath_rel] = {}
                 for parameter in parameters:
-                    new_param = self.__sample_parameter(
-                        min=parameter["min"],
-                        max=parameter["max"],
-                        increment=parameter["increment"],
-                    )
+                    new_param = self.__sample_parameter(parameter)
                     parameter_keys_combined = parameter["parameter"]
                     selected_parameters[filepath_rel][parameter_keys_combined] = new_param
 
@@ -277,7 +266,17 @@ class HyperParamTuning:
 
         return False
 
-    def __sample_parameter(self, min: Any, max: Any, increment: Any) -> Any:
+    def __sample_parameter(self, parameter_info: Dict) -> Any:
+
+        if "values" in parameter_info:
+            num_elements = len(parameter_info["values"])
+            id = self.rnd_gen.randint(0, num_elements - 1)
+            parameter = parameter_info["values"][id]
+            return parameter
+
+        max = parameter_info["max"]
+        min = parameter_info["min"]
+        increment = parameter_info["increment"]
         num_increments = (max - min) / increment + 1
         increment_id = self.rnd_gen.randint(0, int(num_increments))
         parameter = min + increment_id * increment
