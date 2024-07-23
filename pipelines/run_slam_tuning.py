@@ -9,7 +9,7 @@ import hashlib
 from hyperparameter_tuning import HyperParamTuning
 from params import *
 from utils import load_datasets_config
-from run_helpers import run_slam, run_slam_trajectory_validation, run_parameter_tunning_results_plotting
+from run_helpers import run_slam, run_slam_trajectory_validation
 logger = logging.getLogger("RUN_SLAM_TUNING")
 
 trajectory_checksum = ""
@@ -175,8 +175,11 @@ def run(dataset_number: int, config_filename: str):
         plots_output = os.path.join(hyperparam_output, "plots")
         os.makedirs(plots_output, exist_ok=True)
         metrics = ["median_translation_error_m", "median_rotation_error_deg"]
-        run_parameter_tunning_results_plotting(
-            results_filepath, plots_output, metrics)
+        script_path = os.path.join(
+            PIPELINES_PATH, "plot_hyperparam_tuning_results.py")
+        cmd = f"{script_path} -r {results_filepath} -o {plots_output} --metrics {metrics}"
+        logger.info("running command: %s", cmd)
+        os.system(cmd)
 
     logger.info("slam tuning pipeline completed successfully")
 

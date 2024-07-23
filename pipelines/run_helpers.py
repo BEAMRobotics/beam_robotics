@@ -335,11 +335,3 @@ def load_run_all_config():
     config = json.load(f)
     f.close()
     return config
-
-
-def run_parameter_tunning_results_plotting(results_filepath: str, plots_output, str, metrics: List[str]):
-    script_path = os.path.join(
-        PIPELINES_PATH, "plot_hyperparam_tuning_results.py")
-    cmd = f"{script_path} -r {results_filepath} -o {plots_output} --metrics {metrics}"
-    logger.info("running command: %s", cmd)
-    os.system(cmd)
