@@ -177,7 +177,7 @@ def run(dataset_number: int, config_filename: str):
         metrics = ["median_translation_error_m", "median_rotation_error_deg"]
         script_path = os.path.join(
             PIPELINES_PATH, "plot_hyperparam_tuning_results.py")
-        cmd = f"{script_path} -r {results_filepath} -o {plots_output} --metrics {metrics}"
+        cmd = f"{script_path} -r {results_filepath} -o {plots_output} --metrics {metrics[0]} {metrics[1]}"
         logger.info("running command: %s", cmd)
         os.system(cmd)
 
