@@ -91,3 +91,14 @@ target_link_libraries(${PROJECT_NAME}_odom_topic_to_poses_file
 	beam::mapping
 	beam::utils
 )
+
+# Binary to convert calibration jsons to more usable format
+add_executable(${PROJECT_NAME}_reorganize_extrinsics
+	tools/ReorganizeExtrinsics.cpp
+)
+target_link_libraries(${PROJECT_NAME}_reorganize_extrinsics
+	${PROJECT_NAME}
+	gflags
+	beam::utils
+	beam::calibration
+)
