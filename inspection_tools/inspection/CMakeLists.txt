@@ -91,16 +91,3 @@ target_link_libraries(${PROJECT_NAME}_odom_topic_to_poses_file
 	beam::mapping
 	beam::utils
 )
-
-# CalibrateCameraToMap
-add_executable(${PROJECT_NAME}_calibrate_camera_to_map
-	src/CalibrateCameraToMap.cpp
-)
-target_link_libraries(${PROJECT_NAME}_calibrate_camera_to_map
-	${PROJECT_NAME}
-	gflags
-	beam::mapping
-	beam::utils
-	beam::colorize
-	beam::calibration
-)
