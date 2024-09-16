@@ -29,8 +29,17 @@ Camera::Camera(const std::string& camera_name,
 
   std::vector<std::string> image_list;
   if (selected_images.empty()) {
-    std::vector<std::string> tmp = J.at("Images");
-    image_list = tmp;
+    if (J.contains("Images")) {
+      std::vector<std::string> tmp = J.at("Images");
+      image_list = tmp;
+    } else if (J.contains("Items")) {
+      // for backwards compatibility
+      std::vector<std::string> tmp = J.at("Items");
+      image_list = tmp;
+    } else {
+      throw std::runtime_error{"invalid image list json"};
+    }
+
     BEAM_INFO("loading all {} images in metadata file", image_list.size());
   } else {
     image_list = selected_images;

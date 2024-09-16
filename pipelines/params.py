@@ -41,7 +41,7 @@ CALIBRATION_PATH = os.path.join(
 
 EXTRINSICS_PATH = os.path.join(PIPELINES_PATH, "calibrations")
 EXTRINSICS_JSON_PATH = os.path.join(
-    EXTRINSICS_PATH, "extrinsics.json")
+    EXTRINSICS_PATH, "extrinsics_reorg.json")
 INTRINSICS_PATH = os.path.join(
     CALIBRATION_PATH, "intrinsics")
 

@@ -1,0 +1,23 @@
+{
+  "max_iterations": 50,
+  "allow_duplicate_param_set": true,
+  "files": {
+    "mapping/beam_slam/beam_slam_launch/config/optimization/lio_information_weights.json": [
+      {
+        "parameter": "inertial_information_weight",
+        "values": [
+          1,
+          0.1,
+          0.5,
+          1e-2,
+          5e-2,
+          1e-3,
+          5e-3,
+          1e-4,
+          1e-5,
+          1e-6
+        ]
+      }
+    ]
+  }
+}

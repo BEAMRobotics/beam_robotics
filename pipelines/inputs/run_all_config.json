@@ -1,7 +1,7 @@
 {
     "slam": {
         "enable": false,
-        "rosbag_play_rate": 0.5,
+        "rosbag_play_rate": 0.3,
         "local_mapper_config": "lio.yaml",
         "global_mapper_config": "global_mapper.yaml"
     },
@@ -11,10 +11,10 @@
         "run_posegraph_optimization": false,
         "run_batch_optimizer": false
     },
-    "run_map_builder": true,
+    "run_map_builder": false,
     "use_refined_results_for_map": false,
     "run_map_quality": false,
     "run_image_extractor": false,
     "run_image_selection": false,
-    "run_map_labeler": false
+    "run_map_labeler": true
 }
