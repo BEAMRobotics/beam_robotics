@@ -225,7 +225,7 @@ def run_map_quality(output_path: str):
     map_builder_output_path = os.path.join(output_path, MAP_BUILDER_FOLDER)
     map_path = os.path.join(map_builder_output_path, "map.pcd")
     output_file = os.path.join(map_builder_output_path, "map_quality.json")
-    cmd = f"{bin_path} --cloud {map_path} --output {output_file}"
+    cmd = f"{bin_path} --cloud {map_path} --output {output_file} "
     cmd += "-neighborhood=false -voxel=true"
     logger.info("running command: %s", cmd)
     os.system(cmd)

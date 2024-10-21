@@ -11,6 +11,7 @@ from typing import Dict
 import cv2
 
 JPEG_QUALITY = 0.75
+USE_MASK_OVERLAY = False
 
 '''
 Installing requirements for this viewer:
@@ -82,7 +83,7 @@ def parse_args():
 def log_map(map_path: str, map_name: str, world_frame: str):
     print(f"reading map: {map_path}")
     pc: PointCloud = PointCloud.from_path(map_path)
-    pc_numpy = pc.numpy()
+    pc_numpy = pc.numpy()[:, 0:3]
     print(f"loaded map {map_name} with {pc_numpy.shape[0]} points")
     entity_path = (
         f"{world_frame}/{map_name}"
@@ -167,7 +168,7 @@ def log_extrinsics(extrinsics_path: str, world_frame: str, baselink_frame: str):
 def log_image(image_container_path: str, world_frame: str, baselink_frame: str, trajectory: Dict[int, np.array]):
     # get image path
     viz_image_path = os.path.join(image_container_path, "BGRMaskOverlay.jpg")
-    if os.path.exists(viz_image_path):
+    if USE_MASK_OVERLAY and os.path.exists(viz_image_path):
         image_path = viz_image_path
     else:
         image_path = os.path.join(image_container_path, "BGRImage.jpg")
@@ -198,7 +199,8 @@ def log_image(image_container_path: str, world_frame: str, baselink_frame: str, 
     rr.log(f"{world_frame}/{baselink_frame}", T_rr)
 
     img = cv2.imread(image_path)
-    img_np = np.array(img)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_np = np.array(img_rgb)
     rr.log(
         f"{world_frame}/{baselink_frame}/{camera_frame_id}",
         rr.Image(img_np),
@@ -254,7 +256,11 @@ def log_images(cameras_list_path: str, intrinsics_directory: str, world_frame: s
         images_path = os.path.join(cameras_path, camera)
         image_list_path = os.path.join(images_path, f"{images_filename}.json")
         with open(image_list_path, 'r') as f:
-            images = json.load(f)["Items"]
+            data = json.load(f)
+            if "Items" in data:
+                images = data["Items"]
+            else:
+                images = data["Images"]
             for img_name in images:
                 image_path = os.path.join(images_path, img_name)
                 log_image(image_path, world_frame, baselink_frame, trajectory)
