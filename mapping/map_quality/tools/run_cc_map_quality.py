@@ -2,11 +2,12 @@ import argparse
 import os
 import sys
 import pathlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Final
 import json
 
 # NOTE: this may differ based on how you installed cloudcompare. You will also need the pcl extensions
-CC_BIN = "cloudcompare.CloudCompare"
+CC_BIN: Final[str] = "cloudcompare.CloudCompare"
+OUTPUT_FILENAME: Final[str] = "map_quality_cc.json"
 
 
 def parse_args(args) -> Any:
@@ -15,7 +16,7 @@ def parse_args(args) -> Any:
     parser.add_argument(
         '-i', type=str, help='path to map file (pcd).')
     parser.add_argument(
-        '-o', type=str, help='output path for data. Results filename will be: map_quality.json')
+        '-o', type=str, help=f"output path for data. Results filename will be: {OUTPUT_FILENAME}")
     args = parser.parse_args()
     return args
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     mean_density = get_mean(density_map_path)
     mean_roughness = get_mean(roughness_map_path)
 
-    results_path = os.path.join(args.o, "map_quality.json")
+    results_path = os.path.join(args.o, OUTPUT_FILENAME)
     results = {}
     results["cc_mean_roughness"] = mean_roughness
     results["cc_mean_density"] = mean_density
