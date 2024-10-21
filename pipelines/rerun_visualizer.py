@@ -12,6 +12,7 @@ import cv2
 
 JPEG_QUALITY = 0.75
 USE_MASK_OVERLAY = False
+DOWNSCALE_FACTOR = 2
 
 '''
 Installing requirements for this viewer:
@@ -200,7 +201,12 @@ def log_image(image_container_path: str, world_frame: str, baselink_frame: str, 
 
     img = cv2.imread(image_path)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_np = np.array(img_rgb)
+    new_shape = (int(img_rgb.shape[1] / DOWNSCALE_FACTOR),
+                 int(img_rgb.shape[0] / DOWNSCALE_FACTOR))
+
+    img_downsized = cv2.resize(img_rgb.copy(), new_shape,
+                               interpolation=cv2.INTER_LINEAR)
+    img_np = np.array(img_downsized)
     rr.log(
         f"{world_frame}/{baselink_frame}/{camera_frame_id}",
         rr.Image(img_np),
@@ -236,9 +242,9 @@ def log_images(cameras_list_path: str, intrinsics_directory: str, world_frame: s
             intrinsics = json.load(f)
         camera_frame = intrinsics["frame_id"]
         camera_to_frame_id[camera] = camera_frame
-        w = intrinsics["image_width"]
-        h = intrinsics["image_height"]
-        f = intrinsics["intrinsics"][0]
+        w = intrinsics["image_width"] / DOWNSCALE_FACTOR
+        h = intrinsics["image_height"] / DOWNSCALE_FACTOR
+        f = intrinsics["intrinsics"][0] / DOWNSCALE_FACTOR
         rr.log(
             f"{world_frame}/{baselink_frame}/{camera_frame}",
             rr.Pinhole(
