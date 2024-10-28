@@ -32,6 +32,18 @@ python3 pipelines/rerun_visualizer.py \
 --extrinsics pipelines/calibrations/extrinsics_reorg.json \
 --intrinsics ~/beam_robotics/calibration/results/inspector_gadget2/current/intrinsics \
 --cameras_list_path ~/d2/results/image_extractor/CameraListNew.json
+
+Example 2: One map (bridge)
+
+python3 pipelines/rerun_visualizer.py \
+--maps ~/d/results/map_builder/map.pcd \
+--map_names refined_map --trajectories \
+~/d/results/map_builder/final_poses.json  \
+--trajectory_names refined_trajectory \
+--extrinsics pipelines/calibrations/extrinsics_reorg.json \
+--intrinsics ~/beam_robotics/calibration/results/inspector_gadget2/current/intrinsics \
+--cameras_list_path ~/d/results/image_extractor/CameraListNew.json
+
 '''
 
 
