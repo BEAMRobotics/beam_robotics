@@ -299,7 +299,7 @@ def run_map_labeler(output_path: str):
     extrinsics = os.path.join(
         EXTRINSICS_PATH, "extrinsics.json")
     config_path = os.path.join(PIPELINE_INPUTS, "map_labeler_config.json")
-    cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=false -output_camera_poses=true "
+    cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=true -output_camera_poses=true "
     cmd += "-output_images=true -output_individual_clouds=true -remove_unlabeled=false "
     cmd += "-save_final_map=true -draw_final_map=false "
     cmd += f"-images {cameras_path} -poses {poses_path} -config {config_path} "
@@ -318,6 +318,17 @@ def run_map_labeler(output_path: str):
 
     # run for vvlp map if exists
     map_path = os.path.join(map_builder_output, "map_lidar_v_link.pcd")
+    if os.path.exists(map_path):
+        logger.info(f"running map labeling with vertical lidar map")
+        labeler_output_path = os.path.join(
+            output_path, MAP_LABELER_FOLDER + "_vvlp")
+        os.makedirs(labeler_output_path, exist_ok=True)
+        cmd1 = cmd + f" -map {map_path} -output {labeler_output_path}"
+        logger.info("running command: %s", cmd1)
+        os.system(cmd1)
+
+    # run for map if exists
+    map_path = os.path.join(map_builder_output, "map.pcd")
     if os.path.exists(map_path):
         logger.info(f"running map labeling with vertical lidar map")
         labeler_output_path = os.path.join(

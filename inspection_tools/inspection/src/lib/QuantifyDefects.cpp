@@ -31,14 +31,20 @@ QuantifyDefects::QuantifyDefects(const std::string& cloud_filename,
   delam_threshold_ = J["delam_threshold"];
   corrosion_threshold_ = J["corrosion_threshold"];
 
+  BEAM_INFO("Reading input cloud: {}", cloud_filename_);
   pcl::PCDReader reader;
   reader.read(cloud_filename_, *point_cloud_);
+  BEAM_INFO("Done setting up QuantifyDefects");
 }
 
 void QuantifyDefects::OutputCrackInfo() {
+  BEAM_INFO("Getting crack info");
   std::vector<beam_defects::Defect::Ptr> crack_vector_ =
       beam_defects::GetCracks(point_cloud_, crack_threshold_);
-
+  if (crack_vector_.empty()) {
+    BEAM_INFO("No crack labels found");
+    return;
+  }
   int j = 1;
   for (auto& defect : crack_vector_) {
     std::cout << "Crack " << j << " length: " << defect->GetSize() << "m"
@@ -48,9 +54,13 @@ void QuantifyDefects::OutputCrackInfo() {
 };
 
 void QuantifyDefects::OutputSpallInfo() {
+  BEAM_INFO("Getting spall info");
   std::vector<beam_defects::Defect::Ptr> spall_vector =
       beam_defects::GetSpalls(point_cloud_, spall_threshold_);
-
+  if (spall_vector.empty()) {
+    BEAM_INFO("No spall labels found");
+    return;
+  }
   int j = 1;
   for (auto& defect : spall_vector) {
     std::cout << "Spall " << j << " area: " << defect->GetSize() << "m^2"
@@ -60,9 +70,13 @@ void QuantifyDefects::OutputSpallInfo() {
 };
 
 void QuantifyDefects::OutputDelamInfo() {
+  BEAM_INFO("Getting delamination info");
   std::vector<beam_defects::Defect::Ptr> delam_vector =
       beam_defects::GetDelams(point_cloud_, delam_threshold_);
-
+  if (delam_vector.empty()) {
+    BEAM_INFO("No delam labels found");
+    return;
+  }
   int j = 1;
   for (auto& defect : delam_vector) {
     std::cout << "Delamination " << j << " area: " << defect->GetSize() << "m^2"
@@ -72,9 +86,10 @@ void QuantifyDefects::OutputDelamInfo() {
 };
 
 void QuantifyDefects::OutputCorrosionInfo() {
+  BEAM_INFO("Getting corrosion info");
   std::vector<beam_defects::Defect::Ptr> corrosion_vector =
       beam_defects::GetCorrosion(point_cloud_, corrosion_threshold_);
-
+  if (corrosion_vector.empty()) { BEAM_INFO("No corrosion labels found"); }
   int j = 1;
   for (auto& defect : corrosion_vector) {
     std::cout << "Corrosion " << j << " area: " << defect->GetSize() << "m^2"

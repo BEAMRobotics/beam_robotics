@@ -35,8 +35,8 @@ void MapLabeler::Inputs::Print() const {
 MapLabeler::MapLabeler(const Inputs& inputs) : inputs_(inputs) {
   BEAM_INFO("Initializing MapLabeler");
   ProcessJSONConfig();
-
   if (!inputs_.map.empty()) {
+    input_map_ = std::make_shared<DefectCloud>();
     if (pcl::io::loadPCDFile<BridgePoint>(inputs_.map, *input_map_) == -1) {
       BEAM_CRITICAL("Couldn't read input map: {}", inputs_.map);
       throw std::runtime_error{"unable to read input map"};
@@ -216,6 +216,7 @@ void MapLabeler::LabelColor(
 void MapLabeler::LabelDefects(
     std::unordered_map<std::string, DefectCloudsMapType>& defect_clouds_in_cam,
     bool remove_unlabeled) const {
+  BEAM_INFO("Labeling defects");
   for (size_t cam_index = 0; cam_index < cameras_.size(); cam_index++) {
     // get defects for this camera
     const Camera& cam = cameras_[cam_index];
@@ -515,7 +516,7 @@ void MapLabeler::ProjectImgRGBToMap(DefectCloud::Ptr& defect_cloud_in_cam,
                                     bool remove_unlabeled) const {
   const auto& image_container = image.image_container;
   if (!image_container.IsBGRImageSet()) {
-    BEAM_DEBUG("no BGR image available for cam {}, image time: {}s",
+    BEAM_DEBUG("No BGR image available for cam {}, image time: {}s",
                camera.name, image.image_container.GetRosTime().toSec());
     return;
   }
@@ -545,9 +546,10 @@ void MapLabeler::ProjectImgRGBMaskToMap(DefectCloud::Ptr& defect_cloud_in_cam,
                                         const Camera& camera,
                                         bool remove_unlabeled) const {
   const auto& image_container = image.image_container;
-  if (image_container.IsBGRMaskSet()) {
-    BEAM_DEBUG("no BGR image mask available for cam {}, image time: {}s",
-               camera.name, image.image_container.GetRosTime().toSec());
+  if (!image_container.IsBGRMaskSet()) {
+    BEAM_INFO("No BGR image mask available for cam {}, image time: {}s",
+              camera.name,
+              std::to_string(image.image_container.GetRosTime().toSec()));
     return;
   }
   BEAM_DEBUG("Projecting image mask to map");

@@ -252,7 +252,7 @@ private:
   beam_calibration::TfTree poses_tree_;
   std::string poses_moving_frame_;
   std::string poses_fixed_frame_;
-  DefectCloud::Ptr input_map_ = std::make_shared<DefectCloud>();
+  DefectCloud::Ptr input_map_;
   std::vector<Camera> cameras_;
 };
 
