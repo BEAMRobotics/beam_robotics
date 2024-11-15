@@ -272,8 +272,8 @@ def get_mask(predictor, image_path, image, image_bgr):
                 bgr_mask_viz[j][k] = 255/2
                 bgr_mask[j][k] = 1
 
-    bgr_mask_save_path = os.path.join(save_path, "BGRMask.jpg")
-    bgr_mask_viz_save_path = os.path.join(save_path, "BGRMaskViz.jpg")
+    bgr_mask_save_path = os.path.join(save_path, "BGRMask.png")
+    bgr_mask_viz_save_path = os.path.join(save_path, "BGRMaskViz.png")
     bgr_mask_overlay_save_path = os.path.join(save_path, "BGRMaskOverlay.jpg")
     print("saving: ", bgr_mask_save_path)
     cv2.imwrite(bgr_mask_save_path, bgr_mask)

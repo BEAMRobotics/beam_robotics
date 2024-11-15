@@ -18,8 +18,7 @@ def parse_args():
     global new_image_list_filename_
     global view_scale_
     parser = argparse.ArgumentParser(
-        description=
-        'View images from an image container that have been extracted from '
+        description='View images from an image container that have been extracted from '
         'inspection_extract_images binary. This also allows you to select which '
         'images to keep and which to discard. Note that discarding images does '
         'not delete the data, it only removes the image from the images list json.')
@@ -28,8 +27,7 @@ def parse_args():
         dest='camera_list',
         required=True,
         type=str,
-        help=
-        'path to data json listing cameras and image lists',
+        help='path to data json listing cameras and image lists',
     )
     parser.add_argument(
         '--view_scale',
@@ -45,8 +43,7 @@ def parse_args():
         required=False,
         default="CameraListNew",
         type=str,
-        help=
-        'set the name for the new cameras list filename. '
+        help='set the name for the new cameras list filename. '
         'This file will also have the update names for each images list file.',
     )
     parser.add_argument(
@@ -55,8 +52,7 @@ def parse_args():
         required=False,
         default="ImageListNew",
         type=str,
-        help=
-        'set the name for the new image list filename. '
+        help='set the name for the new image list filename. '
         'E.g., if saving images for crack detection: CrackImages',
     )
     args = parser.parse_args()
@@ -76,12 +72,12 @@ def display_image(image_path):
         return
 
     image = cv2.imread(image_path)
-    
+
     # resize image
     width = int(image.shape[1] * view_scale_ / 100)
     height = int(image.shape[0] * view_scale_ / 100)
     dim = (width, height)
-    resized_image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    resized_image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
     cv2.imshow('image', resized_image)
     keep_image = True
@@ -120,9 +116,9 @@ def show_camera_images(camera_data_dir, images_filename):
         elif image_info_file_json_data["is_ir_image_set"]:
             image_path = os.path.join(image_container_path, "IRImage.jpg")
         elif image_info_file_json_data["is_bgr_mask_set"]:
-            image_path = os.path.join(image_container_path, "BGRMask.jpg")
+            image_path = os.path.join(image_container_path, "BGRMask.png")
         elif image_info_file_json_data["is_ir_mask_set"]:
-            image_path = os.path.join(image_container_path, "IRMask.jpg")
+            image_path = os.path.join(image_container_path, "IRMask.png")
         else:
             logging.error("image container empty for: %s",
                           image_container_path)
@@ -136,7 +132,8 @@ def show_camera_images(camera_data_dir, images_filename):
     image_list_file.close()
     output_image_list = {}
     output_image_list["Images"] = image_list_keep
-    images_filename_new = os.path.join(camera_data_dir, new_image_list_filename_)
+    images_filename_new = os.path.join(
+        camera_data_dir, new_image_list_filename_)
     logging.info("writing new images list to: %s", images_filename_new)
     with open(images_filename_new, 'w') as f:
         json.dump(output_image_list, f)
