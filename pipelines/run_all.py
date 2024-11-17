@@ -118,8 +118,10 @@ def run(dataset_number: int):
             shutil.copyfile(camera_list, new_list_file)
 
     # map labeler
-    if run_all_config["run_map_labeler"]:
-        run_map_labeler(output_path)
+    color_map = run_all_config["map_labeler"]["color_map"]
+    label_defects = run_all_config["map_labeler"]["label_defects"]
+    if color_map or label_defects:
+        run_map_labeler(output_path, color_map, label_defects)
     else:
         logger.info("skipping map labeler")
 

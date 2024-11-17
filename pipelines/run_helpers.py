@@ -286,7 +286,7 @@ def run_image_selection(output_path: str):
     os.system(cmd)
 
 
-def run_map_labeler(output_path: str):
+def run_map_labeler(output_path: str, color_map: bool = True, label_defects: bool = True):
     print("\n------------------------------------")
     print("------- Running Map Labeler --------")
     print("------------------------------------\n")
@@ -299,7 +299,7 @@ def run_map_labeler(output_path: str):
     extrinsics = os.path.join(
         EXTRINSICS_PATH, "extrinsics.json")
     config_path = os.path.join(PIPELINE_INPUTS, "map_labeler_config.json")
-    cmd = f"{MAP_LABELER_BIN} -color_map=true -label_defects=true -output_camera_poses=true "
+    cmd = f"{MAP_LABELER_BIN} -color_map={color_map} -label_defects={label_defects} -output_camera_poses=true "
     cmd += "-output_images=true -output_individual_clouds=true -remove_unlabeled=false "
     cmd += "-save_final_map=true -draw_final_map=false "
     cmd += f"-images {cameras_path} -poses {poses_path} -config {config_path} "

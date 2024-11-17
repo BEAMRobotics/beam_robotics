@@ -64,6 +64,11 @@ Camera::Camera(const std::string& camera_name,
   } else if (colorizer_type == "Projection2") {
     colorizer = beam_colorize::Colorizer::Create(
         beam_colorize::ColorizerType::PROJECTION_OCCLUSION_SAFE);
+  } else {
+    std::string error{
+        "Invalid colorizer type, options: Projection, RayTrace, Projection2"};
+    BEAM_ERROR("{}", error);
+    throw std::invalid_argument{error};
   }
   colorizer->SetIntrinsics(cam_model);
 }
