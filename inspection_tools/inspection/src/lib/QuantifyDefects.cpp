@@ -8,7 +8,9 @@
 #include <beam_defects/Delam.h>
 #include <beam_defects/Spall.h>
 #include <beam_defects/extract_functions.h>
+#include <beam_utils/filesystem.h>
 #include <beam_utils/log.h>
+#include <beam_utils/pointclouds.h>
 
 namespace inspection {
 
@@ -99,8 +101,7 @@ void QuantifyDefects::OutputCorrosionInfo() {
 }
 
 void QuantifyDefects::SaveCrackOnlyCloud() {
-  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-  *cloud_filtered =
+  auto cloud_filtered =
       beam_defects::IsolateCrackPoints(point_cloud_, crack_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
       beam_defects::GetExtractedClouds(cloud_filtered);
@@ -115,24 +116,23 @@ void QuantifyDefects::SaveCrackOnlyCloud() {
 };
 
 void QuantifyDefects::SaveSpallOnlyCloud() {
-  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-  *cloud_filtered =
+  auto cloud_filtered =
       beam_defects::IsolateSpallPoints(point_cloud_, spall_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
       beam_defects::GetExtractedClouds(cloud_filtered);
 
   int j = 1;
   for (auto& cloud : cloud_vector) {
-    std::stringstream ss;
-    ss << cloud_savedir_ << "spall_" << j << ".pcd";
-    pcl::io::savePCDFile(ss.str(), *cloud);
+    std::string save_path = beam::CombinePaths(
+        cloud_savedir_, "spall_" + std::to_string(j) + ".pcd");
+    BEAM_INFO("Saving cloud to: {}", save_path);
+    beam::SavePointCloud(save_path, *cloud);
     j++;
   }
 };
 
 void QuantifyDefects::SaveDelamOnlyCloud() {
-  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-  *cloud_filtered =
+  auto cloud_filtered =
       beam_defects::IsolateDelamPoints(point_cloud_, delam_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
       beam_defects::GetExtractedClouds(cloud_filtered);
@@ -147,8 +147,7 @@ void QuantifyDefects::SaveDelamOnlyCloud() {
 };
 
 void QuantifyDefects::SaveCorrosionOnlyCloud() {
-  auto cloud_filtered = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-  *cloud_filtered =
+  auto cloud_filtered =
       beam_defects::IsolateCorrosionPoints(point_cloud_, corrosion_threshold_);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector =
       beam_defects::GetExtractedClouds(cloud_filtered);
