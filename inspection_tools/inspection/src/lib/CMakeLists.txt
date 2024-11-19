@@ -5,7 +5,7 @@ add_library(${PROJECT_NAME}
   ImageDatabase.cpp
   MapLabeler.cpp
   Camera.cpp
-  QuantifyDefects.cpp
+  DefectQuantification.cpp
   InspectionUtils.cpp
   Utils.cpp
 )

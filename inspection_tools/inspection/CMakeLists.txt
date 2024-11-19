@@ -60,7 +60,7 @@ target_link_libraries(${PROJECT_NAME}_label_images
         ${PYTHON_LIBRARIES}
 )
 
-# ManualB inspection binaries
+# defect quantification
 add_executable(${PROJECT_NAME}_quantify_defects
 	src/QuantifyDefects.cpp
 )

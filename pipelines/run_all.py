@@ -6,7 +6,9 @@ import logging
 import shutil
 
 from utils import load_datasets_config
-from run_helpers import run_slam, run_map_refinement, run_map_builder, run_map_quality, run_image_extractor, run_image_selection, run_map_labeler
+from run_helpers import run_slam, run_map_refinement, run_map_builder
+from run_helpers import run_map_quality, run_image_extractor, run_image_selection
+from run_helpers import run_quantify_defects, run_map_labeler
 from params import *
 
 logger = logging.getLogger("RUN_ALL")
@@ -124,6 +126,12 @@ def run(dataset_number: int):
         run_map_labeler(output_path, color_map, label_defects)
     else:
         logger.info("skipping map labeler")
+
+    # quantify defects
+    if run_all_config["run_quantify_defects"]:
+        run_quantify_defects(output_path)
+    else:
+        logger.info("skipping map defect quantification")
 
     logger.info("run_all.py pipeline completed successfully")
 

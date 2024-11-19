@@ -21,6 +21,8 @@ IMAGE_SELECTOR_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_view_and_filter_images")
 MAP_LABELER_BIN = os.path.join(
     CATKIN_WS, "build/inspection/inspection_label_map")
+QUANTIFY_DEFECTS_BIN = os.path.join(
+    CATKIN_WS, "build/inspection/inspection_quantify_defects")
 BIN_PATH_MAP_QUALITY = os.path.join(
     CATKIN_WS, "build/map_quality")
 BIN_TRAJECTORY_VALIDATION = os.path.join(
@@ -346,3 +348,28 @@ def load_run_all_config():
     config = json.load(f)
     f.close()
     return config
+
+
+def run_quantify_defects(output_path: str):
+    print("\n------------------------------------")
+    print("----- Running Quantify Defects ------")
+    print("------------------------------------\n")
+    clouds_path = os.path.join(
+        output_path, MAP_LABELER_FOLDER + "_vvlp", "clouds")
+    clouds_info_path = os.path.join(clouds_path, "clouds_info.json")
+    config = os.path.join(PIPELINE_INPUTS, "QuantifyDefectsConfig.json")
+    quant_output_path = os.path.join(
+        output_path, MAP_LABELER_FOLDER + "_vvlp", "defect_quantification")
+    os.makedirs(quant_output_path, exist_ok=True)
+    with open(clouds_info_path, 'r') as f:
+        clouds_info = json.load(f)
+        for _, clouds in clouds_info.items():
+            for cloud in clouds:
+                cloud_path = os.path.join(clouds_path, cloud["filename"])
+                defects_output_path = os.path.join(
+                    quant_output_path, cloud["filename"][:-4])
+                os.makedirs(defects_output_path, exist_ok=True)
+                cmd = f"{QUANTIFY_DEFECTS_BIN} --cloud {cloud_path} "
+                cmd += f"--config {config} --output {defects_output_path}"
+                logger.info("running command: %s", cmd)
+                os.system(cmd)

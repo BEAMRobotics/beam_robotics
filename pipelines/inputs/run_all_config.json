@@ -17,7 +17,8 @@
     "run_image_extractor": false,
     "run_image_selection": false,
     "map_labeler": {
-        "color_map": true,
-        "label_defects": true
-    }
+        "color_map": false,
+        "label_defects": false
+    },
+    "run_quantify_defects": true
 }

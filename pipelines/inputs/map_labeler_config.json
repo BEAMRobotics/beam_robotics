@@ -8,7 +8,9 @@
       "Intrinsics": "F1.json",
       "Enabled": true,
       "SelectedImages": [
-        "ImageBridge10"
+        "ImageBridge10",
+        "ImageBridge25",
+        "ImageBridge28"
       ]
     },
     {
