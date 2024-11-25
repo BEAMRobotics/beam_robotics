@@ -8,7 +8,7 @@ import shutil
 from utils import load_datasets_config
 from run_helpers import run_slam, run_map_refinement, run_map_builder
 from run_helpers import run_map_quality, run_image_extractor, run_image_selection
-from run_helpers import run_quantify_defects, run_map_labeler
+from run_helpers import run_quantify_defects, run_map_labeler, run_sam_labeling
 from params import *
 
 logger = logging.getLogger("RUN_ALL")
@@ -118,6 +118,10 @@ def run(dataset_number: int):
             logger.info(
                 f"no CameraListNew file, copying from {camera_list} to {new_list_file}")
             shutil.copyfile(camera_list, new_list_file)
+
+    # SAM image labeling
+    if run_all_config["run_sam_labeling"]:
+        run_sam_labeling(output_path)
 
     # map labeler
     color_map = run_all_config["map_labeler"]["color_map"]

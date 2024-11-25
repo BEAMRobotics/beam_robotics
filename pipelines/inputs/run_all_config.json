@@ -16,9 +16,10 @@
     "run_map_quality": false,
     "run_image_extractor": false,
     "run_image_selection": false,
+    "run_sam_labeling": true,
     "map_labeler": {
         "color_map": false,
         "label_defects": false
     },
-    "run_quantify_defects": true
+    "run_quantify_defects": false
 }

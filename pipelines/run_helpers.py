@@ -6,6 +6,7 @@ import logging
 from typing import Any, Dict, List
 import shutil
 import statistics
+from pathlib import Path
 
 from run_map_builder import export_corrected_poses, export_raw_slam_poses
 from utils import start_ros_master, start_calibration_publisher_with_file
@@ -373,3 +374,21 @@ def run_quantify_defects(output_path: str):
                 cmd += f"--config {config} --output {defects_output_path}"
                 logger.info("running command: %s", cmd)
                 os.system(cmd)
+
+
+def run_sam_labeling(output_path: str):
+    print("\n------------------------------------")
+    print("----- Running SAM Image Labeling ------")
+    print("------------------------------------\n")
+    ckpt_location = os.path.join(
+        Path.home(), "data", "sam", "sam_vit_h_4b8939.pth")
+    if not os.path.exists(ckpt_location):
+        raise Exception(
+            f"SAM checkpoint location not found, please download checkpoint and save at: {ckpt_location}")
+
+    sam_script_path = os.path.join(PIPELINES_PATH, "run_sam.py")
+    img_extractor_output = os.path.join(output_path, IMAGE_EXTRACTOR_FOLDER)
+    cmd = f"python3 {sam_script_path} --ckpt {ckpt_location} --images_directory {img_extractor_output} "
+    cmd += f"--camera_list_file CameraListNew"
+    logger.info("running command: %s", cmd)
+    os.system(cmd)
