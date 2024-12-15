@@ -6,11 +6,9 @@
     {
       "Name": "F1_link",
       "Intrinsics": "F1.json",
-      "Enabled": true,
+      "Enabled": false,
       "SelectedImages": [
-        "ImageBridge10",
-        "ImageBridge25",
-        "ImageBridge28"
+        "All"
       ]
     },
     {
@@ -32,9 +30,9 @@
     {
       "Name": "F4_link",
       "Intrinsics": "F4.json",
-      "Enabled": false,
+      "Enabled": true,
       "SelectedImages": [
-        "All"
+        "ImageBridge4"
       ]
     }
   ]

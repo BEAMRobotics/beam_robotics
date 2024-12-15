@@ -67,7 +67,7 @@ struct Camera {
   std::string name;
   std::string intrinsics_path;
   std::shared_ptr<beam_calibration::CameraModel> cam_model;
-  std::vector<Image> images;
+  std::unordered_map<int64_t, Image> images;
   std::unique_ptr<beam_colorize::Colorizer> colorizer;
 };
 

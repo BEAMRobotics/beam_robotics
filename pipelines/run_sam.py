@@ -319,8 +319,6 @@ def get_mask(predictor, image_path, image, image_bgr):
         image_info = json.load(f)
     image_info["bgr_mask_method"] = "SAM"
     image_info["is_bgr_mask_set"] = True
-
-    print("image_info\n", image_info)
     with open(json_path, 'w') as f:
         json.dump(image_info, f, indent=4)
 

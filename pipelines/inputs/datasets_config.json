@@ -14,7 +14,7 @@
         },
         {
             "path": "/userhome/data/2021_10_07_11_01_30_KitchenerParkingGarage/",
-            "start_time_s": 5,
+            "start_time_s": 0,
             "duration_s": -1,
             "map_builder_config_filename": "map_builder_config_default.json"
         },

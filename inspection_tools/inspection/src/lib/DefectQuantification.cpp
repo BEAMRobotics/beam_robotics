@@ -45,23 +45,27 @@ DefectQuantification::DefectQuantification(
 
 void DefectQuantification::ProcessDefects() {
   BEAM_INFO("Extracting and quantifying cracks");
-  cracks_ = beam_defects::GetCracks(point_cloud_, crack_threshold_,
-                                    concave_hull_alpha_);
+  cracks_ = beam_defects::GetCracks(
+      point_cloud_, crack_threshold_, euc_clustering_tol_m_,
+      euc_clustering_min_points_, concave_hull_alpha_);
   BEAM_INFO("Extracted and quantified {} cracks", cracks_.size());
 
   BEAM_INFO("Extracting and quantifying spalls");
-  spalls_ = beam_defects::GetSpalls(point_cloud_, crack_threshold_,
-                                    concave_hull_alpha_);
+  spalls_ = beam_defects::GetSpalls(
+      point_cloud_, crack_threshold_, euc_clustering_tol_m_,
+      euc_clustering_min_points_, concave_hull_alpha_);
   BEAM_INFO("Extracted and quantified {} spalls", spalls_.size());
 
   BEAM_INFO("Extracting and quantifying delaminations");
-  delams_ = beam_defects::GetDelams(point_cloud_, crack_threshold_,
-                                    concave_hull_alpha_);
+  delams_ = beam_defects::GetDelams(
+      point_cloud_, crack_threshold_, euc_clustering_tol_m_,
+      euc_clustering_min_points_, concave_hull_alpha_);
   BEAM_INFO("Extracted and quantified {} delaminations", delams_.size());
 
   BEAM_INFO("Extracting and quantifying corrosions");
-  corrosions_ = beam_defects::GetCorrosion(point_cloud_, crack_threshold_,
-                                           concave_hull_alpha_);
+  corrosions_ = beam_defects::GetCorrosion(
+      point_cloud_, crack_threshold_, euc_clustering_tol_m_,
+      euc_clustering_min_points_, concave_hull_alpha_);
   BEAM_INFO("Extracted and quantified {} corrosions", corrosions_.size());
 }
 

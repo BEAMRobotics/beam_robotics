@@ -12,14 +12,14 @@
         "run_batch_optimizer": false
     },
     "run_map_builder": false,
-    "use_refined_results_for_map": true,
+    "use_refined_results_for_map": false,
     "run_map_quality": false,
     "run_image_extractor": false,
     "run_image_selection": false,
-    "run_sam_labeling": true,
+    "run_sam_labeling": false,
     "map_labeler": {
         "color_map": false,
         "label_defects": false
     },
-    "run_quantify_defects": false
+    "run_quantify_defects": true
 }

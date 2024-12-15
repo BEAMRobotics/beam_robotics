@@ -129,15 +129,12 @@ std::unordered_map<std::string, DefectCloudsMapType>
     projection_colorizer.SetIntrinsics(cam.cam_model);
 
     DefectCloudsMapType camera_defects;
-    for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
-      const auto& image = cam.images[img_index];
+    for (const auto& [timestamp_ns, image] : cam.images) {
       const auto& image_container = image.image_container;
       projection_colorizer.SetDistortion(image_container.GetBGRIsDistorted());
-
-      int64_t time_in_ns = image_container.GetRosTime().toNSec();
       DefectCloud::Ptr cloud_in_cam = GetMapVisibleByCam(
           projection_colorizer, image.T_MAP_CAMERA.inverse());
-      camera_defects.emplace(time_in_ns, cloud_in_cam);
+      camera_defects.emplace(timestamp_ns, cloud_in_cam);
     }
     defect_clouds_in_cam.emplace(cam.name, camera_defects);
   }
@@ -187,10 +184,8 @@ void MapLabeler::LabelColor(
     DefectCloudsMapType& camera_defects = defect_clouds_in_cam.at(cam.name);
 
     // color each image for this camera
-    for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
-      const Image& img = cam.images[img_index];
-      int64_t img_time_ns =
-          static_cast<int64_t>(img.image_container.GetRosTime().toNSec());
+    int counter = 0;
+    for (const auto& [img_time_ns, img] : cam.images) {
       beam::HighResolutionTimer timer;
       if (camera_defects.find(img_time_ns) == camera_defects.end()) {
         BEAM_ERROR(
@@ -201,13 +196,13 @@ void MapLabeler::LabelColor(
       if (camera_defects.at(img_time_ns)->empty()) {
         BEAM_WARN(
             "[Cam: {}/{}, Image: {}/{}] Could not color image due to empty map",
-            cam_index + 1, cameras_.size(), img_index + 1, cam.images.size());
+            cam_index + 1, cameras_.size(), counter++, cam.images.size());
       } else {
         ProjectImgRGBToMap(camera_defects.at(img_time_ns), img, cam,
                            remove_unlabeled);
         BEAM_INFO("[Cam: {}/{}, Image: {}/{}] Finished coloring in {} seconds.",
-                  cam_index + 1, cameras_.size(), img_index + 1,
-                  cam.images.size(), timer.elapsed());
+                  cam_index + 1, cameras_.size(), counter++, cam.images.size(),
+                  timer.elapsed());
       }
     }
   }
@@ -227,10 +222,8 @@ void MapLabeler::LabelDefects(
     DefectCloudsMapType& camera_defects = defect_clouds_in_cam.at(cam.name);
 
     // color each image for this camera
-    for (size_t img_index = 0; img_index < cam.images.size(); img_index++) {
-      const Image& img = cam.images[img_index];
-      int64_t img_time_ns =
-          static_cast<int64_t>(img.image_container.GetRosTime().toNSec());
+    int counter = 0;
+    for (const auto& [img_time_ns, img] : cam.images) {
       beam::HighResolutionTimer timer;
       if (camera_defects.find(img_time_ns) == camera_defects.end()) {
         BEAM_ERROR(
@@ -242,7 +235,7 @@ void MapLabeler::LabelDefects(
                              remove_unlabeled);
       BEAM_INFO(
           "[Cam: {}/{}, Image: {}/{}] Finished labeling mask in {} seconds.",
-          cam_index + 1, cameras_.size(), img_index + 1, cam.images.size(),
+          cam_index + 1, cameras_.size(), counter++, cam.images.size(),
           timer.elapsed());
     }
   }
@@ -256,8 +249,7 @@ DefectCloud::Ptr MapLabeler::CombineClouds(
   std::unordered_map<std::string, TransformMapType> transforms;
   for (const auto& camera : cameras_) {
     TransformMapType camera_transforms;
-    for (const Image& image : camera.images) {
-      int64_t time_in_ns = image.image_container.GetRosTime().toNSec();
+    for (const auto& [time_in_ns, image] : camera.images) {
       camera_transforms.emplace(time_in_ns, image.T_MAP_CAMERA);
     }
     transforms.emplace(camera.name, camera_transforms);
@@ -449,21 +441,20 @@ void MapLabeler::SaveCameraPoses(const std::string& output_folder) const {
     auto camera_frames = std::make_shared<pcl::PointCloud<pcl::PointXYZRGBL>>();
     auto baselink_frames =
         std::make_shared<pcl::PointCloud<pcl::PointXYZRGBL>>();
-    for (int image_num = 0; image_num < cam.images.size(); image_num++) {
-      Eigen::Matrix4d T_WORLD_CAM =
-          cam.images.at(image_num).T_MAP_CAMERA.matrix();
+    for (const auto& [img_time_ns, img] : cam.images) {
+      Eigen::Matrix4d T_WORLD_CAM = img.T_MAP_CAMERA.matrix();
       Eigen::Matrix4d T_WORLD_BASELINK = T_WORLD_CAM * T_CAM_BASELINK;
 
       // draw camera frames
-      pcl::PointCloud<pcl::PointXYZRGBL> new_frame = beam::CreateFrameCol(
-          cam.images.at(image_num).image_container.GetRosTime());
+      pcl::PointCloud<pcl::PointXYZRGBL> new_frame =
+          beam::CreateFrameCol(img.image_container.GetRosTime());
       beam::MergeFrameToCloud(*camera_frames, new_frame, T_WORLD_CAM);
 
       // add camera frustums
       pcl::PointCloud<pcl::PointXYZRGBL> frustum =
-          cam.cam_model->CreateCameraFrustum(
-              cam.images.at(image_num).image_container.GetRosTime(),
-              draw_points_increment_, frustum_lengh_);
+          cam.cam_model->CreateCameraFrustum(img.image_container.GetRosTime(),
+                                             draw_points_increment_,
+                                             frustum_lengh_);
       beam::MergeFrameToCloud(*camera_frames, frustum, T_WORLD_CAM);
 
       // draw baselink frames
@@ -494,12 +485,13 @@ void MapLabeler::SaveImages(const std::string& output_folder) const {
   BEAM_INFO("Saving images used for labeling to: {}", output_folder);
   for (int cam_num = 0; cam_num < cameras_.size(); cam_num++) {
     const Camera& cam = cameras_.at(cam_num);
-    for (int image_num = 0; image_num < cam.images.size(); image_num++) {
-      std::string filename =
-          "cam" + std::to_string(cam_num) + "_img" + std::to_string(image_num);
+    int image_num = 0;
+    for (const auto& [timestamp_ns, image] : cam.images) {
+      std::string filename = "cam" + std::to_string(cam_num) + "_img" +
+                             std::to_string(image_num++);
       std::string dir = beam::CombinePaths(output_folder, filename);
       boost::filesystem::create_directories(dir);
-      cam.images.at(image_num).image_container.Write(dir);
+      image.image_container.Write(dir);
     }
   }
 }

@@ -49,7 +49,9 @@ Camera::Camera(const std::string& camera_name,
   std::filesystem::path p(images_filepath);
   std::string save_path = p.parent_path().string();
   for (const std::string& image_name : image_list) {
-    images.push_back(Image(beam::CombinePaths(save_path, image_name)));
+    Image image = Image(beam::CombinePaths(save_path, image_name));
+    int64_t timestamp_ns = image.image_container.GetRosTime().toNSec();
+    images.emplace(timestamp_ns, image);
   }
 
   BEAM_DEBUG("Successfully constructed camera: {}!", name);
@@ -77,13 +79,29 @@ void Camera::FillPoses(const beam_calibration::TfTree& extinsics_tree,
                        const beam_calibration::TfTree& poses_tree,
                        const std::string& poses_moving_frame,
                        const std::string& poses_fixed_frame) {
-  for (Image& image : images) {
+  ros::Time poses_start_time = poses_tree.GetStartTime();
+  ros::Time poses_end_time = poses_tree.GetEndTime();
+  std::vector<int64_t> timestamps_to_erase;
+  for (auto& [timestamp_ns, image] : images) {
+    ros::Time t;
+    t.fromNSec(timestamp_ns);
+    if (t < poses_start_time || t > poses_end_time) {
+      BEAM_WARN("Image timestamp () is outside poses time range [{}, {}]. "
+                "Skipping image",
+                timestamp_ns, poses_start_time.toNSec(),
+                poses_end_time.toNSec());
+      timestamps_to_erase.push_back(timestamp_ns);
+      continue;
+    }
     Eigen::Affine3d T_MAP_BASELINK =
         poses_tree.GetTransformEigen(poses_fixed_frame, poses_moving_frame,
                                      image.image_container.GetRosTime());
     Eigen::Affine3d T_BASELINK_CAM = extinsics_tree.GetTransformEigen(
         poses_moving_frame, cam_model->GetFrameID());
     image.T_MAP_CAMERA = T_MAP_BASELINK * T_BASELINK_CAM;
+  }
+  for (const auto& timestamp_to_erase : timestamps_to_erase) {
+    images.erase(timestamp_to_erase);
   }
 }
 
@@ -151,11 +169,8 @@ std::vector<Camera>
 }
 
 const Image& Camera::GetImageByTimestamp(int64_t timestamp_in_Ns) const {
-  for (const Image& img : images) {
-    if (img.image_container.GetRosTime().toNSec() == timestamp_in_Ns) {
-      return img;
-    }
-  }
+  auto iter = images.find(timestamp_in_Ns);
+  if (iter != images.end()) { return iter->second; }
   BEAM_CRITICAL("no image found with timestamp {}Ns for camera {}",
                 timestamp_in_Ns, name);
   throw std::runtime_error{"no image found"};
